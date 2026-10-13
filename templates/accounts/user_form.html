@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}New HR account{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Create HR account</h1>
+<p class="text-muted">The new HR user will be prompted to change this temporary password on first login.</p>
+
+<div class="card">
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+          {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+      <button class="btn btn-primary" type="submit">Create account</button>
+      <a class="btn btn-link" href="{% url 'accounts:user_list' %}">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

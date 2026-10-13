@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Home</h1>
+<p class="text-muted">Welcome, {{ user.get_full_name|default:user.username }}.</p>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">My Profile</h2>
+        <p class="text-muted">View your employment details and contact information.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'employees:my_profile' %}">Open</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

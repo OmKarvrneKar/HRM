@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}My attendance{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">My Attendance</h1>
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'attendance:my_corrections' %}">My correction requests</a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
+    <div>
+      <div class="text-muted small">Today — {{ today }}</div>
+      {% if today_record %}
+        <div>Check in: <strong>{{ today_record.check_in|default:"—" }}</strong> &nbsp; Check out: <strong>{{ today_record.check_out|default:"—" }}</strong></div>
+      {% else %}
+        <div>No attendance recorded yet today.</div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+      <form method="post" action="{% url 'attendance:check_in' %}">
+        {% csrf_token %}
+        <button class="btn btn-success" type="submit" {% if today_record and today_record.check_in %}disabled{% endif %}>Check in</button>
+      </form>
+      <form method="post" action="{% url 'attendance:check_out' %}">
+        {% csrf_token %}
+        <button class="btn btn-warning" type="submit" {% if not today_record or not today_record.check_in %}disabled{% endif %}>Check out</button>
+      </form>
+      <a class="btn btn-outline-secondary" href="{% url 'attendance:correction_create' %}">Request correction</a>
+    </div>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead><tr><th>Date</th><th>Check in</th><th>Check out</th><th>Status</th><th>Source</th></tr></thead>
+    <tbody>
+      {% for record in records %}
+        <tr>
+          <td>{{ record.date }}</td>
+          <td>{{ record.check_in|default:"—" }}</td>
+          <td>{{ record.check_out|default:"—" }}</td>
+          <td><span class="badge text-bg-info">{{ record.get_status_display }}</span></td>
+          <td>{{ record.get_source_display }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">No attendance history yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

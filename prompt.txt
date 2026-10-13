@@ -1,0 +1,21 @@
+M0–M2 are reported complete. Before proceeding to M3, perform a verification-only audit of the existing implementation.
+
+Do not modify files, refactor code, or begin new features.
+
+Inspect the actual code and tests, and report evidence for each item:
+
+1. Custom user model configuration and HR/Employee role enforcement.
+2. Whether Employee ID is manually assigned by HR, unique, and separate from the database primary key.
+3. Whether employees can access only their own profile and related employee data.
+4. Whether HR-only views reject Employee users on the server side, including direct URL requests.
+5. Whether employees can change their role, create HR accounts, or access Django admin without authorization.
+6. Temporary-password handling, first-login password-change enforcement, and whether the enforcement can be bypassed by navigating directly to other routes.
+7. CSRF protection, login/logout behavior, and password validation.
+8. Test coverage for the above cases, identifying missing tests.
+9. Run the existing test suite and Django system check.
+
+For each item, report PASS, FAIL, or NOT VERIFIED, with the relevant file paths, view/model names, and test names. Distinguish actual test evidence from code inspection.
+
+If anything fails or cannot be verified, recommend the smallest necessary fix, but do not apply it.
+
+Wait for my approval before changing any files or starting M3.

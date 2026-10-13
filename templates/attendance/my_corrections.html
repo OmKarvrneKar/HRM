@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}My correction requests{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">My correction requests</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'attendance:my' %}">Back</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'attendance:correction_create' %}">New request</a>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead><tr><th>Date</th><th>Requested in</th><th>Requested out</th><th>Reason</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for req in requests %}
+        <tr>
+          <td>{{ req.date }}</td>
+          <td>{{ req.requested_check_in|default:"—" }}</td>
+          <td>{{ req.requested_check_out|default:"—" }}</td>
+          <td>{{ req.reason }}</td>
+          <td><span class="badge text-bg-info">{{ req.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">No correction requests.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

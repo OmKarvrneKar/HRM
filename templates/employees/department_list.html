@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Departments</h1>
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'employees:list' %}">Back to People</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-7">
+    <div class="table-responsive">
+      <table class="table table-striped align-middle bg-white">
+        <thead><tr><th>Name</th><th>Description</th><th>Employees</th></tr></thead>
+        <tbody>
+          {% for dept in departments %}
+            <tr>
+              <td>{{ dept.name }}</td>
+              <td>{{ dept.description|default:"—" }}</td>
+              <td>{{ dept.employees.count }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="text-muted">No departments yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header">Add department</div>
+      <div class="card-body">
+        <form method="post" action="{% url 'employees:department_create' %}" novalidate>
+          {% csrf_token %}
+          {% for field in form %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+          {% endfor %}
+          <button class="btn btn-primary" type="submit">Add department</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

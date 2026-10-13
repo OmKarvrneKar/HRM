@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Attendance{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Attendance</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'attendance:corrections' %}">Correction requests</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'attendance:create' %}">Manual entry</a>
+  </div>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto">
+    <input type="date" name="date" value="{{ selected_date }}" class="form-control">
+  </div>
+  <div class="col-auto">
+    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Employee name / ID">
+  </div>
+  <div class="col-auto">
+    <select name="status" class="form-select">
+      <option value="">All statuses</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto"><button class="btn btn-outline-secondary" type="submit">Filter</button></div>
+</form>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead>
+      <tr><th>Employee</th><th>Date</th><th>Check in</th><th>Check out</th><th>Status</th><th>Source</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+        <tr>
+          <td>{{ record.employee.full_name }} <span class="text-muted small">({{ record.employee.employee_id }})</span></td>
+          <td>{{ record.date }}</td>
+          <td>{{ record.check_in|default:"—" }}</td>
+          <td>{{ record.check_out|default:"—" }}</td>
+          <td><span class="badge text-bg-info">{{ record.get_status_display }}</span></td>
+          <td>{{ record.get_source_display }}</td>
+          <td><a class="btn btn-sm btn-outline-primary" href="{% url 'attendance:update' record.pk %}">Edit</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-muted">No attendance records for this filter.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}People & Teams{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">People &amp; Teams</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'employees:departments' %}">Departments</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'employees:create' %}">New employee</a>
+  </div>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto">
+    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search name / ID / email">
+  </div>
+  <div class="col-auto">
+    <select name="department" class="form-select">
+      <option value="">All departments</option>
+      {% for dept in departments %}
+        <option value="{{ dept.pk }}" {% if dept.pk|stringformat:"s" == selected_department %}selected{% endif %}>{{ dept.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <select name="status" class="form-select">
+      <option value="">All statuses</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-secondary" type="submit">Search</button>
+  </div>
+</form>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead>
+      <tr>
+        <th>Employee ID</th>
+        <th>Name</th>
+        <th>Department</th>
+        <th>Designation</th>
+        <th>Manager</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for employee in employees %}
+        <tr>
+          <td>{{ employee.employee_id }}</td>
+          <td>{{ employee.full_name }}</td>
+          <td>{{ employee.department|default:"—" }}</td>
+          <td>{{ employee.designation|default:"—" }}</td>
+          <td>{{ employee.reporting_manager.full_name|default:"—" }}</td>
+          <td><span class="badge text-bg-info">{{ employee.get_employment_status_display }}</span></td>
+          <td><a class="btn btn-sm btn-outline-primary" href="{% url 'employees:detail' employee.pk %}">View</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-muted">No employees found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+  <nav>
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">Previous</a>
+        </li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">Next</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">My Profile</h1>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body text-center">
+        {% if employee.photo %}
+          <img src="{{ employee.photo.url }}" alt="{{ employee.full_name }}" class="img-fluid rounded mb-3" style="max-height: 180px;">
+        {% else %}
+          <div class="display-1 text-secondary mb-3">&#128100;</div>
+        {% endif %}
+        <h2 class="h5 mb-1">{{ employee.full_name }}</h2>
+        <p class="text-muted mb-2">{{ employee.designation|default:"—" }}</p>
+        <span class="badge text-bg-info">{{ employee.get_employment_status_display }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card mb-3">
+      <div class="card-header">Employment</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Employee ID</dt><dd class="col-sm-8">{{ employee.employee_id }}</dd>
+          <dt class="col-sm-4">Department</dt><dd class="col-sm-8">{{ employee.department|default:"—" }}</dd>
+          <dt class="col-sm-4">Joining date</dt><dd class="col-sm-8">{{ employee.joining_date|default:"—" }}</dd>
+          <dt class="col-sm-4">Reporting manager</dt><dd class="col-sm-8">{{ employee.reporting_manager.full_name|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Contact</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">{{ employee.phone|default:"—" }}</dd>
+          <dt class="col-sm-4">Company email</dt><dd class="col-sm-8">{{ employee.company_email|default:"—" }}</dd>
+          <dt class="col-sm-4">Personal email</dt><dd class="col-sm-8">{{ employee.personal_email|default:"—" }}</dd>
+          <dt class="col-sm-4">Address</dt><dd class="col-sm-8">{{ employee.address|default:"—"|linebreaksbr }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

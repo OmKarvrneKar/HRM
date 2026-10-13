@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}HR Dashboard{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">HR Dashboard</h1>
+<p class="text-muted">Welcome, {{ user.get_full_name|default:user.username }}.</p>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">People &amp; Teams</h2>
+        <p class="text-muted">Create and manage employee records, departments and reporting lines.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'employees:list' %}">Open</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Accounts</h2>
+        <p class="text-muted">View user accounts and create additional HR accounts.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'accounts:user_list' %}">Open</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">New Employee</h2>
+        <p class="text-muted">Add an employee and issue a temporary login password.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'employees:create' %}">Add</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

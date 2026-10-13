@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.full_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{{ employee.full_name }}</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'employees:list' %}">Back</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'employees:update' employee.pk %}">Edit</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body text-center">
+        {% if employee.photo %}
+          <img src="{{ employee.photo.url }}" alt="{{ employee.full_name }}" class="img-fluid rounded mb-3" style="max-height: 180px;">
+        {% else %}
+          <div class="display-1 text-secondary mb-3">&#128100;</div>
+        {% endif %}
+        <h2 class="h5 mb-1">{{ employee.full_name }}</h2>
+        <p class="text-muted mb-2">{{ employee.designation|default:"—" }}</p>
+        <span class="badge text-bg-info">{{ employee.get_employment_status_display }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card mb-3">
+      <div class="card-header">Employment details</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Employee ID</dt><dd class="col-sm-8">{{ employee.employee_id }}</dd>
+          <dt class="col-sm-4">Department</dt><dd class="col-sm-8">{{ employee.department|default:"—" }}</dd>
+          <dt class="col-sm-4">Designation</dt><dd class="col-sm-8">{{ employee.designation|default:"—" }}</dd>
+          <dt class="col-sm-4">Joining date</dt><dd class="col-sm-8">{{ employee.joining_date|default:"—" }}</dd>
+          <dt class="col-sm-4">Reporting manager</dt><dd class="col-sm-8">{{ employee.reporting_manager.full_name|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Contact</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">{{ employee.phone|default:"—" }}</dd>
+          <dt class="col-sm-4">Company email</dt><dd class="col-sm-8">{{ employee.company_email|default:"—" }}</dd>
+          <dt class="col-sm-4">Personal email</dt><dd class="col-sm-8">{{ employee.personal_email|default:"—" }}</dd>
+          <dt class="col-sm-4">Address</dt><dd class="col-sm-8">{{ employee.address|default:"—"|linebreaksbr }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Change employment status</div>
+      <div class="card-body">
+        <form method="post" action="{% url 'employees:status_update' employee.pk %}" class="row g-2">
+          {% csrf_token %}
+          <div class="col-auto">{{ status_form.employment_status }}</div>
+          <div class="col-auto"><button class="btn btn-primary" type="submit">Update status</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Emergency contacts</span>
+      </div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush mb-3">
+          {% for contact in employee.emergency_contacts.all %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>{{ contact.name }} ({{ contact.relationship|default:"—" }}) — {{ contact.phone }}</span>
+              <form method="post" action="{% url 'employees:contact_delete' contact.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+              </form>
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted">No emergency contacts recorded.</li>
+          {% endfor %}
+        </ul>
+
+        <form method="post" action="{% url 'employees:contact_add' employee.pk %}" class="row g-2">
+          {% csrf_token %}
+          <div class="col-md-3">{{ contact_form.name }}</div>
+          <div class="col-md-3">{{ contact_form.relationship }}</div>
+          <div class="col-md-3">{{ contact_form.phone }}</div>
+          <div class="col-md-3">{{ contact_form.email }}</div>
+          <div class="col-12"><button class="btn btn-primary btn-sm" type="submit">Add contact</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
