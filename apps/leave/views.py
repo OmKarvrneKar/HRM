@@ -8,6 +8,7 @@ from django.views.generic import CreateView, ListView
 from apps.accounts.mixins import EmployeeRequiredMixin, HRRequiredMixin
 from apps.accounts.utils import get_employee_for
 from apps.audit.services import log_action
+from apps.notifications.services import notify
 
 from .forms import LeaveDecisionForm, LeaveRequestForm, LeaveTypeForm
 from .models import LeaveRequest, LeaveStatus, LeaveType
@@ -73,6 +74,13 @@ class LeaveDecisionView(HRRequiredMixin, View):
             leave_request,
             description=f"Leave {leave_request.status.lower()} by HR.",
             status=leave_request.status,
+        )
+        notify(
+            leave_request.employee.user,
+            f"Leave request {leave_request.status.lower()}",
+            f"Your leave from {leave_request.start_date} to {leave_request.end_date} "
+            f"was {leave_request.status.lower()}.",
+            reverse("leave:my"),
         )
         messages.success(request, f"Leave request {leave_request.status.lower()}.")
         return redirect("leave:requests")

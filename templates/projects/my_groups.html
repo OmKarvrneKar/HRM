@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}My groups{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">My Groups</h1>
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead><tr><th>Group</th><th>Description</th></tr></thead>
+    <tbody>
+      {% for membership in memberships %}
+        <tr>
+          <td>{{ membership.group.name }}</td>
+          <td>{{ membership.group.description|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="2" class="text-muted">You are not a member of any group.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

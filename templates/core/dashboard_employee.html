@@ -5,11 +5,57 @@
 <p class="text-muted">Welcome, {{ user.get_full_name|default:user.username }}.</p>
 
 <div class="row g-3">
-  <div class="col-md-6">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Attendance</h2>
+        <p class="text-muted">Check in or out and view your attendance history.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'attendance:my' %}">Open</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Leave</h2>
+        <p class="text-muted">Apply for leave and track request status.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'leave:my' %}">Open</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">My Work</h2>
+        <p class="text-muted">Projects, groups and daily work logs.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'projects:my_worklogs' %}">Work logs</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:my_projects' %}">Projects</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Notifications</h2>
+        <p class="text-muted">Announcements, events and deadlines.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'notifications:my' %}">Open</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Documents</h2>
+        <p class="text-muted">Your authorized HR documents and communications.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'documents:my_documents' %}">Open</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
     <div class="card h-100">
       <div class="card-body">
         <h2 class="h5">My Profile</h2>
-        <p class="text-muted">View your employment details and contact information.</p>
+        <p class="text-muted">Your employment details and contact information.</p>
         <a class="btn btn-primary btn-sm" href="{% url 'employees:my_profile' %}">Open</a>
       </div>
     </div>

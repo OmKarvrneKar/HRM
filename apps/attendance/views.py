@@ -8,6 +8,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 from apps.accounts.mixins import EmployeeRequiredMixin, HRRequiredMixin
 from apps.accounts.utils import get_employee_for
 from apps.audit.services import log_action
+from apps.notifications.services import notify
 
 from .forms import (
     AttendanceRecordForm,
@@ -148,6 +149,12 @@ class CorrectionDecisionView(HRRequiredMixin, View):
             correction,
             description=f"Correction {decision.lower()} by HR.",
             decision=decision,
+        )
+        notify(
+            correction.employee.user,
+            f"Attendance correction {decision.lower()}",
+            f"Your correction request for {correction.date} was {decision.lower()}.",
+            reverse("attendance:my_corrections"),
         )
         messages.success(request, f"Correction {decision.lower()}.")
         return redirect("attendance:corrections")

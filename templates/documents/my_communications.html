@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Communications{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Team &amp; Legal Communications</h1>
+<div class="row g-3">
+  {% for item in communications %}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">{{ item.title }}</h2>
+          <p class="text-muted small">To: {{ item.get_audience_display }} · {{ item.created_at|date:"Y-m-d" }}</p>
+          <p>{{ item.body|linebreaksbr }}</p>
+          {% if item.attachment %}
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'documents:download' item.attachment.pk %}">Download attachment</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12"><p class="text-muted">No communications.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Projects &amp; Work</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:groups' %}">Groups</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:worklog_review' %}">Work logs</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'projects:create' %}">New project</a>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead><tr><th>Name</th><th>Status</th><th>Start</th><th>End</th><th>Members</th><th></th></tr></thead>
+    <tbody>
+      {% for project in projects %}
+        <tr>
+          <td>{{ project.name }}</td>
+          <td><span class="badge text-bg-info">{{ project.get_status_display }}</span></td>
+          <td>{{ project.start_date|default:"—" }}</td>
+          <td>{{ project.end_date|default:"—" }}</td>
+          <td>{{ project.assignments.count }}</td>
+          <td><a class="btn btn-sm btn-outline-primary" href="{% url 'projects:detail' project.pk %}">View</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-muted">No projects yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

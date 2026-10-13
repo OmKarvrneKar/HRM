@@ -108,6 +108,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # HR documents and other sensitive files are stored OUTSIDE the public media
 # root and are only served through authenticated, permission-checked views.
-PRIVATE_MEDIA_ROOT = BASE_DIR / "media" / "private"
+PRIVATE_MEDIA_ROOT = BASE_DIR / "private_media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

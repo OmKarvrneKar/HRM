@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{{ project.name }}</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:list' %}">Back</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'projects:update' project.pk %}">Edit</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-7">
+    <div class="card mb-3">
+      <div class="card-header">Details</div>
+      <div class="card-body">
+        <p>{{ project.description|default:"No description."|linebreaksbr }}</p>
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Status</dt><dd class="col-sm-8">{{ project.get_status_display }}</dd>
+          <dt class="col-sm-4">Dates</dt><dd class="col-sm-8">{{ project.start_date|default:"—" }} → {{ project.end_date|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Team</div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush mb-3">
+          {% for assignment in assignments %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>{{ assignment.employee.full_name }} — {{ assignment.role|default:"Member" }}</span>
+              <form method="post" action="{% url 'projects:unassign' assignment.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+              </form>
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted">No members assigned.</li>
+          {% endfor %}
+        </ul>
+        <form method="post" action="{% url 'projects:assign' project.pk %}" class="row g-2">
+          {% csrf_token %}
+          <div class="col-md-6">{{ assignment_form.employee }}</div>
+          <div class="col-md-4">{{ assignment_form.role }}</div>
+          <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Assign</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header">Recent work logs</div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          {% for log in work_logs %}
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between">
+                <strong>{{ log.employee.full_name }}</strong>
+                <span class="text-muted small">{{ log.date }} · {{ log.hours }}h</span>
+              </div>
+              <div class="small">{{ log.description|truncatechars:80 }}</div>
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted">No work logs.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -12,6 +12,7 @@ from django.views.generic import (
 )
 
 from apps.accounts.mixins import HRRequiredMixin
+from apps.audit.services import log_action
 
 from .forms import (
     DepartmentForm,
@@ -76,6 +77,16 @@ class EmployeeCreateView(HRRequiredMixin, CreateView):
     form_class = EmployeeCreateForm
     template_name = "employees/employee_form.html"
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        log_action(
+            self.request.user,
+            "EMPLOYEE_CREATED",
+            self.object,
+            description="HR created an employee record.",
+        )
+        return response
+
     def get_success_url(self):
         return reverse("employees:detail", kwargs={"pk": self.object.pk})
 
@@ -85,6 +96,16 @@ class EmployeeUpdateView(HRRequiredMixin, UpdateView):
     form_class = EmployeeUpdateForm
     template_name = "employees/employee_form.html"
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        log_action(
+            self.request.user,
+            "EMPLOYEE_UPDATED",
+            self.object,
+            description="HR updated an employee record.",
+        )
+        return response
+
     def get_success_url(self):
         return reverse("employees:detail", kwargs={"pk": self.object.pk})
 
@@ -93,6 +114,17 @@ class EmployeeStatusUpdateView(HRRequiredMixin, UpdateView):
     model = Employee
     form_class = EmployeeStatusForm
     http_method_names = ["post"]
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        log_action(
+            self.request.user,
+            "EMPLOYEE_STATUS_CHANGED",
+            self.object,
+            description="HR changed employment status.",
+            status=self.object.employment_status,
+        )
+        return response
 
     def get_success_url(self):
         return reverse("employees:detail", kwargs={"pk": self.object.pk})

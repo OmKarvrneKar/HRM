@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{{ group.name }}</h1>
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:groups' %}">Back</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <p class="text-muted">{{ group.description|default:"No description." }}</p>
+    <ul class="list-group list-group-flush mb-3">
+      {% for membership in group.memberships.all %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>{{ membership.employee.full_name }} ({{ membership.employee.employee_id }})</span>
+          <form method="post" action="{% url 'projects:group_member_remove' membership.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="list-group-item text-muted">No members.</li>
+      {% endfor %}
+    </ul>
+    <form method="post" action="{% url 'projects:group_member_add' group.pk %}" class="row g-2">
+      {% csrf_token %}
+      <div class="col-md-8">{{ membership_form.employee }}</div>
+      <div class="col-md-4"><button class="btn btn-primary w-100" type="submit">Add member</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

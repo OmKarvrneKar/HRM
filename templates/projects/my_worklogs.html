@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}My work logs{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">My Work Logs</h1>
+  <a class="btn btn-primary btn-sm" href="{% url 'projects:worklog_create' %}">Submit work log</a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead><tr><th>Date</th><th>Project</th><th>Hours</th><th>Description</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for log in logs %}
+        <tr>
+          <td>{{ log.date }}</td>
+          <td>{{ log.project.name|default:"—" }}</td>
+          <td>{{ log.hours }}</td>
+          <td>{{ log.description|truncatechars:80 }}</td>
+          <td><span class="badge text-bg-info">{{ log.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">No work logs yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}HR documents{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Legal &amp; Documents</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'documents:legal' %}">Legal communications</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'documents:create' %}">Upload document</a>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle bg-white">
+    <thead><tr><th>Title</th><th>Type</th><th>Employee</th><th>Visibility</th><th>Uploaded</th><th></th></tr></thead>
+    <tbody>
+      {% for document in documents %}
+        <tr>
+          <td>{{ document.title }}</td>
+          <td>{{ document.get_document_type_display }}</td>
+          <td>{{ document.employee.full_name|default:"—" }}</td>
+          <td><span class="badge text-bg-secondary">{{ document.get_visibility_display }}</span></td>
+          <td>{{ document.uploaded_at|date:"Y-m-d" }}</td>
+          <td class="d-flex gap-1">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'documents:download' document.pk %}">Download</a>
+            <form method="post" action="{% url 'documents:delete' document.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-muted">No documents uploaded.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

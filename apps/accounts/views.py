@@ -56,3 +56,15 @@ class HRUserCreateView(HRRequiredMixin, CreateView):
     form_class = HRUserCreateForm
     template_name = "accounts/user_form.html"
     success_url = reverse_lazy("accounts:user_list")
+
+    def form_valid(self, form):
+        from apps.audit.services import log_action
+
+        response = super().form_valid(form)
+        log_action(
+            self.request.user,
+            "HR_ACCOUNT_CREATED",
+            self.object,
+            description="HR account created with a temporary password.",
+        )
+        return response
