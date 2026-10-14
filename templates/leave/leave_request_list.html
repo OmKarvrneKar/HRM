@@ -43,7 +43,10 @@
                 <button class="btn btn-sm btn-primary" type="submit">Save</button>
               </form>
             {% else %}
-              <span class="text-muted small">{{ item.decision_note|default:"—" }}</span>
+              <span class="text-muted small">
+                {{ item.reviewed_by|default:"—" }} · {{ item.reviewed_at|date:"Y-m-d H:i" }}
+                {% if item.decision_note %}— {{ item.decision_note }}{% endif %}
+              </span>
             {% endif %}
           </td>
         </tr>

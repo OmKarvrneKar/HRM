@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -87,6 +88,8 @@ class AttendanceUpdateView(HRRequiredMixin, UpdateView):
         return reverse("attendance:list")
 
     def form_valid(self, form):
+        form.instance.source = AttendanceSource.HR
+        form.instance.created_by = self.request.user
         response = super().form_valid(form)
         log_action(
             self.request.user,
@@ -128,6 +131,7 @@ class CorrectionDecisionView(HRRequiredMixin, View):
         correction.status = decision
         correction.reviewed_by = request.user
         correction.reviewed_at = timezone.now()
+        correction.decision_note = form.cleaned_data.get("note", "")
 
         if decision == CorrectionStatus.APPROVED:
             record, _ = AttendanceRecord.objects.get_or_create(
@@ -149,6 +153,7 @@ class CorrectionDecisionView(HRRequiredMixin, View):
             correction,
             description=f"Correction {decision.lower()} by HR.",
             decision=decision,
+            note=correction.decision_note,
         )
         notify(
             correction.employee.user,
@@ -185,15 +190,19 @@ class CheckInView(EmployeeRequiredMixin, View):
     def post(self, request):
         employee = get_employee_for(request.user)
         today = timezone.localdate()
-        record, created = AttendanceRecord.objects.get_or_create(
-            employee=employee,
-            date=today,
-            defaults={
-                "check_in": timezone.localtime().time(),
-                "status": AttendanceStatus.PRESENT,
-                "source": AttendanceSource.SELF,
-            },
-        )
+        try:
+            record, created = AttendanceRecord.objects.get_or_create(
+                employee=employee,
+                date=today,
+                defaults={
+                    "check_in": timezone.localtime().time(),
+                    "status": AttendanceStatus.PRESENT,
+                    "source": AttendanceSource.SELF,
+                },
+            )
+        except IntegrityError:
+            messages.info(request, "Already checked in today.")
+            return redirect("attendance:my")
         if not created and record.check_in is None:
             record.check_in = timezone.localtime().time()
             record.source = AttendanceSource.SELF
@@ -217,7 +226,14 @@ class CheckOutView(EmployeeRequiredMixin, View):
         if record is None or record.check_in is None:
             messages.error(request, "You must check in before checking out.")
             return redirect("attendance:my")
-        record.check_out = timezone.localtime().time()
+        if record.check_out is not None:
+            messages.info(request, "You have already checked out today.")
+            return redirect("attendance:my")
+        now = timezone.localtime().time()
+        if now < record.check_in:
+            messages.error(request, "Check-out cannot be earlier than check-in.")
+            return redirect("attendance:my")
+        record.check_out = now
         record.save(update_fields=["check_out"])
         log_action(request.user, "ATTENDANCE_CHECK_OUT", record)
         messages.success(request, "Checked out.")
@@ -240,13 +256,24 @@ class CorrectionRequestCreateView(EmployeeRequiredMixin, CreateView):
 
     def form_valid(self, form):
         employee = get_employee_for(self.request.user)
+        date = form.instance.date
+        if AttendanceCorrectionRequest.objects.filter(
+            employee=employee, date=date, status=CorrectionStatus.PENDING
+        ).exists():
+            messages.error(
+                self.request,
+                "You already have a pending correction request for that date.",
+            )
+            return redirect("attendance:my_corrections")
         form.instance.employee = employee
         form.instance.attendance = AttendanceRecord.objects.filter(
-            employee=employee, date=form.instance.date
+            employee=employee, date=date
         ).first()
         response = super().form_valid(form)
         log_action(self.request.user, "ATTENDANCE_CORRECTION_REQUESTED", self.object)
-        messages.success(request, "Correction request submitted for HR review.")
+        messages.success(
+            self.request, "Correction request submitted for HR review."
+        )
         return response
 
     def get_success_url(self):

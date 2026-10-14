@@ -1,9 +1,31 @@
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
 from apps.accounts.models import Role, User
 
 from .models import Department, Employee, EmploymentStatus
+
+
+class EmployeeIdTests(TestCase):
+    """Item 1: employee_id is manually assigned, unique, and separate from the PK."""
+
+    def test_employee_id_unique_and_separate_from_pk(self):
+        first = User.objects.create_user(username="u1", password="pw12345!")
+        second = User.objects.create_user(username="u2", password="pw12345!")
+        employee = Employee.objects.create(
+            user=first, employee_id="E001", full_name="One"
+        )
+
+        self.assertTrue(Employee._meta.get_field("employee_id").unique)
+        self.assertEqual(Employee._meta.pk.name, "id")
+        self.assertNotEqual(str(employee.pk), employee.employee_id)
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Employee.objects.create(
+                    user=second, employee_id="E001", full_name="Duplicate"
+                )
 
 
 class EmployeeManagementTests(TestCase):

@@ -1,8 +1,16 @@
 from django import forms
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from apps.employees.models import Employee
 
-from .models import GroupMembership, Project, ProjectAssignment, TeamGroup, WorkLog
+from .models import (
+    MAX_DAILY_HOURS,
+    GroupMembership,
+    Project,
+    ProjectAssignment,
+    TeamGroup,
+    WorkLog,
+)
 
 
 def _style(fields):
@@ -83,6 +91,16 @@ class WorkLogForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _style(self.fields)
         if employee is not None:
-            projects = Project.objects.filter(assignments__employee=employee)
-            self.fields["project"].queryset = projects
+            self.instance.employee = employee
+            self.fields["project"].queryset = Project.objects.filter(
+                assignments__employee=employee
+            )
         self.fields["project"].required = False
+        hours = self.fields["hours"]
+        hours.required = False
+        hours.validators.append(MinValueValidator(0))
+        hours.validators.append(MaxValueValidator(MAX_DAILY_HOURS))
+
+    def clean_hours(self):
+        hours = self.cleaned_data.get("hours")
+        return hours if hours is not None else 0

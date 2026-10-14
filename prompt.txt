@@ -1,21 +1,27 @@
-M0–M2 are reported complete. Before proceeding to M3, perform a verification-only audit of the existing implementation.
+M5 — Projects, Teams, and Work Logs is approved based on the reported implementation and passing tests.
 
-Do not modify files, refactor code, or begin new features.
+Proceed with M6 — Documents and Legal Communications only.
 
-Inspect the actual code and tests, and report evidence for each item:
+Before coding, inspect the existing models, authentication, permissions, templates, URL patterns, audit services, and private-media setup. Reuse the existing architecture; do not rebuild unrelated modules.
 
-1. Custom user model configuration and HR/Employee role enforcement.
-2. Whether Employee ID is manually assigned by HR, unique, and separate from the database primary key.
-3. Whether employees can access only their own profile and related employee data.
-4. Whether HR-only views reject Employee users on the server side, including direct URL requests.
-5. Whether employees can change their role, create HR accounts, or access Django admin without authorization.
-6. Temporary-password handling, first-login password-change enforcement, and whether the enforcement can be bypassed by navigating directly to other routes.
-7. CSRF protection, login/logout behavior, and password validation.
-8. Test coverage for the above cases, identifying missing tests.
-9. Run the existing test suite and Django system check.
+Requirements:
 
-For each item, report PASS, FAIL, or NOT VERIFIED, with the relevant file paths, view/model names, and test names. Distinguish actual test evidence from code inspection.
+1. HR can upload, view, update metadata for, and manage employee HR documents.
+2. Documents must be private by default and must not be served through publicly accessible media URLs.
+3. Employees can view and download only documents explicitly authorized for them.
+4. Enforce document permissions on every download request, including direct URL access.
+5. Store uploads safely, use non-guessable stored filenames, validate allowed file types and file sizes, and avoid trusting the original filename or browser-supplied content type.
+6. Do not expose local filesystem paths or sensitive storage details in responses.
+7. Record relevant document uploads, metadata changes, and downloads in the existing audit system without logging document contents or secrets.
+8. HR can create legal communications addressed to authorized employees, selected groups, or an explicitly supported company-wide audience.
+9. Enforce legal-communication visibility server-side for both viewing and downloading any associated attachments.
+10. Prevent unauthorized employees from discovering private document or legal-communication metadata through lists, detail pages, search, or direct URLs.
+11. Use Django templates and Bootstrap. Do not introduce email delivery, e-signatures, external document storage, or unrelated features.
 
-If anything fails or cannot be verified, recommend the smallest necessary fix, but do not apply it.
+Testing:
+- Test authorized and unauthorized document downloads, direct URL access, upload validation, filename safety, and audit behavior.
+- Test legal-communication audience restrictions for individual employees, groups, and company-wide messages.
+- Test unauthorized direct GET and POST requests.
+- Run the full test suite, `manage.py check`, and `makemigrations --check --dry-run`.
 
-Wait for my approval before changing any files or starting M3.
+Work only on M6 and necessary integrations. Report changed files, migrations, storage/access-control behavior, test results, and unresolved risks. Do not start M7 without my review and approval.

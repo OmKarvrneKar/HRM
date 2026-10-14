@@ -1,14 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Work logs{% endblock %}
+{% block title %}Work log review{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Work logs</h1>
+  <h1 class="h3 mb-0">Work log review</h1>
   <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:list' %}">Projects</a>
 </div>
 
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto">
+    <select name="employee" class="form-select form-select-sm">
+      <option value="">All employees</option>
+      {% for emp in employees %}
+        <option value="{{ emp.pk }}" {% if filters.employee == emp.pk|stringformat:"s" %}selected{% endif %}>{{ emp.full_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <select name="project" class="form-select form-select-sm">
+      <option value="">All projects</option>
+      {% for project in projects %}
+        <option value="{{ project.pk }}" {% if filters.project == project.pk|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <input type="date" name="date" value="{{ filters.date }}" class="form-control form-control-sm">
+  </div>
+  <div class="col-auto">
+    <select name="status" class="form-select form-select-sm">
+      <option value="">All statuses</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-sm btn-primary" type="submit">Filter</button>
+    <a class="btn btn-sm btn-link" href="{% url 'projects:worklog_review' %}">Clear</a>
+  </div>
+</form>
+
 <div class="table-responsive">
   <table class="table table-striped align-middle bg-white">
-    <thead><tr><th>Employee</th><th>Date</th><th>Project</th><th>Hours</th><th>Description</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Employee</th><th>Date</th><th>Project</th><th>Hours</th><th>Description</th><th>Status</th><th>Review</th><th></th></tr></thead>
     <tbody>
       {% for log in logs %}
         <tr>
@@ -18,6 +52,13 @@
           <td>{{ log.hours }}</td>
           <td>{{ log.description|truncatechars:60 }}</td>
           <td><span class="badge text-bg-info">{{ log.get_status_display }}</span></td>
+          <td class="small">
+            {% if log.status == "REVIEWED" %}
+              {{ log.reviewed_by|default:"—" }} · {{ log.reviewed_at|date:"Y-m-d H:i" }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
           <td>
             {% if log.status == "SUBMITTED" %}
               <form method="post" action="{% url 'projects:worklog_review_decision' log.pk %}">
@@ -30,7 +71,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="7" class="text-muted">No work logs.</td></tr>
+        <tr><td colspan="8" class="text-muted">No work logs.</td></tr>
       {% endfor %}
     </tbody>
   </table>

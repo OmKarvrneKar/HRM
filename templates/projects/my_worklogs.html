@@ -8,7 +8,7 @@
 
 <div class="table-responsive">
   <table class="table table-striped align-middle bg-white">
-    <thead><tr><th>Date</th><th>Project</th><th>Hours</th><th>Description</th><th>Status</th></tr></thead>
+    <thead><tr><th>Date</th><th>Project</th><th>Hours</th><th>Description</th><th>Status</th><th></th></tr></thead>
     <tbody>
       {% for log in logs %}
         <tr>
@@ -17,9 +17,16 @@
           <td>{{ log.hours }}</td>
           <td>{{ log.description|truncatechars:80 }}</td>
           <td><span class="badge text-bg-info">{{ log.get_status_display }}</span></td>
+          <td class="text-end">
+            {% if log.status == "SUBMITTED" %}
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'projects:worklog_edit' log.pk %}">Edit</a>
+            {% else %}
+              <span class="text-muted small">Locked</span>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5" class="text-muted">No work logs yet.</td></tr>
+        <tr><td colspan="6" class="text-muted">No work logs yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -10,6 +10,7 @@ urlpatterns = [
     path("new/", views.ProjectCreateView.as_view(), name="create"),
     path("<int:pk>/", views.ProjectDetailView.as_view(), name="detail"),
     path("<int:pk>/edit/", views.ProjectUpdateView.as_view(), name="update"),
+    path("<int:pk>/archive/", views.ProjectArchiveView.as_view(), name="archive"),
     path(
         "<int:pk>/assign/",
         views.ProjectAssignmentCreateView.as_view(),
@@ -24,6 +25,7 @@ urlpatterns = [
     path("groups/", views.GroupListView.as_view(), name="groups"),
     path("groups/new/", views.GroupCreateView.as_view(), name="group_create"),
     path("groups/<int:pk>/", views.GroupDetailView.as_view(), name="group_detail"),
+    path("groups/<int:pk>/edit/", views.GroupUpdateView.as_view(), name="group_edit"),
     path(
         "groups/<int:pk>/members/add/",
         views.GroupMembershipCreateView.as_view(),
@@ -46,4 +48,9 @@ urlpatterns = [
     path("me/groups/", views.MyGroupsView.as_view(), name="my_groups"),
     path("me/worklogs/", views.MyWorkLogsView.as_view(), name="my_worklogs"),
     path("me/worklogs/new/", views.WorkLogCreateView.as_view(), name="worklog_create"),
+    path(
+        "me/worklogs/<int:pk>/edit/",
+        views.WorkLogUpdateView.as_view(),
+        name="worklog_edit",
+    ),
 ]

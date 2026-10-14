@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}New group{% endblock %}
 {% block content %}
-<h1 class="h3 mb-3">New group</h1>
+<h1 class="h3 mb-3">{% if object %}Edit group{% else %}New group{% endif %}</h1>
 <div class="card">
   <div class="card-body">
     <form method="post" novalidate>
@@ -13,7 +13,7 @@
           {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
         </div>
       {% endfor %}
-      <button class="btn btn-primary" type="submit">Create group</button>
+      <button class="btn btn-primary" type="submit">{% if object %}Save{% else %}Create group{% endif %}</button>
       <a class="btn btn-link" href="{% url 'projects:groups' %}">Cancel</a>
     </form>
   </div>

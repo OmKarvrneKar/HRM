@@ -15,6 +15,15 @@ class LeaveTypeForm(forms.ModelForm):
                 "form-check-input" if name == "is_active" else "form-control"
             )
 
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        duplicates = LeaveType.objects.filter(name__iexact=name)
+        if self.instance.pk:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise forms.ValidationError("A leave type with this name already exists.")
+        return name
+
 
 class LeaveRequestForm(forms.ModelForm):
     class Meta:
@@ -25,8 +34,9 @@ class LeaveRequestForm(forms.ModelForm):
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, employee=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.employee = employee or getattr(self.instance, "employee", None)
         self.fields["leave_type"].queryset = LeaveType.objects.filter(is_active=True)
         for name, field in self.fields.items():
             field.widget.attrs["class"] = (
@@ -37,8 +47,22 @@ class LeaveRequestForm(forms.ModelForm):
         cleaned = super().clean()
         start = cleaned.get("start_date")
         end = cleaned.get("end_date")
-        if start and end and end < start:
-            self.add_error("end_date", "End date cannot be before the start date.")
+        if start and end:
+            if end < start:
+                self.add_error("end_date", "End date cannot be before the start date.")
+            elif self.employee is not None:
+                clash = LeaveRequest.overlapping(
+                    self.employee,
+                    start,
+                    end,
+                    exclude_pk=self.instance.pk,
+                )
+                if clash.exists():
+                    self.add_error(
+                        "start_date",
+                        "This overlaps an existing pending or approved leave "
+                        "request.",
+                    )
         return cleaned
 
 

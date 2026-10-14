@@ -2,10 +2,19 @@
 {% block title %}{{ project.name }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">{{ project.name }}</h1>
+  <h1 class="h3 mb-0">
+    {{ project.name }}
+    {% if project.is_archived %}<span class="badge text-bg-secondary ms-1">Archived</span>{% endif %}
+  </h1>
   <div>
     <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:list' %}">Back</a>
     <a class="btn btn-primary btn-sm" href="{% url 'projects:update' project.pk %}">Edit</a>
+    <form method="post" action="{% url 'projects:archive' project.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button class="btn btn-sm {% if project.is_archived %}btn-outline-success{% else %}btn-outline-warning{% endif %}" type="submit">
+        {% if project.is_archived %}Restore{% else %}Archive{% endif %}
+      </button>
+    </form>
   </div>
 </div>
 

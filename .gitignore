@@ -10,6 +10,7 @@ venv/
 db.sqlite3
 /staticfiles/
 /media/
+/private_media/
 
 # Environment / secrets
 .env

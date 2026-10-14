@@ -1,9 +1,9 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.accounts.mixins import EmployeeRequiredMixin, HRRequiredMixin
 from apps.accounts.utils import get_employee_for
@@ -31,8 +31,43 @@ class LeaveTypeListView(HRRequiredMixin, ListView):
 class LeaveTypeCreateView(HRRequiredMixin, CreateView):
     model = LeaveType
     form_class = LeaveTypeForm
-    http_method_names = ["post"]
-    success_url = reverse_lazy("leave:types")
+    template_name = "leave/leave_type_form.html"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        log_action(
+            self.request.user,
+            "LEAVE_TYPE_CREATED",
+            self.object,
+            description=f"Leave type '{self.object.name}' created.",
+            is_active=self.object.is_active,
+        )
+        messages.success(self.request, "Leave type created.")
+        return response
+
+    def get_success_url(self):
+        return reverse("leave:types")
+
+
+class LeaveTypeUpdateView(HRRequiredMixin, UpdateView):
+    model = LeaveType
+    form_class = LeaveTypeForm
+    template_name = "leave/leave_type_form.html"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        log_action(
+            self.request.user,
+            "LEAVE_TYPE_UPDATED",
+            self.object,
+            description=f"Leave type '{self.object.name}' updated.",
+            is_active=self.object.is_active,
+        )
+        messages.success(self.request, "Leave type updated.")
+        return response
+
+    def get_success_url(self):
+        return reverse("leave:types")
 
 
 class LeaveRequestListView(HRRequiredMixin, ListView):
@@ -57,6 +92,9 @@ class LeaveRequestListView(HRRequiredMixin, ListView):
 class LeaveDecisionView(HRRequiredMixin, View):
     def post(self, request, pk):
         leave_request = get_object_or_404(LeaveRequest, pk=pk)
+        if leave_request.status != LeaveStatus.PENDING:
+            messages.error(request, "This request has already been decided.")
+            return redirect("leave:requests")
         form = LeaveDecisionForm(request.POST)
         if not form.is_valid():
             messages.error(request, "Invalid decision.")
@@ -74,6 +112,7 @@ class LeaveDecisionView(HRRequiredMixin, View):
             leave_request,
             description=f"Leave {leave_request.status.lower()} by HR.",
             status=leave_request.status,
+            note=leave_request.decision_note,
         )
         notify(
             leave_request.employee.user,
@@ -109,6 +148,11 @@ class LeaveRequestCreateView(EmployeeRequiredMixin, CreateView):
     model = LeaveRequest
     form_class = LeaveRequestForm
     template_name = "leave/leave_form.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["employee"] = get_employee_for(self.request.user)
+        return kwargs
 
     def form_valid(self, form):
         form.instance.employee = get_employee_for(self.request.user)

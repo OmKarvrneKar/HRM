@@ -47,3 +47,14 @@ class CorrectionDecisionForm(forms.Form):
     decision = forms.ChoiceField(
         choices=[("APPROVED", "Approve"), ("REJECTED", "Reject")]
     )
+    note = forms.CharField(
+        required=False,
+        label="Reason (optional)",
+        widget=forms.Textarea(attrs={"rows": 2}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            css = "form-select" if isinstance(field.widget, forms.Select) else "form-control"
+            field.widget.attrs.setdefault("class", css)

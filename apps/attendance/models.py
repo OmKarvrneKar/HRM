@@ -1,4 +1,15 @@
+"""Attendance models.
+
+Attendance date policy
+----------------------
+The "attendance date" is the calendar date in the configured project timezone
+(``settings.TIME_ZONE = "Asia/Kolkata"``), taken with
+``django.utils.timezone.localdate()``. Every self-service action (check-in,
+check-out) operates on *today* in that timezone, never the raw UTC date. HR may
+record or correct any explicit date. One row is allowed per employee per date.
+"""
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.employees.models import Employee
@@ -46,9 +57,29 @@ class AttendanceRecord(models.Model):
     class Meta:
         unique_together = ("employee", "date")
         ordering = ["-date", "employee__employee_id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(check_out__isnull=True)
+                    | models.Q(check_in__isnull=True)
+                    | models.Q(check_out__gte=models.F("check_in"))
+                ),
+                name="attendance_checkout_gte_checkin",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.employee.employee_id} @ {self.date} ({self.get_status_display()})"
+
+    def clean(self):
+        if self.check_out and not self.check_in:
+            raise ValidationError(
+                {"check_out": "A check-out time requires a check-in time."}
+            )
+        if self.check_in and self.check_out and self.check_out < self.check_in:
+            raise ValidationError(
+                {"check_out": "Check-out must be at or after check-in."}
+            )
 
     @property
     def is_complete(self):
@@ -89,6 +120,10 @@ class AttendanceCorrectionRequest(models.Model):
         related_name="reviewed_corrections",
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(
+        blank=True,
+        help_text="Reason recorded by HR when approving or rejecting the request.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -96,3 +131,22 @@ class AttendanceCorrectionRequest(models.Model):
 
     def __str__(self):
         return f"Correction {self.employee.employee_id} {self.date} ({self.status})"
+
+    def clean(self):
+        if not self.requested_check_in and not self.requested_check_out:
+            raise ValidationError(
+                "Provide at least one requested time (check-in or check-out)."
+            )
+        if (
+            self.requested_check_in
+            and self.requested_check_out
+            and self.requested_check_out < self.requested_check_in
+        ):
+            raise ValidationError(
+                {
+                    "requested_check_out": (
+                        "Requested check-out must be at or after the requested "
+                        "check-in."
+                    )
+                }
+            )

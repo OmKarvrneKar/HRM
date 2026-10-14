@@ -23,7 +23,7 @@
       </form>
       <form method="post" action="{% url 'attendance:check_out' %}">
         {% csrf_token %}
-        <button class="btn btn-warning" type="submit" {% if not today_record or not today_record.check_in %}disabled{% endif %}>Check out</button>
+        <button class="btn btn-warning" type="submit" {% if not today_record or not today_record.check_in or today_record.check_out %}disabled{% endif %}>Check out</button>
       </form>
       <a class="btn btn-outline-secondary" href="{% url 'attendance:correction_create' %}">Request correction</a>
     </div>

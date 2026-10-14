@@ -26,19 +26,23 @@
         <tr>
           <td>{{ req.employee.full_name }}</td>
           <td>{{ req.date }}</td>
-          <td>{{ request.requested_check_in|default:"—" }}</td>
+          <td>{{ req.requested_check_in|default:"—" }}</td>
           <td>{{ req.requested_check_out|default:"—" }}</td>
           <td>{{ req.reason }}</td>
-          <td><span class="badge text-bg-secondary">{{ r.get_status_display|default:req.get_status_display }}</span></td>
+          <td><span class="badge text-bg-secondary">{{ req.get_status_display }}</span></td>
           <td>
             {% if req.status == "PENDING" %}
               <form method="post" action="{% url 'attendance:correction_decision' req.pk %}" class="d-flex gap-1">
                 {% csrf_token %}
+                <input type="text" name="note" class="form-control form-control-sm" placeholder="Reason (optional)" aria-label="Reason">
                 <button class="btn btn-sm btn-success" name="decision" value="APPROVED" type="submit">Approve</button>
                 <button class="btn btn-sm btn-outline-danger" name="decision" value="REJECTED" type="submit">Reject</button>
               </form>
             {% else %}
-              <span class="text-muted small">Reviewed</span>
+              <span class="text-muted small">
+                {{ req.reviewed_by|default:"—" }} · {{ req.reviewed_at|date:"Y-m-d H:i" }}
+                {% if req.decision_note %}— {{ req.decision_note }}{% endif %}
+              </span>
             {% endif %}
           </td>
         </tr>

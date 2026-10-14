@@ -10,13 +10,25 @@
   </div>
 </div>
 
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto">
+    <select name="archived" class="form-select" onchange="this.form.submit()">
+      <option value="" {% if not show_archived %}selected{% endif %}>Active projects</option>
+      <option value="1" {% if show_archived %}selected{% endif %}>Archived projects</option>
+    </select>
+  </div>
+</form>
+
 <div class="table-responsive">
   <table class="table table-striped align-middle bg-white">
     <thead><tr><th>Name</th><th>Status</th><th>Start</th><th>End</th><th>Members</th><th></th></tr></thead>
     <tbody>
       {% for project in projects %}
         <tr>
-          <td>{{ project.name }}</td>
+          <td>
+            {{ project.name }}
+            {% if project.is_archived %}<span class="badge text-bg-secondary ms-1">Archived</span>{% endif %}
+          </td>
           <td><span class="badge text-bg-info">{{ project.get_status_display }}</span></td>
           <td>{{ project.start_date|default:"—" }}</td>
           <td>{{ project.end_date|default:"—" }}</td>
