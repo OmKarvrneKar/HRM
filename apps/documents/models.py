@@ -1,10 +1,22 @@
+import os
+from uuid import uuid4
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.text import slugify
 
 from apps.employees.models import Employee
 from apps.projects.models import TeamGroup
 
 from .storage import private_storage
+from .validators import validate_document_file
+
+
+def hr_document_upload_to(instance, filename):
+    """Return a non-guessable storage path, keeping only a safe extension."""
+    extension = os.path.splitext(filename)[1].lower()
+    return f"hr_documents/{uuid4().hex}{extension}"
 
 
 class DocumentType(models.TextChoices):
@@ -34,7 +46,12 @@ class HRDocument(models.Model):
         related_name="hr_documents",
         help_text="Set when the document belongs to a single employee.",
     )
-    file = models.FileField(upload_to="hr_documents/%Y/%m/", storage=private_storage)
+    file = models.FileField(
+        upload_to=hr_document_upload_to,
+        storage=private_storage,
+        validators=[validate_document_file],
+        help_text="Allowed: PDF, PNG, JPG/JPEG. Max 10 MB.",
+    )
     visibility = models.CharField(
         max_length=20,
         choices=DocumentVisibility.choices,
@@ -55,6 +72,13 @@ class HRDocument(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def download_name(self):
+        """A safe, human-friendly download filename (no filesystem path)."""
+        extension = os.path.splitext(self.file.name or "")[1].lower()
+        base = slugify(self.title) or "document"
+        return f"{base}{extension}"
+
     def is_visible_to(self, user):
         """Server-side visibility check used by download and list views."""
         if not getattr(user, "is_authenticated", False):
@@ -70,6 +94,22 @@ class HRDocument(models.Model):
         ):
             return True
         return False
+
+    def is_downloadable_by(self, user):
+        """Visible directly, or attached to a communication visible to `user`.
+
+        This keeps attachment access consistent: an employee who may read a
+        legal communication may also download its attachment, even when the
+        underlying document is otherwise HR-only.
+        """
+        if self.is_visible_to(user):
+            return True
+        if not getattr(user, "is_authenticated", False):
+            return False
+        return any(
+            communication.is_visible_to(user)
+            for communication in self.communications.filter(is_active=True)
+        )
 
 
 class CommunicationAudience(models.TextChoices):
@@ -125,6 +165,17 @@ class LegalCommunication(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        if (
+            self.audience == CommunicationAudience.SINGLE_EMPLOYEE
+            and self.employee_id is None
+        ):
+            raise ValidationError(
+                {"employee": "Choose an employee for this audience."}
+            )
+        if self.audience == CommunicationAudience.GROUP and self.group_id is None:
+            raise ValidationError({"group": "Choose a group for this audience."})
 
     def is_visible_to(self, user):
         if not getattr(user, "is_authenticated", False):

@@ -22,6 +22,9 @@ class HRDocumentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _style(self.fields)
         self.fields["employee"].required = False
+        if self.instance.pk:
+            # Editing metadata does not require re-uploading the file.
+            self.fields["file"].required = False
 
 
 class LegalCommunicationForm(forms.ModelForm):

@@ -13,7 +13,7 @@
 <h2 class="h5">Announcements</h2>
 <div class="table-responsive">
   <table class="table table-striped align-middle bg-white">
-    <thead><tr><th>Title</th><th>Audience</th><th>Active</th><th>Created</th></tr></thead>
+    <thead><tr><th>Title</th><th>Audience</th><th>Active</th><th>Created</th><th></th></tr></thead>
     <tbody>
       {% for item in announcements %}
         <tr>
@@ -21,9 +21,16 @@
           <td>{{ item.get_audience_display }}</td>
           <td>{{ item.is_active|yesno:"Yes,No" }}</td>
           <td>{{ item.created_at|date:"Y-m-d" }}</td>
+          <td class="d-flex gap-1">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'notifications:announcement_edit' item.pk %}">Edit</a>
+            <form method="post" action="{% url 'notifications:announcement_delete' item.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+            </form>
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="4" class="text-muted">No announcements.</td></tr>
+        <tr><td colspan="5" class="text-muted">No announcements.</td></tr>
       {% endfor %}
     </tbody>
   </table>

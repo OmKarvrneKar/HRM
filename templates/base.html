@@ -76,9 +76,9 @@
             </ul>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Team &amp; Communication</a>
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Team &amp; Communication{% if unread_notifications_count %} <span class="badge rounded-pill text-bg-danger">{{ unread_notifications_count }}</span>{% endif %}</a>
             <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="{% url 'notifications:my' %}">Notifications</a></li>
+              <li><a class="dropdown-item" href="{% url 'notifications:my' %}">Notifications{% if unread_notifications_count %} <span class="badge rounded-pill text-bg-danger">{{ unread_notifications_count }}</span>{% endif %}</a></li>
               <li><a class="dropdown-item" href="{% url 'notifications:announcements' %}">Announcements</a></li>
               <li><a class="dropdown-item" href="{% url 'notifications:calendar' %}">Events &amp; deadlines</a></li>
               <li><a class="dropdown-item" href="{% url 'documents:my_communications' %}">Communications</a></li>

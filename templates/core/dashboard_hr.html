@@ -4,6 +4,73 @@
 <h1 class="h3 mb-4">HR Dashboard</h1>
 <p class="text-muted">Welcome, {{ user.get_full_name|default:user.username }}.</p>
 
+<div class="row g-3 mb-2">
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ employee_count }}</div>
+        <div class="text-muted small">Employees</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ pending_leave }}</div>
+        <div class="text-muted small">Pending leave</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ pending_corrections }}</div>
+        <div class="text-muted small">Corrections</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ pending_worklogs }}</div>
+        <div class="text-muted small">Work logs to review</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Upcoming events &amp; deadlines</h2>
+        {% if upcoming_events %}
+          <ul class="list-group list-group-flush">
+            {% for event in upcoming_events %}
+              <li class="list-group-item d-flex justify-content-between">
+                <span>{{ event.title }}{% if event.project %} <span class="text-muted small">· {{ event.project.name }}</span>{% endif %}</span>
+                <span class="text-muted small">{{ event.event_date }}{% if event.start_time %} {{ event.start_time }}{% else %} <span class="badge text-bg-warning">Deadline</span>{% endif %}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">Nothing scheduled.</p>
+        {% endif %}
+        <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'notifications:calendar_hr' %}">Manage calendar</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ active_projects }}</div>
+        <div class="text-muted small mb-3">Active projects</div>
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'projects:list' %}">Open</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3">
   <div class="col-md-4">
     <div class="card h-100">

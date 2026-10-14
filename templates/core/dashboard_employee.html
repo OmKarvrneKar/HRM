@@ -4,6 +4,64 @@
 <h1 class="h3 mb-4">Home</h1>
 <p class="text-muted">Welcome, {{ user.get_full_name|default:user.username }}.</p>
 
+<div class="row g-3 mb-2">
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        {% if today_record and today_record.check_in %}
+          <div class="display-6 text-success">In</div>
+          <div class="text-muted small">Checked in {{ today_record.check_in }}{% if today_record.check_out %} · out {{ today_record.check_out }}{% endif %}</div>
+        {% else %}
+          <div class="display-6 text-secondary">—</div>
+          <div class="text-muted small">Not checked in today</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ my_pending_leave }}</div>
+        <div class="text-muted small">Pending leave</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ my_projects }}</div>
+        <div class="text-muted small">Assigned projects</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="display-6">{{ unread_notifications }}</div>
+        <div class="text-muted small">Unread notifications</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5">Upcoming events &amp; deadlines</h2>
+    {% if upcoming_events %}
+      <ul class="list-group list-group-flush">
+        {% for event in upcoming_events %}
+          <li class="list-group-item d-flex justify-content-between">
+            <span>{{ event.title }}{% if event.project %} <span class="text-muted small">· {{ event.project.name }}</span>{% endif %}</span>
+            <span class="text-muted small">{{ event.event_date }}{% if event.start_time %} {{ event.start_time }}{% else %} <span class="badge text-bg-warning">Deadline</span>{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted mb-0">Nothing scheduled.</p>
+    {% endif %}
+  </div>
+</div>
+
 <div class="row g-3">
   <div class="col-md-4">
     <div class="card h-100">

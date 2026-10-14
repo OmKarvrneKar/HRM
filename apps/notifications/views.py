@@ -1,8 +1,9 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from apps.accounts.mixins import EmployeeRequiredMixin, HRRequiredMixin
 from apps.audit.services import log_action
@@ -43,6 +44,50 @@ class AnnouncementCreateView(HRRequiredMixin, CreateView):
         return reverse("notifications:announcements_hr")
 
 
+class AnnouncementUpdateView(HRRequiredMixin, UpdateView):
+    model = Announcement
+    form_class = AnnouncementForm
+    template_name = "notifications/announcement_form.html"
+
+    def form_valid(self, form):
+        was_active = (
+            Announcement.objects.filter(pk=self.object.pk)
+            .values_list("is_active", flat=True)
+            .first()
+        )
+        response = super().form_valid(form)
+        # Fan out again only when the announcement is (re)activated.
+        if self.object.is_active and not was_active:
+            broadcast_announcement(self.object)
+        log_action(
+            self.request.user,
+            "ANNOUNCEMENT_UPDATED",
+            self.object,
+            audience=self.object.audience,
+            is_active=self.object.is_active,
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse("notifications:announcements_hr")
+
+
+class AnnouncementDeleteView(HRRequiredMixin, DeleteView):
+    model = Announcement
+    http_method_names = ["post"]
+    success_url = reverse_lazy("notifications:announcements_hr")
+
+    def form_valid(self, form):
+        self.object = self.get_object()
+        log_action(
+            self.request.user,
+            "ANNOUNCEMENT_DELETED",
+            self.object,
+            title=self.object.title,
+        )
+        return super().form_valid(form)
+
+
 class CalendarListView(HRRequiredMixin, ListView):
     model = CalendarEvent
     template_name = "notifications/calendar_list.html"
@@ -67,6 +112,41 @@ class CalendarCreateView(HRRequiredMixin, CreateView):
         return reverse("notifications:calendar_hr")
 
 
+class CalendarUpdateView(HRRequiredMixin, UpdateView):
+    model = CalendarEvent
+    form_class = CalendarEventForm
+    template_name = "notifications/calendar_form.html"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        log_action(
+            self.request.user,
+            "CALENDAR_EVENT_UPDATED",
+            self.object,
+            event_date=str(self.object.event_date),
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse("notifications:calendar_hr")
+
+
+class CalendarDeleteView(HRRequiredMixin, DeleteView):
+    model = CalendarEvent
+    http_method_names = ["post"]
+    success_url = reverse_lazy("notifications:calendar_hr")
+
+    def form_valid(self, form):
+        self.object = self.get_object()
+        log_action(
+            self.request.user,
+            "CALENDAR_EVENT_DELETED",
+            self.object,
+            title=self.object.title,
+        )
+        return super().form_valid(form)
+
+
 # --------------------------------------------------------------------------- #
 # Employee views
 # --------------------------------------------------------------------------- #
@@ -84,7 +164,11 @@ class NotificationMarkReadView(EmployeeRequiredMixin, View):
         if notification:
             notification.is_read = True
             notification.save(update_fields=["is_read"])
-            if notification.url:
+            if notification.url and url_has_allowed_host_and_scheme(
+                notification.url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
                 return redirect(notification.url)
         return redirect("notifications:my")
 

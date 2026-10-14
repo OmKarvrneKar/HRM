@@ -8,6 +8,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 from apps.accounts.mixins import EmployeeRequiredMixin, HRRequiredMixin
 from apps.accounts.utils import get_employee_for
 from apps.audit.services import log_action
+from apps.notifications.services import notify
 from apps.employees.models import Employee
 
 from .forms import (
@@ -310,6 +311,12 @@ class WorkLogReviewDecisionView(HRRequiredMixin, View):
             description="Work log marked as reviewed.",
             employee_id=work_log.employee_id,
             date=str(work_log.date),
+        )
+        notify(
+            work_log.employee.user,
+            "Work log reviewed",
+            f"Your work log for {work_log.date} was reviewed.",
+            reverse("projects:my_worklogs"),
         )
         messages.success(request, "Work log marked as reviewed.")
         return redirect("projects:worklog_review")

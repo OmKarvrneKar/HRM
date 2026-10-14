@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -80,6 +81,16 @@ class CalendarEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_date} {self.title}"
+
+    def clean(self):
+        if self.end_time and not self.start_time:
+            raise ValidationError(
+                {"end_time": "Set a start time before an end time."}
+            )
+        if self.start_time and self.end_time and self.end_time < self.start_time:
+            raise ValidationError(
+                {"end_time": "End time cannot be before the start time."}
+            )
 
     @property
     def is_deadline(self):
