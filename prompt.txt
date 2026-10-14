@@ -1,27 +1,28 @@
-M5 — Projects, Teams, and Work Logs is approved based on the reported implementation and passing tests.
+The M6/M7 preflight is approved based on the report. Proceed with M8 — Final Integration, Security Hardening, and Deployment Readiness.
 
-Proceed with M6 — Documents and Legal Communications only.
+Before coding:
+- Inspect the current project and Git status.
+- Preserve the existing uncommitted edit to prompt.txt. Do not overwrite, revert, or commit it unless I explicitly approve.
+- Do not push to the remote.
+- Avoid unrelated refactoring or new features.
 
-Before coding, inspect the existing models, authentication, permissions, templates, URL patterns, audit services, and private-media setup. Reuse the existing architecture; do not rebuild unrelated modules.
+Scope:
 
-Requirements:
+1. Run and review the complete test suite and existing Django security/system checks.
+2. Review role permissions and object-level access across all modules: accounts, employees, attendance, leave, projects, documents, notifications, dashboards, and legal communications.
+3. Review private document storage and confirm that uploaded files cannot be accessed through a public media URL. Add or document the necessary development and production serving restrictions without exposing private files.
+4. Review environment configuration, DEBUG, SECRET_KEY, ALLOWED_HOSTS, HTTPS/cookie settings, CSRF settings, and production settings. Do not place real secrets in source control.
+5. Review backup and restore requirements, especially the database and private uploaded documents. Document a practical backup/restore procedure; do not delete or overwrite user data.
+6. Review the installed Django version and identify an appropriate supported version and upgrade path. Do not perform a potentially breaking upgrade without reporting the plan first.
+7. Review dependencies and check for obvious unsafe configuration or tracked secrets.
+8. Run the full tests, `manage.py check`, and `makemigrations --check --dry-run` after any approved fixes.
+9. Document how to set up the project, create the first HR account, run it locally, and prepare it for deployment.
 
-1. HR can upload, view, update metadata for, and manage employee HR documents.
-2. Documents must be private by default and must not be served through publicly accessible media URLs.
-3. Employees can view and download only documents explicitly authorized for them.
-4. Enforce document permissions on every download request, including direct URL access.
-5. Store uploads safely, use non-guessable stored filenames, validate allowed file types and file sizes, and avoid trusting the original filename or browser-supplied content type.
-6. Do not expose local filesystem paths or sensitive storage details in responses.
-7. Record relevant document uploads, metadata changes, and downloads in the existing audit system without logging document contents or secrets.
-8. HR can create legal communications addressed to authorized employees, selected groups, or an explicitly supported company-wide audience.
-9. Enforce legal-communication visibility server-side for both viewing and downloading any associated attachments.
-10. Prevent unauthorized employees from discovering private document or legal-communication metadata through lists, detail pages, search, or direct URLs.
-11. Use Django templates and Bootstrap. Do not introduce email delivery, e-signatures, external document storage, or unrelated features.
+Rules:
+- Fix small, clearly safe defects within this scope and add regression tests.
+- If a fix requires a breaking change, dependency upgrade, data migration, production credential, or destructive operation, stop and report the proposed change first.
+- Do not deploy, push, create a commit, or delete files.
+- Report changed files, checks performed, results, unresolved risks, and a prioritized go-live checklist.
+- Do not claim production readiness unless the relevant infrastructure and deployment conditions have actually been verified.
 
-Testing:
-- Test authorized and unauthorized document downloads, direct URL access, upload validation, filename safety, and audit behavior.
-- Test legal-communication audience restrictions for individual employees, groups, and company-wide messages.
-- Test unauthorized direct GET and POST requests.
-- Run the full test suite, `manage.py check`, and `makemigrations --check --dry-run`.
-
-Work only on M6 and necessary integrations. Report changed files, migrations, storage/access-control behavior, test results, and unresolved risks. Do not start M7 without my review and approval.
+Wait for my review after M8. Do not start any additional feature milestone.

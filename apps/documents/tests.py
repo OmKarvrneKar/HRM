@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
@@ -436,3 +438,39 @@ class LegalCommunicationTests(TestCase):
 
     def test_oversized_document_constant(self):
         self.assertGreater(MAX_DOCUMENT_SIZE, 0)
+
+
+class PrivateStorageTests(TestCase):
+    """M8: private documents must never be reachable via a public media URL."""
+
+    def setUp(self):
+        self.hr = make_hr(username="priv_hr")
+        self.document = HRDocument.objects.create(
+            title="Secret",
+            visibility=DocumentVisibility.HR_ONLY,
+            uploaded_by=self.hr,
+            file=SimpleUploadedFile("contract.pdf", PDF_BYTES),
+        )
+
+    def tearDown(self):
+        try:
+            self.document.file.delete(save=False)
+        except Exception:
+            pass
+
+    def test_storage_never_generates_public_url(self):
+        field = HRDocument._meta.get_field("file")
+        self.assertIsNone(field.storage.url("hr_documents/anything.pdf"))
+
+    def test_private_root_is_outside_public_media(self):
+        from django.conf import settings
+
+        private_root = Path(settings.PRIVATE_MEDIA_ROOT).resolve()
+        media_root = Path(settings.MEDIA_ROOT).resolve()
+        self.assertNotEqual(private_root, media_root)
+        self.assertNotIn(str(media_root), str(private_root))
+
+    def test_private_file_is_not_served_under_media_url(self):
+        self.client.force_login(self.hr)
+        url = "/media/" + self.document.file.name
+        self.assertEqual(self.client.get(url).status_code, 404)

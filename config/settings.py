@@ -7,15 +7,43 @@ Values that must not be committed to source control are read from a local
 from pathlib import Path
 
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- Security -----------------------------------------------------------------
-SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-only-insecure-change-me")
+_SECRET_KEY_DEFAULT = "dev-only-insecure-change-me"
+SECRET_KEY = config("DJANGO_SECRET_KEY", default=_SECRET_KEY_DEFAULT)
 DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config(
     "DJANGO_ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv()
 )
+CSRF_TRUSTED_ORIGINS = [
+    origin
+    for origin in config("DJANGO_CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+    if origin
+]
+
+if not DEBUG and SECRET_KEY == _SECRET_KEY_DEFAULT:
+    # Refuse to start a production instance with the placeholder key.
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set to a long random value when DEBUG is off."
+    )
+
+if not DEBUG:
+    # Hardening applied automatically outside development. Each value can still
+    # be overridden from the environment for unusual deployments.
+    SECURE_SSL_REDIRECT = config("DJANGO_SECURE_SSL_REDIRECT", True, cast=bool)
+    SESSION_COOKIE_SECURE = config("DJANGO_SESSION_COOKIE_SECURE", True, cast=bool)
+    CSRF_COOKIE_SECURE = config("DJANGO_CSRF_COOKIE_SECURE", True, cast=bool)
+    SECURE_HSTS_SECONDS = config("DJANGO_SECURE_HSTS_SECONDS", 31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    # Trust the reverse proxy's forwarded protocol so redirects/cookies are HTTPS.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+X_FRAME_OPTIONS = "DENY"
 
 # --- Applications -------------------------------------------------------------
 INSTALLED_APPS = [

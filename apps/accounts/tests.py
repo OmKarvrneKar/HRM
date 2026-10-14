@@ -268,3 +268,31 @@ class PasswordStorageTests(TestCase):
             self.assertNotIn(
                 "Str0ngPass!23", f"{entry.description} {entry.metadata}"
             )
+
+
+class CreateHRCommandTests(TestCase):
+    """The create_hr command must produce a working first HR account."""
+
+    def test_creates_hr_superuser_forced_to_change_password(self):
+        from io import StringIO
+        from unittest.mock import patch
+
+        from django.core.management import call_command
+
+        with patch("getpass.getpass", side_effect=["pw-123456-abc", "pw-123456-abc"]):
+            call_command("create_hr", username="first_hr", stdout=StringIO())
+        user = User.objects.get(username="first_hr")
+        self.assertEqual(user.role, Role.HR)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.must_change_password)
+
+    def test_rejects_duplicate_username(self):
+        from unittest.mock import patch
+
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        User.objects.create_user(username="dup", password="pw12345!", role=Role.HR)
+        with patch("getpass.getpass", side_effect=["x", "x"]):
+            with self.assertRaises(CommandError):
+                call_command("create_hr", username="dup")
