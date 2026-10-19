@@ -5,3 +5,4 @@
 - [2026-10-19T13:28:06] Refactor logic and clean up formatting (entry #1)
 - [2026-10-19T22:16:20] Update daily study notes (entry #2)
 - [2026-10-19T17:08:33] Optimize snippet structure (entry #3)
+- [2026-10-19T20:03:35] Add edge case notes (entry #4)
