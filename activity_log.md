@@ -10,3 +10,4 @@
 - [2026-10-20T11:48:11] Add practice problem solution (entry #2)
 - [2026-10-20T11:16:33] Update daily study notes (entry #3)
 - [2026-10-20T18:53:32] Document key concepts and examples (entry #4)
+- [2026-10-21T19:45:46] Clean up redundant lines (entry #1)
