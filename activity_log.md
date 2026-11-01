@@ -52,3 +52,4 @@
 - [2026-10-31T10:22:09] Add edge case notes (entry #3)
 - [2026-11-01T15:25:01] Refactor logic and clean up formatting (entry #1)
 - [2026-11-01T22:25:44] Clean up redundant lines (entry #2)
+- [2026-11-01T12:02:10] Document key concepts and examples (entry #3)
