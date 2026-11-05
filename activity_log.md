@@ -67,3 +67,4 @@
 - [2026-11-04T22:00:39] Document key concepts and examples (entry #4)
 - [2026-11-04T21:57:11] Add quick summary for review (entry #5)
 - [2026-11-05T19:51:04] Add practice problem solution (entry #1)
+- [2026-11-05T20:19:49] Document key concepts and examples (entry #2)
