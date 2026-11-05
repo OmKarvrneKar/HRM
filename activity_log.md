@@ -69,3 +69,4 @@
 - [2026-11-05T19:51:04] Add practice problem solution (entry #1)
 - [2026-11-05T20:19:49] Document key concepts and examples (entry #2)
 - [2026-11-05T15:42:27] Add practice problem solution (entry #3)
+- [2026-11-05T23:21:50] Optimize snippet structure (entry #4)
