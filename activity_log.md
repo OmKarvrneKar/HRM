@@ -82,3 +82,4 @@
 - [2026-11-08T15:00:52] Fix minor typo in notes (entry #2)
 - [2026-11-08T15:11:00] Update daily study notes (entry #3)
 - [2026-11-08T21:58:14] Clean up redundant lines (entry #4)
+- [2026-11-09T22:57:02] Refactor logic and clean up formatting (entry #1)
