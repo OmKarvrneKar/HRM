@@ -91,3 +91,4 @@
 - [2026-11-11T19:15:36] Update progress tracker (entry #1)
 - [2026-11-11T20:00:50] Fix minor typo in notes (entry #2)
 - [2026-11-11T13:23:02] Clean up redundant lines (entry #3)
+- [2026-11-12T17:58:29] Refactor logic and clean up formatting (entry #1)
