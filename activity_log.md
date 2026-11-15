@@ -100,3 +100,4 @@
 - [2026-11-13T18:07:24] Refactor logic and clean up formatting (entry #2)
 - [2026-11-14T23:12:26] Document key concepts and examples (entry #1)
 - [2026-11-15T16:45:04] Add practice problem solution (entry #1)
+- [2026-11-15T14:27:41] Optimize snippet structure (entry #2)
