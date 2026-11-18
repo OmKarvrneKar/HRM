@@ -110,3 +110,4 @@
 - [2026-11-17T15:34:41] Refactor logic and clean up formatting (entry #2)
 - [2026-11-17T10:43:58] Refactor logic and clean up formatting (entry #3)
 - [2026-11-17T19:20:32] Fix minor typo in notes (entry #4)
+- [2026-11-18T17:34:43] Document key concepts and examples (entry #1)
