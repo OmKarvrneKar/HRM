@@ -124,3 +124,4 @@
 - [2026-11-21T18:07:00] Document key concepts and examples (entry #1)
 - [2026-11-21T15:12:40] Update progress tracker (entry #2)
 - [2026-11-21T20:15:55] Fix minor typo in notes (entry #3)
+- [2026-11-21T10:03:03] Update progress tracker (entry #4)
