@@ -128,3 +128,4 @@
 - [2026-11-22T17:55:08] Add quick summary for review (entry #1)
 - [2026-11-22T20:58:48] Fix minor typo in notes (entry #2)
 - [2026-11-22T21:27:24] Add practice problem solution (entry #3)
+- [2026-11-22T12:28:59] Document key concepts and examples (entry #4)
