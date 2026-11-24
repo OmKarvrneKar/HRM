@@ -131,3 +131,4 @@
 - [2026-11-22T12:28:59] Document key concepts and examples (entry #4)
 - [2026-11-23T13:44:42] Add practice problem solution (entry #1)
 - [2026-11-23T12:28:16] Refactor logic and clean up formatting (entry #2)
+- [2026-11-24T12:16:52] Document key concepts and examples (entry #1)
