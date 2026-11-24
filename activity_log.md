@@ -134,3 +134,4 @@
 - [2026-11-24T12:16:52] Document key concepts and examples (entry #1)
 - [2026-11-24T11:28:53] Document key concepts and examples (entry #2)
 - [2026-11-24T16:56:54] Add quick summary for review (entry #3)
+- [2026-11-24T20:13:02] Document key concepts and examples (entry #4)
