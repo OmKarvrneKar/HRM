@@ -6,8 +6,8 @@ import tempfile
 from pathlib import Path
 
 # Add HRM-main to sys.path so we can import models, config, and services
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-HRM_BACKEND_DIR = PROJECT_ROOT / "HRM-main"
+HRM_BACKEND_DIR = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = HRM_BACKEND_DIR.parent
 if str(HRM_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(HRM_BACKEND_DIR))
 
