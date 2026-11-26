@@ -1,13 +1,18 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
+DOTENV_PATH = BASE_DIR / ".env"
+_PRE_DOTENV_HRMS_DATA_DIR = (os.getenv("HRMS_DATA_DIR") or "").strip() or None
+_DOTENV_VALUES = dotenv_values(DOTENV_PATH) if DOTENV_PATH.exists() else {}
+_DOTENV_HRMS_DATA_DIR = (_DOTENV_VALUES.get("HRMS_DATA_DIR") or "").strip() or None
+load_dotenv(DOTENV_PATH)
 
 
 class Config:
     BASE_DIR = BASE_DIR
+    DOTENV_PATH = DOTENV_PATH
     SECRET_KEY = os.getenv("SECRET_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "480"))
@@ -37,11 +42,72 @@ class Config:
     USE_MOCK_DB = os.getenv("USE_MOCK_DB", "false").lower() == "true"
     USE_FILE_PERSISTENCE = os.getenv("USE_FILE_PERSISTENCE", "true").lower() == "true"
     
-    # Persistent storage directory
-    # Default is stable ~/.ai_samrat_hrms/data to ensure full write permissions across Windows Defender
-    DEFAULT_DATA_DIR = Path.home() / ".ai_samrat_hrms" / "data"
-    DATA_DIR = Path(os.getenv("HRMS_DATA_DIR", str(DEFAULT_DATA_DIR)))
+    # Persistent storage directory defaults to workspace data/storage so unconfigured runs stay synchronized
+    DEFAULT_DATA_DIR = BASE_DIR / "data" / "storage"
+    _IMPORT_TIME_ENV_HRMS_DATA_DIR = _PRE_DOTENV_HRMS_DATA_DIR
+    _DOTENV_HRMS_DATA_DIR = _DOTENV_HRMS_DATA_DIR
+    _IMPORT_TIME_DATA_DIR = Path(os.getenv("HRMS_DATA_DIR", str(DEFAULT_DATA_DIR)))
+    DATA_DIR = _IMPORT_TIME_DATA_DIR
     PERSISTENT_DATA_DIR = DATA_DIR
+
+    @classmethod
+    def get_storage_path_details(cls, db_name: str = None) -> dict:
+        """
+        Resolves the active storage base and database directory alongside configuration provenance.
+        Distinguishes between external/process environment variable, .env file, class override, and default config.
+        """
+        workspace_default_base = (cls.BASE_DIR / "data" / "storage").resolve()
+        target_db = db_name or cls.DATABASE_NAME
+        env_now = (os.getenv("HRMS_DATA_DIR") or "").strip() or None
+
+        class_data_dir_overridden = (
+            cls is not Config
+            and Path(cls.DATA_DIR) != Path(Config._IMPORT_TIME_DATA_DIR)
+        ) or (
+            cls is Config
+            and Path(cls.DATA_DIR) != Path(cls._IMPORT_TIME_DATA_DIR)
+        )
+
+        if class_data_dir_overridden:
+            base_dir = Path(cls.DATA_DIR)
+            source = "config attribute override (DATA_DIR)"
+        elif env_now and (
+            cls._IMPORT_TIME_ENV_HRMS_DATA_DIR is not None
+            or env_now != cls._DOTENV_HRMS_DATA_DIR
+        ):
+            base_dir = Path(env_now)
+            source = "environment variable (HRMS_DATA_DIR)"
+        elif cls._DOTENV_HRMS_DATA_DIR and Path(cls.DATA_DIR) == Path(cls._DOTENV_HRMS_DATA_DIR):
+            base_dir = Path(cls.DATA_DIR)
+            source = f".env configuration ({cls.DOTENV_PATH})"
+        elif env_now:
+            base_dir = Path(env_now)
+            source = "environment variable (HRMS_DATA_DIR)"
+        else:
+            base_dir = Path(cls.DEFAULT_DATA_DIR)
+            source = "default configuration (Config.DEFAULT_DATA_DIR)"
+
+        expanded_base = base_dir.expanduser()
+        resolved_base = (
+            expanded_base.resolve()
+            if expanded_base.is_absolute()
+            else (cls.BASE_DIR / expanded_base).resolve()
+        )
+        resolved_db_dir = (resolved_base / target_db).resolve()
+        is_external_override = bool(
+            source.startswith(("environment variable", ".env configuration"))
+            and resolved_base != workspace_default_base
+        )
+
+        return {
+            "database_name": target_db,
+            "raw_base_dir": str(base_dir),
+            "resolved_base_dir": str(resolved_base),
+            "resolved_db_dir": str(resolved_db_dir),
+            "workspace_default_dir": str(workspace_default_base),
+            "source": source,
+            "is_external_override": is_external_override,
+        }
 
     # Timezone & Office Rules
     DEFAULT_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Kolkata")

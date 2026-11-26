@@ -57,42 +57,50 @@ class PersistentCollectionProxy:
 
     def update_one(self, *args, **kwargs):
         res = self._col.update_one(*args, **kwargs)
-        self._save()
+        if getattr(res, "modified_count", 0) > 0 or getattr(res, "upserted_id", None) is not None:
+            self._save()
         return res
 
     def update_many(self, *args, **kwargs):
         res = self._col.update_many(*args, **kwargs)
-        self._save()
+        if getattr(res, "modified_count", 0) > 0 or getattr(res, "upserted_id", None) is not None:
+            self._save()
         return res
 
     def replace_one(self, *args, **kwargs):
         res = self._col.replace_one(*args, **kwargs)
-        self._save()
+        if getattr(res, "modified_count", 0) > 0 or getattr(res, "upserted_id", None) is not None:
+            self._save()
         return res
 
     def delete_one(self, *args, **kwargs):
         res = self._col.delete_one(*args, **kwargs)
-        self._save()
+        if getattr(res, "deleted_count", 0) > 0:
+            self._save()
         return res
 
     def delete_many(self, *args, **kwargs):
         res = self._col.delete_many(*args, **kwargs)
-        self._save()
+        if getattr(res, "deleted_count", 0) > 0:
+            self._save()
         return res
 
     def find_one_and_update(self, *args, **kwargs):
         res = self._col.find_one_and_update(*args, **kwargs)
-        self._save()
+        if res is not None or kwargs.get("upsert"):
+            self._save()
         return res
 
     def find_one_and_replace(self, *args, **kwargs):
         res = self._col.find_one_and_replace(*args, **kwargs)
-        self._save()
+        if res is not None or kwargs.get("upsert"):
+            self._save()
         return res
 
     def find_one_and_delete(self, *args, **kwargs):
         res = self._col.find_one_and_delete(*args, **kwargs)
-        self._save()
+        if res is not None:
+            self._save()
         return res
 
     def drop(self, *args, **kwargs):
@@ -168,24 +176,58 @@ class DatabaseManager:
     _data_dir: Optional[Path] = None
 
     @classmethod
+    def get_storage_details(cls, db_name: str = None) -> dict:
+        target_db = db_name or Config.DATABASE_NAME
+        if hasattr(Config, "get_storage_path_details"):
+            return Config.get_storage_path_details(target_db)
+        resolved_base = Path(Config.DATA_DIR).expanduser().resolve()
+        return {
+            "database_name": target_db,
+            "raw_base_dir": str(Config.DATA_DIR),
+            "resolved_base_dir": str(resolved_base),
+            "resolved_db_dir": str((resolved_base / target_db).resolve()),
+            "workspace_default_dir": str((Path(Config.BASE_DIR) / "data" / "storage").resolve()),
+            "source": "default configuration",
+            "is_external_override": False,
+        }
+
+    @classmethod
+    def log_active_storage(cls, db_name: str = None) -> dict:
+        details = cls.get_storage_details(db_name)
+        logger.info(
+            "Resolved database storage path: %s (source: %s, workspace default: %s)",
+            details["resolved_db_dir"],
+            details["source"],
+            details["workspace_default_dir"],
+        )
+        if details["is_external_override"]:
+            logger.warning(
+                "EXTERNAL STORAGE OVERRIDE DETECTED: HRMS_DATA_DIR from %s overrides workspace default '%s' with '%s'. "
+                "Existing databases are NOT silently switched or migrated.",
+                details["source"],
+                details["workspace_default_dir"],
+                details["resolved_db_dir"],
+            )
+        return details
+
+    @classmethod
     def get_data_dir(cls, db_name: str) -> Path:
-        base_dir = Path(Config.DATA_DIR)
-        target = base_dir / db_name
+        details = cls.get_storage_details(db_name)
+        target = Path(details["resolved_db_dir"])
         try:
             target.mkdir(parents=True, exist_ok=True)
             return target
         except (PermissionError, OSError) as e:
-            fallback = Path(Config.BASE_DIR) / "data" / "storage" / db_name
-            try:
-                fallback.mkdir(parents=True, exist_ok=True)
-            except Exception:
-                pass
-            logger.warning(
-                "Access to configured data directory '%s' was restricted (%s). "
-                "Safely falling back to local workspace persistent directory '%s'.",
-                target, e, fallback
+            logger.error(
+                "Failed to access configured storage directory '%s' (source: %s): %s. "
+                "Refusing to silently switch databases.",
+                target,
+                details["source"],
+                e,
             )
-            return fallback
+            raise PermissionError(
+                f"Configured database storage directory '{target}' (source: {details['source']}) is inaccessible: {e}"
+            ) from e
 
     @classmethod
     def get_client(cls, uri: str = None) -> MongoClient:
@@ -259,6 +301,7 @@ class DatabaseManager:
         use_persistence = cls._is_mock and getattr(Config, "USE_FILE_PERSISTENCE", True) and not is_test_db
 
         if use_persistence:
+            cls.log_active_storage(target_db_name)
             data_dir = cls.get_data_dir(target_db_name)
             cls._data_dir = data_dir
 
@@ -289,6 +332,8 @@ class DatabaseManager:
             logger.info("Active database: %s (persistent local storage at %s)", target_db_name, data_dir)
         else:
             cls._db = raw_db
+            if not is_test_db:
+                cls.log_active_storage(target_db_name)
             logger.info("Active database: %s (in-memory=%s)", target_db_name, cls._is_mock)
 
         return cls._db

@@ -2,22 +2,34 @@ import apiClient from './apiClient';
 
 export const enterpriseApi = {
   getAssetsInventory: async () => {
-    const res = await apiClient.get('/api/assets/inventory');
+    const res = await apiClient.get('/api/assets/inventory', {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     return res.data;
   },
 
   getHardwareAssets: async () => {
-    const res = await apiClient.get('/api/assets/inventory');
+    const res = await apiClient.get('/api/assets/inventory', {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     return res.data;
   },
 
   getSoftwareLicenses: async () => {
-    const res = await apiClient.get('/api/assets/inventory');
+    const res = await apiClient.get('/api/assets/inventory', {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     return res.data;
   },
 
   getSeatingAllocations: async () => {
-    const res = await apiClient.get('/api/assets/seating-lockers');
+    const res = await apiClient.get('/api/assets/seating-lockers', {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     return res.data;
   },
 
@@ -32,7 +44,10 @@ export const enterpriseApi = {
   },
 
   getMeetingRooms: async () => {
-    const res = await apiClient.get('/api/facilities/rooms');
+    const res = await apiClient.get('/api/facilities/rooms', {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     return res.data;
   },
 

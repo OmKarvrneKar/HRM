@@ -153,25 +153,58 @@ def seed_real_and_dummy_users(db=None) -> int:
         }
         enriched_users.append(doc)
 
+    inserted_users = 0
     for doc in enriched_users:
-        db.users.update_one(
+        existing_user = db.users.find_one(
             {"$or": [{"emp_id": doc["emp_id"]}, {"employee_id": doc["emp_id"]}, {"email": doc["email"]}]},
-            {"$setOnInsert": doc},
-            upsert=True
+            {"_id": 1},
+        )
+        if not existing_user:
+            db.users.update_one(
+                {"$or": [{"emp_id": doc["emp_id"]}, {"employee_id": doc["emp_id"]}, {"email": doc["email"]}]},
+                {"$setOnInsert": doc},
+                upsert=True,
+            )
+            inserted_users += 1
+
+    # Backfill missing reporting hierarchy fields only where unset; never overwrite existing assignments
+    missing_emp_hierarchy_query = {
+        "role": "employee",
+        "$or": [
+            {"assigned_tl_id": {"$in": [None, ""]}},
+            {"assigned_tl_id": {"$exists": False}},
+            {"manager_id": {"$in": [None, ""]}},
+            {"manager_id": {"$exists": False}},
+            {"reporting_manager_id": {"$in": [None, ""]}},
+            {"reporting_manager_id": {"$exists": False}},
+        ],
+    }
+    if db.users.find_one(missing_emp_hierarchy_query, {"_id": 1}):
+        db.users.update_many(
+            {"role": "employee", "$or": [{"assigned_tl_id": {"$in": [None, ""]}}, {"assigned_tl_id": {"$exists": False}}]},
+            {"$set": {"assigned_tl_id": "TL-1001"}},
+        )
+        db.users.update_many(
+            {"role": "employee", "$or": [{"manager_id": {"$in": [None, ""]}}, {"manager_id": {"$exists": False}}]},
+            {"$set": {"manager_id": "MGR-1001"}},
+        )
+        db.users.update_many(
+            {"role": "employee", "$or": [{"reporting_manager_id": {"$in": [None, ""]}}, {"reporting_manager_id": {"$exists": False}}]},
+            {"$set": {"reporting_manager_id": "MGR-1001"}},
         )
 
-    db.users.update_many(
-        {"role": "employee"},
-        {"$set": {
-            "assigned_tl_id": "TL-1001",
-            "manager_id": "MGR-1001",
-            "reporting_manager_id": "MGR-1001"
-        }}
-    )
-    db.users.update_one(
-        {"$or": [{"emp_id": "TL-1001"}, {"employee_id": "TL-1001"}]},
-        {"$set": {"reporting_manager_id": "MGR-1001"}}
-    )
+    missing_tl_mgr_query = {
+        "$and": [
+            {"$or": [{"emp_id": "TL-1001"}, {"employee_id": "TL-1001"}]},
+            {"$or": [{"reporting_manager_id": {"$in": [None, ""]}}, {"reporting_manager_id": {"$exists": False}}]},
+        ]
+    }
+    if db.users.find_one(missing_tl_mgr_query, {"_id": 1}):
+        db.users.update_one(
+            {"$or": [{"emp_id": "TL-1001"}, {"employee_id": "TL-1001"}]},
+            {"$set": {"reporting_manager_id": "MGR-1001"}},
+        )
+
     employee_ids = [
         user.get("employee_id") or user.get("emp_id")
         for user in db.users.find({"role": "employee"}, {"employee_id": 1, "emp_id": 1})
@@ -179,39 +212,89 @@ def seed_real_and_dummy_users(db=None) -> int:
     ]
     if employee_ids:
         employee_scope = {"employee_id": {"$in": employee_ids}}
-        db.leave_requests.update_many(
-            {**employee_scope, "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_MANAGER", "Pending"]}},
-            {"$set": {"assigned_tl_id": "TL-1001", "assigned_manager_id": "MGR-1001"}}
-        )
-        db.attendance_corrections.update_many(
-            {**employee_scope, "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_TEAM_LEAD_REVIEW", "PENDING_MANAGER"]}},
-            {"$set": {"assigned_tl_id": "TL-1001", "assigned_manager_id": "MGR-1001"}}
-        )
-        db.travel_requests.update_many(
-            {**employee_scope, "status": {"$in": ["PENDING_MANAGER", "Pending Endorsement", "PENDING ENDORSEMENT"]}},
-            {"$set": {"assigned_manager_id": "MGR-1001"}}
-        )
-        db.expense_claims.update_many(
-            {**employee_scope, "status": "Submitted"},
-            {"$set": {"assigned_manager_id": "MGR-1001"}}
-        )
-        db.asset_requests.update_many(
-            {**employee_scope, "status": "Pending Review"},
-            {"$set": {"assigned_manager_id": "MGR-1001", "assigned_approver": "MGR-1001"}}
-        )
+        if db.leave_requests.find_one({
+            **employee_scope,
+            "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_MANAGER", "Pending"]},
+            "$or": [
+                {"assigned_tl_id": {"$in": [None, ""]}}, {"assigned_tl_id": {"$exists": False}},
+                {"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}},
+            ],
+        }, {"_id": 1}):
+            db.leave_requests.update_many(
+                {**employee_scope, "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_MANAGER", "Pending"]}, "$or": [{"assigned_tl_id": {"$in": [None, ""]}}, {"assigned_tl_id": {"$exists": False}}]},
+                {"$set": {"assigned_tl_id": "TL-1001"}},
+            )
+            db.leave_requests.update_many(
+                {**employee_scope, "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_MANAGER", "Pending"]}, "$or": [{"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}}]},
+                {"$set": {"assigned_manager_id": "MGR-1001"}},
+            )
 
-    # Seed Teams
+        if db.attendance_corrections.find_one({
+            **employee_scope,
+            "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_TEAM_LEAD_REVIEW", "PENDING_MANAGER"]},
+            "$or": [
+                {"assigned_tl_id": {"$in": [None, ""]}}, {"assigned_tl_id": {"$exists": False}},
+                {"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}},
+            ],
+        }, {"_id": 1}):
+            db.attendance_corrections.update_many(
+                {**employee_scope, "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_TEAM_LEAD_REVIEW", "PENDING_MANAGER"]}, "$or": [{"assigned_tl_id": {"$in": [None, ""]}}, {"assigned_tl_id": {"$exists": False}}]},
+                {"$set": {"assigned_tl_id": "TL-1001"}},
+            )
+            db.attendance_corrections.update_many(
+                {**employee_scope, "status": {"$in": ["PENDING_TEAM_LEAD", "PENDING_TEAM_LEAD_REVIEW", "PENDING_MANAGER"]}, "$or": [{"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}}]},
+                {"$set": {"assigned_manager_id": "MGR-1001"}},
+            )
+
+        if db.travel_requests.find_one({
+            **employee_scope,
+            "status": {"$in": ["PENDING_MANAGER", "Pending Endorsement", "PENDING ENDORSEMENT"]},
+            "$or": [{"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}}],
+        }, {"_id": 1}):
+            db.travel_requests.update_many(
+                {**employee_scope, "status": {"$in": ["PENDING_MANAGER", "Pending Endorsement", "PENDING ENDORSEMENT"]}, "$or": [{"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}}]},
+                {"$set": {"assigned_manager_id": "MGR-1001"}},
+            )
+
+        if db.expense_claims.find_one({
+            **employee_scope,
+            "status": "Submitted",
+            "$or": [{"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}}],
+        }, {"_id": 1}):
+            db.expense_claims.update_many(
+                {**employee_scope, "status": "Submitted", "$or": [{"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}}]},
+                {"$set": {"assigned_manager_id": "MGR-1001"}},
+            )
+
+        if db.asset_requests.find_one({
+            **employee_scope,
+            "status": "Pending Review",
+            "$or": [
+                {"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}},
+                {"assigned_approver": {"$in": [None, ""]}}, {"assigned_approver": {"$exists": False}},
+            ],
+        }, {"_id": 1}):
+            db.asset_requests.update_many(
+                {**employee_scope, "status": "Pending Review", "$or": [{"assigned_manager_id": {"$in": [None, ""]}}, {"assigned_manager_id": {"$exists": False}}, {"assigned_approver": {"$in": [None, ""]}}, {"assigned_approver": {"$exists": False}}]},
+                {"$set": {"assigned_manager_id": "MGR-1001", "assigned_approver": "MGR-1001"}},
+            )
+
+    # Seed Teams idempotently without modifying existing team docs
+    inserted_teams = 0
     try:
         for team in PREDEFINED_TEAMS:
-            db.teams.update_one(
-                {"team_id": team["team_id"]},
-                {"$setOnInsert": team},
-                upsert=True
-            )
+            if not db.teams.find_one({"team_id": team["team_id"]}, {"_id": 1}):
+                db.teams.update_one(
+                    {"team_id": team["team_id"]},
+                    {"$setOnInsert": dict(team)},
+                    upsert=True,
+                )
+                inserted_teams += 1
     except Exception as e:
         logger.warning(f"Failed to seed teams: {e}")
 
-    # Seed baseline squad projects
+    # Seed baseline squad projects ONLY when genuinely missing; never overwrite or mutate timestamps of existing projects
+    inserted_projects = 0
     try:
         baseline_projects = [
             {
@@ -254,28 +337,40 @@ def seed_real_and_dummy_users(db=None) -> int:
             }
         ]
         for p in baseline_projects:
-            db.projects.replace_one({"project_id": p["project_id"]}, p, upsert=True)
+            if not db.projects.find_one({"project_id": p["project_id"]}, {"_id": 1}):
+                db.projects.update_one(
+                    {"project_id": p["project_id"]},
+                    {"$setOnInsert": p},
+                    upsert=True,
+                )
+                inserted_projects += 1
     except Exception as e:
         logger.warning(f"Failed to seed baseline projects: {e}")
 
     # Baseline leaves: Empty state - no fake or sample leave requests
     try:
-        # Clean any legacy baseline fake leaves if present
-        db.leave_requests.delete_many({"request_id": {"$in": ["LR-ENG-101", "LR-ENG-102", "LR-2026-BASELINE-01", "LR-2026-BASELINE-02"]}})
+        legacy_fake_ids = ["LR-ENG-101", "LR-ENG-102", "LR-2026-BASELINE-01", "LR-2026-BASELINE-02"]
+        if db.leave_requests.find_one({"request_id": {"$in": legacy_fake_ids}}, {"_id": 1}):
+            db.leave_requests.delete_many({"request_id": {"$in": legacy_fake_ids}})
     except Exception as e:
         logger.warning(f"Failed to clean baseline leaves: {e}")
 
     # Facility meeting rooms and seating/locker allocations remain empty until verified by Administration.
 
-    # Persist if proxy is active
+    # Persist if custom disk persist hook exists
     persist_fn = getattr(db, "persist_to_disk", None)
-    if callable(persist_fn) and not hasattr(persist_fn, "database"):
+    if callable(persist_fn) and not hasattr(persist_fn, "database") and (inserted_users or inserted_teams or inserted_projects):
         try:
             persist_fn()
         except Exception as e:
             logger.warning(f"Failed to persist mongomock db to disk: {e}")
 
-    logger.info(f"Database seeded successfully with {len(enriched_users)} enterprise users across 11 teams!")
+    logger.info(
+        "Database initialization verified (users_inserted=%d, teams_inserted=%d, projects_inserted=%d).",
+        inserted_users,
+        inserted_teams,
+        inserted_projects,
+    )
     return len(enriched_users)
 
 

@@ -6,7 +6,7 @@ Architecture:
 - Production-grade service classes covering:
   1. NomineeManagementService (Nominee share registry with 100% total validation)
   2. AssetSoftwareService (Hardware allocation, software license keys, global inventory)
-  3. FacilityBookingService (Meeting rooms Manthan, Gurukool, Samvaad with conflict detection)
+  3. FacilityBookingService (Verified meeting room management and collision-free booking)
   4. PerformanceLearningService (KRA/KPI goal tracker & mandatory compliance courses: InfoSec, DPDP Act 2023)
   5. EngagementSupportService (Community feed, birthday kudos points leaderboard, IT/HR ticketing, travel & expense claims, policy vault)
   6. SeparationService (Resignation workflow, tenure tracker, 4-way departmental clearance)
@@ -124,8 +124,8 @@ class AssetSoftwareService:
     @classmethod
     def get_employee_assets(cls, employee_id: str) -> Dict[str, Any]:
         db = get_db()
-        hardware = list(db.hardware_assets.find({"assigned_to": employee_id, "status": "Assigned"}))
-        software = list(db.software_licenses.find({"assigned_to": employee_id, "status": "Active"}))
+        hardware = list(db.hardware_assets.find({"assigned_to": employee_id, "status": "Assigned", "is_verified": True}))
+        software = list(db.software_licenses.find({"assigned_to": employee_id, "status": "Active", "is_verified": True}))
         requests = list(db.asset_requests.find({"employee_id": employee_id}).sort("created_at", -1))
         seating = SeatingLockerService.get_employee_seating(employee_id)
 
@@ -189,8 +189,9 @@ class AssetSoftwareService:
     @classmethod
     def get_global_inventory(cls, actor: dict = None) -> Dict[str, Any]:
         db = get_db()
-        all_hw = list(db.hardware_assets.find({}))
-        all_sw = list(db.software_licenses.find({}))
+        # Only expose verified enterprise hardware/software records; exclude any unverified baseline drafts
+        all_hw = list(db.hardware_assets.find({"is_verified": True}))
+        all_sw = list(db.software_licenses.find({"is_verified": True}))
         request_query = {}
         if actor and normalize_role(actor.get("role")) == Role.MANAGER:
             actor_id = actor.get("employee_id") or actor.get("emp_id")
@@ -199,17 +200,6 @@ class AssetSoftwareService:
                 {"assigned_manager_id": {"$exists": False}, "department": actor.get("department")}
             ]}
         all_reqs = list(db.asset_requests.find(request_query).sort("created_at", -1))
-
-        # Do not fabricate or auto-insert dummy items. Tag existing items honestly with verification status.
-        for h in all_hw:
-            if not h.get("verification_status"):
-                h["verification_status"] = "Unverified Baseline"
-            h["is_verified"] = h.get("is_verified", False)
-
-        for s in all_sw:
-            if not s.get("verification_status"):
-                s["verification_status"] = "Unverified Baseline"
-            s["is_verified"] = s.get("is_verified", False)
 
         in_use_hw = sum(1 for h in all_hw if h.get("status") == "Assigned")
         in_stock_hw = sum(1 for h in all_hw if h.get("status") == "In Stock")
@@ -346,6 +336,8 @@ class AssetSoftwareService:
                 "assigned_name": target_user.get("full_name") or target_user.get("name"),
                 "assigned_date": today_str,
                 "allocated_by": actor["employee_id"],
+                "is_verified": True,
+                "verification_status": "Verified Asset Allocation",
                 "created_at": now
             }
             db.hardware_assets.replace_one({"asset_tag": asset_tag}, doc, upsert=True)
@@ -361,6 +353,8 @@ class AssetSoftwareService:
                 "assigned_to": target_user.get("emp_id") or target_user.get("employee_id"),
                 "expiry_date": asset_data.get("expiry_date", "2027-12-31"),
                 "allocated_by": actor["employee_id"],
+                "is_verified": True,
+                "verification_status": "Verified Asset Allocation",
                 "created_at": now
             }
             db.software_licenses.replace_one({"license_id": license_id}, doc, upsert=True)
@@ -434,10 +428,13 @@ class SeatingLockerService:
     @classmethod
     def get_employee_seating(cls, employee_id: str) -> Optional[Dict[str, Any]]:
         db = get_db()
-        alloc = db.seating_allocations.find_one({"$or": [{"employee_id": employee_id}, {"emp_id": employee_id}]})
+        alloc = db.seating_allocations.find_one({
+            "$or": [{"employee_id": employee_id}, {"emp_id": employee_id}],
+            "is_verified": True,
+        })
         if not alloc:
             return None
-        alloc["is_verified"] = bool(alloc.get("is_verified", False))
+        alloc["is_verified"] = True
         return serialize_doc(alloc)
 
     @classmethod
@@ -448,19 +445,15 @@ class SeatingLockerService:
             for u in db.users.find({"is_active": True}, {"employee_id": 1, "emp_id": 1, "full_name": 1, "name": 1})
             if (u.get("employee_id") or u.get("emp_id"))
         }
-        allocs = list(db.seating_allocations.find({}).sort("desk_number", 1))
+        # Never expose generated or unverified provisional baseline desk layouts in production
+        allocs = list(db.seating_allocations.find({"is_verified": True}).sort("desk_number", 1))
         visible = []
         for a in allocs:
             eid = a.get("employee_id") or a.get("emp_id")
             if eid in active_users:
-                is_v = bool(a.get("is_verified", False))
-                a["is_verified"] = is_v
-                if is_v:
-                    a["status"] = a.get("status") or "Allocated"
-                    a["verification_status"] = a.get("verification_status") or "Verified Official Allocation"
-                else:
-                    a["status"] = "Unverified"
-                    a["verification_status"] = a.get("verification_status") or "Pending Administrative Verification"
+                a["is_verified"] = True
+                a["status"] = a.get("status") or "Allocated"
+                a["verification_status"] = a.get("verification_status") or "Verified Official Allocation"
                 visible.append(a)
         return serialize_docs(visible)
 
@@ -614,20 +607,20 @@ class FacilityBookingService:
     @classmethod
     def get_rooms_and_bookings(cls, target_date: str) -> Dict[str, Any]:
         db = get_db()
-        rooms = list(db.facility_rooms.find({}))
+        # Only return formally verified company rooms; exclude unverified baseline templates
+        rooms = list(db.facility_rooms.find({"is_verified": True}))
         for r in rooms:
-            is_v = bool(r.get("is_verified", False))
-            r["is_verified"] = is_v
-            r["verification_status"] = r.get("verification_status") or ("Verified Company Facility" if is_v else "Unverified (Pending Administrative Audit)")
-            r["status"] = r.get("status") or ("Available" if is_v else "Unverified")
+            r["is_verified"] = True
+            r["verification_status"] = r.get("verification_status") or "Verified Company Facility"
+            r["status"] = r.get("status") or "Available"
         bookings = list(db.facility_bookings.find({"booking_date": target_date}).sort("start_time", 1))
 
         return {
             "target_date": target_date,
             "rooms": serialize_docs(rooms),
             "bookings": serialize_docs(bookings),
-            "verified_rooms_count": len([r for r in rooms if r.get("is_verified")]),
-            "unverified_rooms_count": len([r for r in rooms if not r.get("is_verified")]),
+            "verified_rooms_count": len(rooms),
+            "unverified_rooms_count": 0,
             "total_rooms": len(rooms)
         }
 

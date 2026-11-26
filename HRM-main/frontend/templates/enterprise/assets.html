@@ -42,10 +42,6 @@
             <span class="badge bg-success-subtle text-success border border-success-subtle font-mono px-3 py-1">
                 <i class="bi bi-check2-circle me-1"></i> Verified Allocation
             </span>
-            {% elif seating %}
-            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono px-3 py-1">
-                <i class="bi bi-hourglass-split me-1"></i> Pending Verification
-            </span>
             {% else %}
             <span class="badge bg-light text-secondary border font-mono px-3 py-1">
                 Not Assigned
@@ -53,7 +49,7 @@
             {% endif %}
         </div>
 
-        {% if seating %}
+        {% if seating and seating.is_verified %}
         <div class="row g-3">
             <!-- Workstation Desk Card -->
             <div class="col-12 col-md-6">
@@ -277,8 +273,9 @@
                 <h6 class="fw-bold text-headline mb-0"><i class="bi bi-box-seam me-2 text-primary"></i> Global Enterprise Inventory &amp; Facility Allocations</h6>
                 <span class="text-muted small">Administrative oversight across hardware workstations, software licenses, and floor seating &amp; locker assignments</span>
             </div>
+            {% set raw_seats = all_seating if all_seating is defined and all_seating else (inventory.seating_allocations if inventory and inventory.seating_allocations else []) %}
+            {% set seats_list = raw_seats | selectattr('is_verified') | list %}
             <div class="d-flex gap-2 flex-wrap">
-                {% set seats_list = all_seating if all_seating is defined and all_seating else (inventory.seating_allocations if inventory and inventory.seating_allocations else []) %}
                 <span class="badge bg-primary px-3 py-2">Assigned: {{ inventory.hardware_assigned }}</span>
                 <span class="badge bg-success px-3 py-2">In Stock: {{ inventory.hardware_in_stock }}</span>
                 <span class="badge bg-info px-3 py-2">Licenses: {{ inventory.total_software_licenses }}</span>
@@ -407,7 +404,8 @@
                             </tr>
                         </thead>
                         <tbody style="font-size: 0.835rem;">
-                            {% set seats_to_show = all_seating if all_seating is defined and all_seating else (inventory.seating_allocations if inventory and inventory.seating_allocations else []) %}
+                            {% set raw_seats_to_show = all_seating if all_seating is defined and all_seating else (inventory.seating_allocations if inventory and inventory.seating_allocations else []) %}
+                            {% set seats_to_show = raw_seats_to_show | selectattr('is_verified') | list %}
                             {% if seats_to_show %}
                             {% for s in seats_to_show %}
                             <tr class="seating-data-row" id="seat-row-{{ s.employee_id }}">

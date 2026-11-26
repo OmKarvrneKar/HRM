@@ -3282,7 +3282,7 @@ def get_system_health():
 
     # Get local backup metadata safely
     from pathlib import Path
-    data_dir = getattr(Config, "PERSISTENT_DATA_DIR", getattr(Config, "DATA_DIR", Path.home() / ".ai_samrat_hrms" / "data"))
+    data_dir = getattr(Config, "PERSISTENT_DATA_DIR", getattr(Config, "DATA_DIR", Path(Config.BASE_DIR) / "data" / "storage"))
     backups = []
     if Path(data_dir).exists():
         backup_files = list(Path(data_dir).glob("*.tar.gz")) + list(Path(data_dir).glob("*.zip"))

@@ -54,16 +54,21 @@ export const AssetsInventory = () => {
 
       if (invRes.status === 'fulfilled') {
         const inv = invRes.value || {};
-        setHardware(inv.hardware || []);
-        setSoftware(inv.software || []);
+        setHardware((inv.hardware || []).filter((h) => Boolean(h?.is_verified)));
+        setSoftware((inv.software || []).filter((s) => Boolean(s?.is_verified)));
       }
       if (rmRes.status === 'fulfilled') {
-        setRooms(rmRes.value?.rooms || rmRes.value || []);
+        const rawRooms = Array.isArray(rmRes.value?.rooms)
+          ? rmRes.value.rooms
+          : (Array.isArray(rmRes.value) ? rmRes.value : []);
+        setRooms(rawRooms.filter((r) => Boolean(r?.is_verified)));
       }
       if (seatRes.status === 'fulfilled') {
         const seatData = seatRes.value || {};
-        const allocList = seatData.all_allocations || seatData.allocations || [];
-        if (allocList.length === 0 && seatData.my_seating) {
+        const allocList = (seatData.all_allocations || seatData.allocations || []).filter((s) =>
+          Boolean(s?.is_verified)
+        );
+        if (allocList.length === 0 && seatData.my_seating?.is_verified) {
           setSeating([seatData.my_seating]);
         } else {
           setSeating(allocList);
@@ -216,17 +221,10 @@ export const AssetsInventory = () => {
     }
   };
 
-  const verifiedHardware = hardware.filter((h) => h.is_verified);
-  const unverifiedHardware = hardware.filter((h) => !h.is_verified);
-
-  const verifiedSoftware = software.filter((s) => s.is_verified);
-  const unverifiedSoftware = software.filter((s) => !s.is_verified);
-
-  const verifiedRooms = rooms.filter((r) => r.is_verified);
-  const unverifiedRooms = rooms.filter((r) => !r.is_verified);
-
-  const confirmedSeating = seating.filter((s) => s.is_verified);
-  const provisionalSeating = seating.filter((s) => !s.is_verified);
+  const verifiedHardware = hardware.filter((h) => Boolean(h?.is_verified));
+  const verifiedSoftware = software.filter((s) => Boolean(s?.is_verified));
+  const verifiedRooms = rooms.filter((r) => Boolean(r?.is_verified));
+  const confirmedSeating = seating.filter((s) => Boolean(s?.is_verified));
 
   return (
     <div className="space-y-6">
@@ -248,33 +246,33 @@ export const AssetsInventory = () => {
         )}
       </div>
 
-      {/* KPI Cards: Strictly Distinguishing Verified Records */}
+      {/* KPI Cards: Strictly Verified Company Records */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatCard
           title="Hardware Devices"
           value={`${verifiedHardware.length} Confirmed`}
-          subtitle={unverifiedHardware.length > 0 ? `${unverifiedHardware.length} pending audit` : 'No unverified records'}
+          subtitle="Administrator-verified only"
           icon={Laptop}
           color={verifiedHardware.length > 0 ? 'blue' : 'slate'}
         />
         <StatCard
           title="Software Seats"
           value={`${verifiedSoftware.length} Confirmed`}
-          subtitle={unverifiedSoftware.length > 0 ? `${unverifiedSoftware.length} pending audit` : 'No unverified records'}
+          subtitle="Administrator-verified only"
           icon={KeyRound}
           color={verifiedSoftware.length > 0 ? 'purple' : 'slate'}
         />
         <StatCard
           title="Verified Meeting Rooms"
           value={`${verifiedRooms.length} Confirmed`}
-          subtitle={unverifiedRooms.length > 0 ? `${unverifiedRooms.length} pending verification` : 'Administrator-verified only'}
+          subtitle="Administrator-verified only"
           icon={Building2}
           color={verifiedRooms.length > 0 ? 'green' : 'slate'}
         />
         <StatCard
           title="Confirmed Desks"
           value={`${confirmedSeating.length} Allocated`}
-          subtitle={provisionalSeating.length > 0 ? `${provisionalSeating.length} pending verification` : 'Administrator-verified only'}
+          subtitle="Administrator-verified only"
           icon={MapPin}
           color={confirmedSeating.length > 0 ? 'amber' : 'slate'}
         />
@@ -352,14 +350,14 @@ export const AssetsInventory = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {hardware.length === 0 ? (
+                {verifiedHardware.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-4 text-center text-slate-500">
-                      No hardware assets registered.
+                      No verified hardware assets registered.
                     </td>
                   </tr>
                 ) : (
-                  hardware.map((h, i) => (
+                  verifiedHardware.map((h, i) => (
                     <tr key={i} className="hover:bg-slate-50/60">
                       <td className="p-3 font-mono font-bold text-blue-700">{h.asset_tag}</td>
                       <td className="p-3 font-semibold text-slate-800">{h.model}</td>
@@ -369,8 +367,8 @@ export const AssetsInventory = () => {
                         <Badge status={h.status}>{h.status}</Badge>
                       </td>
                       <td className="p-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                          {h.verification_status || 'Unverified Baseline'}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {h.verification_status || 'Verified Asset'}
                         </span>
                       </td>
                     </tr>
@@ -402,14 +400,14 @@ export const AssetsInventory = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {software.length === 0 ? (
+                {verifiedSoftware.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-4 text-center text-slate-500">
-                      No software subscriptions registered.
+                      No verified software subscriptions registered.
                     </td>
                   </tr>
                 ) : (
-                  software.map((s, i) => (
+                  verifiedSoftware.map((s, i) => (
                     <tr key={i} className="hover:bg-slate-50/60">
                       <td className="p-3 font-mono font-bold text-purple-700">{s.license_id}</td>
                       <td className="p-3 font-semibold text-slate-800">{s.software_name}</td>
@@ -419,8 +417,8 @@ export const AssetsInventory = () => {
                         <Badge status={s.status}>{s.status}</Badge>
                       </td>
                       <td className="p-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                          {s.verification_status || 'Unverified Baseline'}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {s.verification_status || 'Verified License'}
                         </span>
                       </td>
                     </tr>
@@ -447,7 +445,7 @@ export const AssetsInventory = () => {
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                {verifiedRooms.length} Verified{unverifiedRooms.length > 0 ? ` • ${unverifiedRooms.length} Unverified` : ''}
+                {verifiedRooms.length} Verified
               </span>
               {canManageFacilities && (
                 <button
@@ -461,7 +459,7 @@ export const AssetsInventory = () => {
             </div>
           </div>
 
-          {/* Section 1: Verified Company Meeting Rooms */}
+          {/* Verified Company Meeting Rooms */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-3 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -510,54 +508,6 @@ export const AssetsInventory = () => {
               </div>
             )}
           </div>
-
-          {/* Section 2: Unverified Spaces (if any exist) */}
-          {unverifiedRooms.length > 0 && (
-            <div className="pt-4 border-t border-slate-200">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                  Unverified Facility Drafts ({unverifiedRooms.length})
-                </h3>
-                <span className="text-[11px] text-amber-800 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  Pending Administrative Audit
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {unverifiedRooms.map((r) => (
-                  <div key={r.room_id} className="p-4 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/20 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-slate-600">{r.room_id}</span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                        Unverified
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">{r.name}</h4>
-                    </div>
-                    <div className="text-xs text-slate-600 space-y-1.5 bg-white/80 p-3 rounded-lg border border-amber-100">
-                      <p><span className="font-semibold text-slate-500">Floor:</span> {r.floor || 'Not specified'}</p>
-                      <p><span className="font-semibold text-slate-500">Capacity:</span> {r.capacity || 'Not specified'}</p>
-                      {Array.isArray(r.features) && r.features.length > 0 && (
-                        <p><span className="font-semibold text-slate-500">Amenities:</span> {r.features.join(' • ')}</p>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-amber-200/60 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 font-medium">Status: <span className="text-amber-700 font-semibold">Unverified</span></span>
-                      {canManageFacilities && (
-                        <button
-                          onClick={() => handleOpenVerifyRoomModal(r)}
-                          className="py-1 px-3 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition"
-                        >
-                          Verify Facility
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -576,7 +526,7 @@ export const AssetsInventory = () => {
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                {confirmedSeating.length} Confirmed{provisionalSeating.length > 0 ? ` • ${provisionalSeating.length} Pending Audit` : ''}
+                {confirmedSeating.length} Confirmed
               </span>
               {canManageFacilities && (
                 <button
@@ -590,7 +540,7 @@ export const AssetsInventory = () => {
             </div>
           </div>
 
-          {confirmedSeating.length === 0 && (
+          {confirmedSeating.length === 0 ? (
             <div className="p-6 rounded-xl border border-dashed border-slate-300 text-center bg-slate-50/60">
               <MapPin className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-60" />
               <h4 className="text-sm font-semibold text-slate-700">No Confirmed Workstation Allocations</h4>
@@ -598,13 +548,11 @@ export const AssetsInventory = () => {
                 No verified desk or locker allocations are currently recorded in the system. Workstation assignments appear here only once entered and physically confirmed by Administration.
               </p>
             </div>
-          )}
-
-          {seating.length > 0 && (
+          ) : (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Workstation & Locker Registry ({seating.length} {seating.length === 1 ? 'Record' : 'Records'})
+                  Workstation & Locker Registry ({confirmedSeating.length} {confirmedSeating.length === 1 ? 'Record' : 'Records'})
                 </h3>
                 <span className="text-[11px] text-slate-500">
                   Sorted by desk identifier
@@ -621,11 +569,10 @@ export const AssetsInventory = () => {
                       <th className="p-3">Floor / Zone</th>
                       <th className="p-3">Allocation Status</th>
                       <th className="p-3">Verification State</th>
-                      {canManageFacilities && <th className="p-3 text-right">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {seating.map((s, idx) => (
+                    {confirmedSeating.map((s, idx) => (
                       <tr key={s.allocation_id || idx} className="hover:bg-slate-50/60">
                         <td className="p-3 font-mono font-bold text-slate-700">
                           {s.desk_number || s.desk || '—'}
@@ -645,41 +592,15 @@ export const AssetsInventory = () => {
                           {[s.floor, s.bay].filter(Boolean).join(' • ') || '—'}
                         </td>
                         <td className="p-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${
-                              s.is_verified
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}
-                          >
-                            {s.is_verified ? 'Allocated' : 'Unverified'}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Allocated
                           </span>
                         </td>
                         <td className="p-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${
-                              s.is_verified
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-slate-100 text-slate-600 border border-slate-200'
-                            }`}
-                          >
-                            {s.is_verified
-                              ? `Verified (${s.verified_by_name || 'Admin'})`
-                              : 'Pending Physical Audit'}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            Verified ({s.verified_by_name || 'Admin'})
                           </span>
                         </td>
-                        {canManageFacilities && (
-                          <td className="p-3 text-right">
-                            {!s.is_verified && (
-                              <button
-                                onClick={() => handleOpenVerifySeatingModal(s)}
-                                className="py-1 px-2.5 text-[11px] font-semibold rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition"
-                              >
-                                Verify
-                              </button>
-                            )}
-                          </td>
-                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -738,7 +659,7 @@ export const AssetsInventory = () => {
                     required
                     value={verifyRoomFloor}
                     onChange={(e) => setVerifyRoomFloor(e.target.value)}
-                    placeholder="e.g. 2nd Floor — East Wing"
+                    placeholder="Enter verified physical floor"
                     className="input-field text-xs w-full"
                   />
                 </div>
@@ -873,7 +794,7 @@ export const AssetsInventory = () => {
                     required
                     value={verifyDesk}
                     onChange={(e) => setVerifyDesk(e.target.value)}
-                    placeholder="e.g. WKS-101"
+                    placeholder="Enter official desk identifier"
                     className="input-field text-xs w-full font-mono"
                   />
                 </div>
@@ -883,7 +804,7 @@ export const AssetsInventory = () => {
                     type="text"
                     value={verifyLocker}
                     onChange={(e) => setVerifyLocker(e.target.value)}
-                    placeholder="Optional (e.g. LCK-101)"
+                    placeholder="Optional verified locker identifier"
                     className="input-field text-xs w-full font-mono"
                   />
                 </div>
@@ -897,7 +818,7 @@ export const AssetsInventory = () => {
                     required
                     value={verifyFloor}
                     onChange={(e) => setVerifyFloor(e.target.value)}
-                    placeholder="e.g. 2nd Floor"
+                    placeholder="Enter verified floor"
                     className="input-field text-xs w-full"
                   />
                 </div>
@@ -908,7 +829,7 @@ export const AssetsInventory = () => {
                     required
                     value={verifyBay}
                     onChange={(e) => setVerifyBay(e.target.value)}
-                    placeholder="e.g. Bay North"
+                    placeholder="Enter verified zone or bay"
                     className="input-field text-xs w-full"
                   />
                 </div>
