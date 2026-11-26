@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block title %}Leave Approvals — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header Card -->
+    <div class="page-header-card mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold mb-1">Leave & Permission Verification</h4>
+                <div class="page-header-meta">
+                    <span class="page-header-meta-item"><i class="bi bi-shield-check me-1"></i> HR Management Queue</span>
+                    <span class="page-header-meta-item"><i class="bi bi-calendar2-check me-1"></i> Staff Absences & Early Departures</span>
+                    <span class="page-header-meta-item"><i class="bi bi-clock-history me-1"></i> Automated Notification System</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadRequests()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh Queue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card metric-card h-100 border border-warning-subtle">
+                <div class="metric-header">
+                    <span class="metric-title text-warning">Pending Verification</span>
+                    <i class="bi bi-bell-fill metric-icon-subtle text-warning"></i>
+                </div>
+                <div class="metric-value text-warning" id="hrStatPending">0</div>
+                <div class="metric-footer text-muted">Action required by HR</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card metric-card h-100 border">
+                <div class="metric-header">
+                    <span class="metric-title text-success">Approved Total</span>
+                    <i class="bi bi-check-circle metric-icon-subtle text-success"></i>
+                </div>
+                <div class="metric-value text-success" id="hrStatApproved">0</div>
+                <div class="metric-footer text-muted">Validated requests</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card metric-card h-100 border">
+                <div class="metric-header">
+                    <span class="metric-title text-danger">Rejected Requests</span>
+                    <i class="bi bi-x-circle metric-icon-subtle text-danger"></i>
+                </div>
+                <div class="metric-value text-danger" id="hrStatRejected">0</div>
+                <div class="metric-footer text-muted">Declined applications</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card metric-card h-100 border">
+                <div class="metric-header">
+                    <span class="metric-title">Total Applications</span>
+                    <i class="bi bi-inbox metric-icon-subtle text-secondary"></i>
+                </div>
+                <div class="metric-value text-dark" id="hrStatTotal">0</div>
+                <div class="metric-footer text-muted">All-time staff submissions</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Card -->
+    <div class="card shadow-sm border mb-4">
+        <div class="card-header bg-white py-3 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h6 class="fw-bold mb-0 text-headline">Employee Application Queue</h6>
+                <span class="text-muted small">Verify employee leaves and early departure permissions</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Status Filter Pills -->
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary" id="hrFilterAll" onclick="setHrStatusFilter('ALL')">All</button>
+                    <button type="button" class="btn btn-outline-secondary active" id="hrFilterPending" onclick="setHrStatusFilter('Pending')">Pending Only</button>
+                    <button type="button" class="btn btn-outline-secondary" id="hrFilterApproved" onclick="setHrStatusFilter('Approved')">Approved</button>
+                    <button type="button" class="btn btn-outline-secondary" id="hrFilterRejected" onclick="setHrStatusFilter('Rejected')">Rejected</button>
+                </div>
+                <!-- Request Type Filter -->
+                <select class="form-select form-select-sm" id="hrTypeSelect" style="width: 150px;" onchange="loadRequests()">
+                    <option value="ALL" selected>All Request Types</option>
+                    <option value="LEAVE">Leaves Only</option>
+                    <option value="PERMISSION">Early Exits Only</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 90px;">Req ID</th>
+                            <th style="width: 190px;">Employee</th>
+                            <th style="width: 130px;">Type</th>
+                            <th style="width: 180px;">Requested Schedule</th>
+                            <th>Reason for Request</th>
+                            <th style="width: 120px;" class="text-center">Status</th>
+                            <th style="width: 140px;" class="text-end">Verification</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hrRequestsTbody">
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                Loading requests queue...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: HR Verification (Approve / Reject) -->
+<div class="modal fade" id="verifyModal" tabindex="-1" aria-labelledby="verifyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light py-3 border-bottom">
+                <h6 class="modal-title fw-bold" id="verifyModalLabel">
+                    <i class="bi bi-shield-check me-2 text-primary"></i> Review & Verify Request
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="vRequestId">
+                <div class="p-3 bg-light rounded-2 border mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-dark" id="vEmployeeName">--</span>
+                        <span class="badge bg-secondary-subtle text-secondary" id="vEmployeeId">--</span>
+                    </div>
+                    <div class="small text-muted mb-2" id="vDepartment">Department: --</div>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary-subtle text-primary" id="vRequestType">--</span>
+                        <span class="small fw-semibold text-dark" id="vSchedule">--</span>
+                    </div>
+                    <div class="small text-dark p-2 bg-white rounded border">
+                        <strong>Reason:</strong> <span id="vReason">--</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="vRemarks" class="form-label small fw-semibold text-secondary">
+                        HR Remarks / Notes <span class="text-muted">(Optional for Approval, Recommended for Rejection)</span>
+                    </label>
+                    <textarea class="form-control" id="vRemarks" rows="3" placeholder="Add administrative notes, guidelines, or rejection reason..."></textarea>
+                </div>
+                <div class="small text-muted">
+                    <i class="bi bi-bell me-1"></i> An automated notification will be sent immediately to the employee with your decision and remarks.
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 border-top d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-danger btn-sm px-3" onclick="submitVerification('Rejected')" id="btnReject">
+                        <i class="bi bi-x-circle me-1"></i> Reject
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm px-4" onclick="submitVerification('Approved')" id="btnApprove">
+                        <i class="bi bi-check-circle me-1"></i> Approve
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head_extra %}
+<script>
+let hrCurrentStatus = 'Pending';
+let requestsCache = [];
+let verifyModalInstance = null;
+let targetRequestId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    verifyModalInstance = new bootstrap.Modal(document.getElementById('verifyModal'));
+    const urlParams = new URLSearchParams(window.location.search);
+    targetRequestId = urlParams.get('request_id');
+    if (targetRequestId) {
+        setHrStatusFilter('ALL');
+    } else {
+        loadRequests();
+    }
+});
+
+function setHrStatusFilter(status) {
+    hrCurrentStatus = status;
+    ['ALL', 'Pending', 'Approved', 'Rejected'].forEach(s => {
+        const btn = document.getElementById(`hrFilter${s}`);
+        if (btn) {
+            if (s === status) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+    loadRequests();
+}
+
+async function loadRequests() {
+    const tbody = document.getElementById('hrRequestsTbody');
+    const typeVal = document.getElementById('hrTypeSelect').value;
+    try {
+        const res = await fetch(`/api/leaves/all?status=${hrCurrentStatus}&type=${typeVal}`);
+        if (!res.ok) throw new Error('Failed to load queue');
+        const data = await res.json();
+        requestsCache = data.requests || [];
+
+        // Update metrics
+        const sum = data.summary || {};
+        document.getElementById('hrStatPending').textContent = sum.pending_count || 0;
+        document.getElementById('hrStatApproved').textContent = sum.approved_count || 0;
+        document.getElementById('hrStatRejected').textContent = sum.rejected_count || 0;
+        document.getElementById('hrStatTotal').textContent = sum.total_count || 0;
+
+        renderHrTable(requestsCache);
+
+        if (targetRequestId) {
+            const targetReq = requestsCache.find(r => r.request_id === targetRequestId);
+            if (targetReq) {
+                const el = document.getElementById(`row-${targetRequestId}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (targetReq.status === 'Pending') {
+                    openVerifyModal(targetRequestId);
+                }
+            }
+        }
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">${e.message}</td></tr>`;
+    }
+}
+
+function renderHrTable(requests) {
+    const tbody = document.getElementById('hrRequestsTbody');
+    if (!requests || requests.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-5 text-muted">
+                    <i class="bi bi-check2-all fs-2 text-success mb-2 d-block"></i>
+                    <div class="fw-semibold">No requests in queue for this filter.</div>
+                    <div class="small">All pending employee requests are up to date!</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = requests.map(r => {
+        const isLeave = (r.request_type === 'LEAVE');
+        const typeBadge = isLeave
+            ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-calendar2-range me-1"></i>${escapeHtml(r.leave_type || 'Leave')}</span>`
+            : `<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><i class="bi bi-door-open me-1"></i>${escapeHtml(r.permission_type || 'Early Exit')}</span>`;
+
+        const scheduleText = isLeave
+            ? `<div class="fw-semibold text-dark">${r.start_date} ${r.end_date !== r.start_date ? `to ${r.end_date}` : ''}</div><div class="small text-muted">${r.days_count} day(s) ${r.is_half_day ? '(Half Day)' : ''}</div>`
+            : `<div class="fw-semibold text-dark">${r.permission_date}</div><div class="small text-muted"><i class="bi bi-clock me-1"></i>Exit: ${formatTime12(r.early_exit_time)}</div>`;
+
+        let statusBadge = '';
+        if (r.status === 'Approved') {
+            statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved</span>';
+        } else if (r.status === 'Rejected') {
+            statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>';
+        } else {
+            statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i>Pending</span>';
+        }
+
+        let actionBlock = '';
+        if (r.status === 'Pending') {
+            actionBlock = `
+                <div class="d-flex align-items-center justify-content-end gap-1">
+                    <button class="btn btn-sm btn-primary px-3 shadow-sm d-inline-flex align-items-center gap-1" onclick="openVerifyModal('${r.request_id}')">
+                        <i class="bi bi-shield-check"></i> Verify
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger p-1 px-2" title="Delete Leave Request" onclick="deleteLeaveRecord('${r.request_id}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+        } else {
+            actionBlock = `
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                    <div>
+                        <div class="small fw-medium text-dark">${escapeHtml(r.reviewed_by_name || 'HR')}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">${r.reviewed_at ? r.reviewed_at.substring(0, 10) : ''}</div>
+                        ${r.review_remarks ? `<div class="small text-muted fst-italic" style="font-size: 0.72rem;">"${escapeHtml(r.review_remarks)}"</div>` : ''}
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger p-1 px-2" title="Delete & Refund Leave" onclick="deleteLeaveRecord('${r.request_id}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        const isTarget = (r.request_id === targetRequestId);
+        return `
+            <tr id="row-${r.request_id}" class="${isTarget ? 'table-primary border-primary' : ''}">
+                <td class="font-monospace fw-bold text-secondary small">${r.request_id}</td>
+                <td>
+                    <div class="fw-bold text-dark">${escapeHtml(r.employee_name || '')}</div>
+                    <div class="small text-muted">${r.employee_id} &bull; ${escapeHtml(r.department || 'General')}</div>
+                </td>
+                <td>${typeBadge}</td>
+                <td>${scheduleText}</td>
+                <td>
+                    <div class="text-dark small">${escapeHtml(r.reason || '')}</div>
+                </td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="text-end">${actionBlock}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function deleteLeaveRecord(requestId) {
+    if (!confirm(`Are you sure you want to delete leave record ${requestId}? If previously approved, the employee's leave balance will be automatically refunded.`)) return;
+    fetch(`/api/leaves/${requestId}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Leave request deleted and balances reconciled.', 'success');
+                loadRequests();
+            } else {
+                showToast(data.error || 'Failed to delete leave request.', 'error');
+            }
+        })
+        .catch(() => showToast('Network error while deleting leave request.', 'error'));
+}
+
+function openVerifyModal(requestId) {
+    const req = requestsCache.find(r => r.request_id === requestId);
+    if (!req) return;
+
+    document.getElementById('vRequestId').value = req.request_id;
+    document.getElementById('vEmployeeName').textContent = req.employee_name;
+    document.getElementById('vEmployeeId').textContent = req.employee_id;
+    document.getElementById('vDepartment').textContent = `Department: ${req.department || 'General'}`;
+    document.getElementById('vRequestType').textContent = (req.request_type === 'LEAVE') ? (req.leave_type || 'Leave') : (req.permission_type || 'Early Exit Permission');
+    
+    if (req.request_type === 'LEAVE') {
+        document.getElementById('vSchedule').textContent = `${req.start_date} to ${req.end_date} (${req.days_count} day(s))`;
+    } else {
+        document.getElementById('vSchedule').textContent = `${req.permission_date} at ${formatTime12(req.early_exit_time)}`;
+    }
+
+    document.getElementById('vReason').textContent = req.reason;
+    document.getElementById('vRemarks').value = "";
+
+    verifyModalInstance.show();
+}
+
+async function submitVerification(decision) {
+    const requestId = document.getElementById('vRequestId').value;
+    const remarks = document.getElementById('vRemarks').value;
+
+    const btnApprove = document.getElementById('btnApprove');
+    const btnReject = document.getElementById('btnReject');
+    btnApprove.disabled = true;
+    btnReject.disabled = true;
+
+    try {
+        const res = await fetch(`/api/leaves/verify/${requestId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ decision, remarks })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to verify request');
+
+        showToast(`Request ${decision.toLowerCase()} successfully! Employee has been notified.`, 'success');
+        verifyModalInstance.hide();
+        loadRequests();
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btnApprove.disabled = false;
+        btnReject.disabled = false;
+    }
+}
+
+function formatTime12(time24) {
+    if (!time24) return '';
+    try {
+        const [h, m] = time24.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+    } catch (e) {
+        return time24;
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+</script>
+{% endblock %}

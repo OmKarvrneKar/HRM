@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Governance — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header Card -->
+    <div class="page-header-card">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold mb-1">Executive Governance & Policy Oversight</h4>
+                <div class="page-header-meta">
+                    <span class="page-header-meta-item">HR Department Supervision</span>
+                    <span class="page-header-meta-item">Organization Attendance Policies</span>
+                    <span class="page-header-meta-item">System Compliance Logs</span>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+                <a href="/dashboard/employee" class="btn btn-sm btn-outline-secondary" title="View personal employee punch clock and attendance">
+                    <i class="bi bi-person-workspace me-1"></i> My Employee Portal
+                </a>
+                <a href="/profiles" class="btn btn-sm btn-outline-secondary" title="Corporate staff directory">
+                    <i class="bi bi-person-badge me-1"></i> Staff Directory
+                </a>
+                <a href="/projects" class="btn btn-sm btn-outline-secondary" title="Active projects and deliverables">
+                    <i class="bi bi-kanban me-1"></i> Projects
+                </a>
+                <a href="/api/export/zip" class="btn btn-sm btn-outline-secondary" target="_blank" title="Administrative ZIP Data Archive">
+                    <i class="bi bi-file-earmark-zip me-1"></i> Export ZIP
+                </a>
+                <a href="/holidays" class="btn btn-sm btn-outline-secondary" title="Corporate holiday calendar">
+                    <i class="bi bi-calendar-event me-1"></i> Holidays
+                </a>
+                <a href="/salary" class="btn btn-sm btn-outline-secondary" title="Executive payroll and compensation review">
+                    <i class="bi bi-file-earmark-text me-1"></i> Payroll
+                </a>
+                <a href="/settings" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-sliders me-1"></i> Org Policies
+                </a>
+                <a href="/audit-logs" class="btn btn-sm btn-primary">
+                    <i class="bi bi-shield-check me-1"></i> Compliance Audit
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Boundary Callout (Corporate Privacy Guard) -->
+    <div class="card p-3 mb-4 bg-light border">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center bg-white border rounded p-2 text-primary" style="width: 36px; height: 36px;">
+                <i class="bi bi-shield-lock"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="fw-semibold text-dark" style="font-size: 0.845rem;">Organizational Privacy & RBAC Segregation Active</div>
+                <div class="text-muted small" style="font-size: 0.775rem;">
+                    HR Managers supervise HR personnel and global corporate configurations. Individual employee attendance logs and confidential workplace grievances are isolated and restricted to operational HR Officers.
+                </div>
+            </div>
+            <span class="badge bg-white text-secondary border font-mono d-none d-md-inline" style="font-size: 0.7rem;">RBAC ENFORCED</span>
+        </div>
+    </div>
+
+    <!-- Executive Metrics Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="metric-header">
+                    <span class="metric-title">HR Personnel</span>
+                    <i class="bi bi-people metric-icon-subtle"></i>
+                </div>
+                <div class="metric-value" id="mTotalHr">--</div>
+                <div class="metric-footer text-muted">People Operations Team</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="metric-header">
+                    <span class="metric-title text-success">HR Present</span>
+                    <i class="bi bi-check-circle metric-icon-subtle text-success"></i>
+                </div>
+                <div class="metric-value text-success" id="mHrPresent">--</div>
+                <div class="metric-footer text-muted">Active officers on duty</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="metric-header">
+                    <span class="metric-title text-warning">HR Late Arrivals</span>
+                    <i class="bi bi-clock-history metric-icon-subtle text-warning"></i>
+                </div>
+                <div class="metric-value text-warning" id="mHrLate">--</div>
+                <div class="metric-footer text-muted">> 10:00 AM IST threshold</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="metric-header">
+                    <span class="metric-title text-danger">Pending Logout</span>
+                    <i class="bi bi-hourglass-split metric-icon-subtle text-danger"></i>
+                </div>
+                <div class="metric-value text-danger" id="mHrIncomplete">--</div>
+                <div class="metric-footer text-muted">Awaiting 6:00 PM cutoff</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HR Attendance Roster & Policy Settings Card -->
+    <div class="row g-4 mb-4">
+        <!-- HR Attendance Table -->
+        <div class="col-12 col-lg-8">
+            <div class="card p-3 p-md-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0">HR Department Punch Roster</h6>
+                        <span class="text-muted small">Daily attendance records for HR staff</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 btn-freeze-layout" id="btnToggleFreezeHrMgrDash" onclick="toggleHrMgrDashFreezeScreenLayout()" title="Freeze header and officer column for screen layout">
+                            <i class="bi bi-pin-angle"></i> <span id="hrMgrDashFreezeBtnLabel">Freeze Panes</span>
+                        </button>
+                        <a href="/attendance" class="btn btn-sm btn-outline-secondary">Detailed View</a>
+                    </div>
+                </div>
+                <div class="report-freeze-wrapper" id="hrMgrDashFreezeWrapper">
+                    <div class="report-freeze-indicator" id="frozenActiveHrMgrDashIndicator" style="display: none;">
+                        <i class="bi bi-pin-angle-fill text-primary me-1"></i> Screen Layout Frozen (Header &amp; Officer Column Pinned)
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>HR Officer</th>
+                                    <th>First Login</th>
+                                    <th>Qualifying Logout</th>
+                                    <th>Punctuality</th>
+                                    <th>Working Span</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hrAttendanceTbody">
+                                <tr><td colspan="6" class="text-center text-muted py-3">Loading HR personnel records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organization Settings Quick Card -->
+        <div class="col-12 col-lg-4">
+            <div class="card p-3 p-md-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0">Active Policy Parameters</h6>
+                        <span class="text-muted small">Organization-wide rules</span>
+                    </div>
+                    <span class="badge bg-light text-secondary border font-mono">v1.0</span>
+                </div>
+                <ul class="list-group list-group-flush mb-3" style="font-size: 0.845rem;">
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-2">
+                        <span class="text-muted">Standard Arrival Threshold</span>
+                        <span class="fw-semibold font-mono">10:00 AM IST</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-2">
+                        <span class="text-muted">Qualifying Departure Threshold</span>
+                        <span class="fw-semibold font-mono">06:00 PM IST</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-2">
+                        <span class="text-muted">Mandatory Cutoff Threshold</span>
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono">07:00 PM (45m Alert)</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-2">
+                        <span class="text-muted">Enterprise Timezone</span>
+                        <span class="fw-semibold">Asia/Kolkata</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-2">
+                        <span class="text-muted">Grace Allowance</span>
+                        <span class="badge bg-light text-secondary border">0 Minutes</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-2">
+                        <span class="text-muted">Leap-Year Birthday Rule</span>
+                        <span class="badge bg-light text-secondary border">Feb 28 in non-leap</span>
+                    </li>
+                </ul>
+                <a href="/settings" class="btn btn-outline-secondary w-100 btn-sm"><i class="bi bi-pencil me-1"></i> Edit Configuration</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Restore saved screen layout freeze preference
+    try {
+        const savedFreeze = localStorage.getItem('samrat_freeze_hr_mgr_dash_screen');
+        if (savedFreeze === 'true') {
+            toggleHrMgrDashFreezeScreenLayout(true);
+        }
+    } catch (e) {}
+
+    loadHrManagerOverview();
+
+    // Auto-refresh HR manager overview according to live time every 20 seconds
+    setInterval(() => {
+        loadHrManagerOverview();
+    }, 20000);
+});
+
+async function loadHrManagerOverview() {
+    try {
+        const res = await fetch('/api/attendance/hr-manager-monitor');
+        const data = await res.json();
+
+        document.getElementById('mTotalHr').textContent = data.total_hr_users;
+        document.getElementById('mHrPresent').textContent = data.present_count;
+        document.getElementById('mHrLate').textContent = data.late_count;
+        document.getElementById('mHrIncomplete').textContent = data.incomplete_count;
+
+        const tbody = document.getElementById('hrAttendanceTbody');
+        if (data.records && data.records.length > 0) {
+            tbody.innerHTML = data.records.map(r => {
+                const inTime = r.first_login ? new Date(r.first_login).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A';
+                
+                let outTime = '<span class="text-muted">Pending</span>';
+                if (r.final_qualifying_logout) {
+                    outTime = new Date(r.final_qualifying_logout).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+                } else if (r.has_open_session) {
+                    const now = new Date();
+                    const istNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                    const targetQual = new Date(istNow); targetQual.setHours(18, 0, 0, 0);
+                    const targetCutoff = new Date(istNow); targetCutoff.setHours(19, 0, 0, 0);
+                    const secToQual = Math.floor((targetQual - istNow) / 1000);
+                    const secToCutoff = Math.floor((targetCutoff - istNow) / 1000);
+                    
+                    if (secToQual > 0) {
+                        const h = Math.floor(secToQual / 3600);
+                        const m = Math.floor((secToQual % 3600) / 60);
+                        outTime = `<span class="pending-tab-badge" title="Pending: ${h}h ${m}m remaining to qualify shift"><i class="bi bi-hourglass-split pending-hourglass-spin me-1"></i>On Duty (${h}h ${m}m left)</span>`;
+                    } else if (secToCutoff > 0) {
+                        const mins = Math.max(1, Math.floor(secToCutoff / 60));
+                        outTime = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle" title="Cutoff at 7:00 PM"><i class="bi bi-clock-history me-1"></i>On Duty (${mins}m to cutoff)</span>`;
+                    } else {
+                        outTime = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-exclamation-octagon me-1"></i>Cutoff Passed</span>';
+                    }
+                }
+
+                let lateBadge = '<span class="badge badge-on-time">On Time</span>';
+                if (r.late_arrival_status === 'LATE') {
+                    lateBadge = `<span class="badge badge-late">Late (${r.delay_minutes}m)</span>`;
+                }
+
+                let statusBadge = `<span class="badge ${r.status === 'PRESENT' ? 'badge-present' : 'badge-incomplete'}">${r.status}</span>`;
+                if (r.has_open_session && r.status !== 'PRESENT') {
+                    statusBadge = '<span class="badge bg-info-subtle text-info border border-info-subtle"><span class="pulse-dot-inline me-1"></span>In Progress</span>';
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="fw-semibold text-dark user-name-styled">${r.employee_name}</div>
+                            <span class="text-muted font-mono" style="font-size: 0.75rem;">${r.employee_id}</span>
+                        </td>
+                        <td class="font-mono">${inTime}</td>
+                        <td class="font-mono">${outTime}</td>
+                        <td>${lateBadge}</td>
+                        <td class="font-mono fw-semibold text-dark">
+                            ${r.has_open_session ? '<i class="bi bi-stopwatch text-primary me-1"></i>' : ''}${r.official_working_duration_display || '0h 0m'}
+                        </td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No HR attendance records found for today.</td></tr>';
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function toggleHrMgrDashFreezeScreenLayout(forceState = null) {
+    const wrapper = document.getElementById('hrMgrDashFreezeWrapper');
+    const btn = document.getElementById('btnToggleFreezeHrMgrDash');
+    const label = document.getElementById('hrMgrDashFreezeBtnLabel');
+    const indicator = document.getElementById('frozenActiveHrMgrDashIndicator');
+    if (!wrapper) return;
+
+    let isFrozen;
+    if (forceState !== null) {
+        isFrozen = forceState;
+        wrapper.classList.toggle('is-frozen', isFrozen);
+    } else {
+        isFrozen = wrapper.classList.toggle('is-frozen');
+    }
+
+    if (btn) btn.classList.toggle('active', isFrozen);
+    if (label) label.textContent = isFrozen ? 'Unfreeze Panes' : 'Freeze Panes';
+    if (indicator) indicator.style.display = isFrozen ? 'inline-flex' : 'none';
+
+    try {
+        localStorage.setItem('samrat_freeze_hr_mgr_dash_screen', isFrozen ? 'true' : 'false');
+    } catch (e) {}
+}
+</script>
+{% endblock %}

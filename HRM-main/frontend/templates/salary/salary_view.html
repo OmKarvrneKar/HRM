@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Salary Statements &amp; Payslips — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header Card -->
+    <div class="page-header-card">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h4 class="fw-bold mb-0">Salary Statements &amp; Payslips</h4>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-shield-check me-1"></i>Verified Payroll
+                    </span>
+                </div>
+                <div class="page-header-meta">
+                    <span class="page-header-meta-item">{{ user.full_name }} ({{ user.employee_id }})</span>
+                    <span class="page-header-meta-item">{{ user.designation }}</span>
+                    <span class="page-header-meta-item">{{ user.department }}</span>
+                    <span class="page-header-meta-item">Currency: INR (₹)</span>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <a href="#payslipsSection" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-clock-history me-1"></i> View Historical Slips
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Salary Overview KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="metric-header">
+                    <span class="metric-title">Annual CTC</span>
+                    <i class="bi bi-cash-stack metric-icon-subtle"></i>
+                </div>
+                <div class="metric-value text-dark font-mono">
+                    ₹ {{ "{:,.0f}".format(user.salary_info.ctc_annual if user.salary_info else 0) }}
+                </div>
+                <div class="metric-footer text-muted">
+                    <span>Total Cost to Company</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="metric-header">
+                    <span class="metric-title">Monthly Gross</span>
+                    <i class="bi bi-graph-up metric-icon-subtle"></i>
+                </div>
+                <div class="metric-value text-dark font-mono">
+                    ₹ {{ "{:,.0f}".format(user.salary_info.monthly_gross if user.salary_info else 0) }}
+                </div>
+                <div class="metric-footer text-muted">
+                    <span>Pre-tax monthly earnings</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="metric-header">
+                    <span class="metric-title">Total Deductions</span>
+                    <i class="bi bi-dash-circle metric-icon-subtle text-danger"></i>
+                </div>
+                <div class="metric-value text-danger font-mono">
+                    ₹ {{ "{:,.0f}".format(user.salary_info.total_deductions if user.salary_info else 0) }}
+                </div>
+                <div class="metric-footer text-muted">
+                    <span>EPF + PT + Income Tax (TDS)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100" style="border-left: 3px solid var(--samrat-blue, #0056d6) !important;">
+                <div class="metric-header">
+                    <span class="metric-title" style="color: var(--samrat-blue, #0056d6); font-weight: 700;">Net Take-Home Pay</span>
+                    <i class="bi bi-wallet2" style="color: var(--samrat-cyan, #00c2ff);"></i>
+                </div>
+                <div class="metric-value font-mono user-name-styled">
+                    ₹ {{ "{:,.0f}".format(user.salary_info.net_salary if user.salary_info else 0) }}
+                </div>
+                <div class="metric-footer text-muted">
+                    <span>Direct bank transfer per month</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compensation Breakdown & Banking Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Earnings & Deductions Tables -->
+        <div class="col-12 col-lg-8">
+            <div class="card p-3 p-md-4 h-100">
+                <h6 class="fw-bold mb-3">Compensation Structure Components</h6>
+                
+                <div class="row g-3">
+                    <!-- Earnings Column -->
+                    <div class="col-12 col-md-6">
+                        <div class="border rounded p-3">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2" style="font-size: 0.85rem;">
+                                <i class="bi bi-plus-circle text-primary"></i> Earnings (Monthly)
+                            </h6>
+                            <div class="d-flex flex-column gap-2" style="font-size: 0.835rem;">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Basic Salary (50%)</span>
+                                    <span class="font-mono fw-semibold">₹ {{ "{:,.2f}".format(user.salary_info.basic_salary if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">House Rent Allowance (HRA)</span>
+                                    <span class="font-mono fw-semibold">₹ {{ "{:,.2f}".format(user.salary_info.hra if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Conveyance Allowance</span>
+                                    <span class="font-mono fw-semibold">₹ {{ "{:,.2f}".format(user.salary_info.conveyance_allowance if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Medical Allowance</span>
+                                    <span class="font-mono fw-semibold">₹ {{ "{:,.2f}".format(user.salary_info.medical_allowance if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Special / Flexi Allowance</span>
+                                    <span class="font-mono fw-semibold">₹ {{ "{:,.2f}".format(user.salary_info.special_allowance if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between border-top pt-2 mt-1 fw-bold">
+                                    <span>Total Monthly Gross</span>
+                                    <span class="font-mono">₹ {{ "{:,.2f}".format(user.salary_info.monthly_gross if user.salary_info else 0) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deductions Column -->
+                    <div class="col-12 col-md-6">
+                        <div class="border rounded p-3">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2" style="font-size: 0.85rem;">
+                                <i class="bi bi-dash-circle text-danger"></i> Deductions (Monthly)
+                            </h6>
+                            <div class="d-flex flex-column gap-2" style="font-size: 0.835rem;">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Employee PF (EPF 12%)</span>
+                                    <span class="font-mono fw-semibold text-danger">₹ {{ "{:,.2f}".format(user.salary_info.pf_deduction if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Professional Tax (PT)</span>
+                                    <span class="font-mono fw-semibold text-danger">₹ {{ "{:,.2f}".format(user.salary_info.professional_tax if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Income Tax (TDS Estimate)</span>
+                                    <span class="font-mono fw-semibold text-danger">₹ {{ "{:,.2f}".format(user.salary_info.tds_tax if user.salary_info else 0) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between border-top pt-2 mt-4 fw-bold">
+                                    <span>Total Deductions</span>
+                                    <span class="font-mono text-danger">₹ {{ "{:,.2f}".format(user.salary_info.total_deductions if user.salary_info else 0) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banking & Statutory Details -->
+        <div class="col-12 col-lg-4">
+            <div class="card p-3 p-md-4 h-100">
+                <h6 class="fw-bold mb-3">Banking &amp; Statutory Identifiers</h6>
+                <div class="d-flex flex-column gap-3" style="font-size: 0.825rem;">
+                    <div>
+                        <div class="text-muted small">Disbursement Bank</div>
+                        <div class="fw-semibold">{{ user.salary_info.bank_name if user.salary_info else 'State Bank of India' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Bank Account Number</div>
+                        <div class="fw-semibold font-mono">{{ user.salary_info.account_number if user.salary_info else '••••••••1001' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">IFSC Code</div>
+                        <div class="fw-semibold font-mono">{{ user.salary_info.ifsc_code if user.salary_info else 'SBIN0008472' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">PAN Number</div>
+                        <div class="fw-semibold font-mono">{{ user.salary_info.pan_number if user.salary_info else '•••••100K' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Universal Account Number (UAN)</div>
+                        <div class="fw-semibold font-mono">{{ user.salary_info.uan_number if user.salary_info else '100984711001' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historical Payslips Download Section -->
+    <div class="card p-3 p-md-4 mb-4" id="payslipsSection">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h6 class="fw-bold mb-0 text-dark">Historical Payslip Statements</h6>
+                <span class="text-muted small">Official computer-generated PDF salary slips with AI Samrat corporate seal</span>
+            </div>
+            <span class="badge bg-light text-secondary border font-mono">Last 6 Months</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Statement Reference</th>
+                        <th>Month &amp; Year</th>
+                        <th>Pay Period</th>
+                        <th>Gross Earnings</th>
+                        <th>Deductions</th>
+                        <th>Net Take-Home</th>
+                        <th>Status</th>
+                        <th class="text-end">Official PDF</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if user.salary_slips and user.salary_slips|length > 0 %}
+                    {% for slip in user.salary_slips %}
+                    <tr>
+                        <td class="font-mono fw-semibold text-dark">{{ slip.slip_id }}</td>
+                        <td class="fw-semibold text-dark">{{ slip.month_name }}</td>
+                        <td class="text-muted small">{{ slip.pay_period }}</td>
+                        <td class="font-mono">₹ {{ "{:,.2f}".format(slip.gross_earnings) }}</td>
+                        <td class="font-mono text-danger">₹ {{ "{:,.2f}".format(slip.total_deductions) }}</td>
+                        <td class="font-mono fw-bold user-name-styled">₹ {{ "{:,.2f}".format(slip.net_salary) }}</td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                <i class="bi bi-check-circle me-1"></i>{{ slip.payment_status }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="/profile/{{ user.employee_id }}#payslipsSection" class="btn btn-primary py-1 px-2" title="View Full Payslip Statement">
+                                    <i class="bi bi-eye me-1"></i> View
+                                </a>
+                                <a href="/api/salary/slip/{{ user.employee_id }}/{{ slip.year_month }}/pdf" class="btn btn-outline-secondary py-1 px-2" target="_blank" title="Download Official PDF Slip">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            No archived salary slips found. Monthly slips are generated at month-end.
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,2218 @@
+{% extends "base.html" %}
+
+{% block title %}Projects &amp; Tasks — AI Samrat HRMS{% endblock %}
+
+{% block head_extra %}
+<style>
+.kpi-stat-box {
+    padding: 1.15rem;
+    border-radius: 10px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-card);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+}
+.kpi-stat-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+.kpi-stat-number {
+    font-size: 1.85rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-headline);
+    font-family: var(--font-mono);
+}
+.kpi-stat-label {
+    font-size: 0.785rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+}
+.chart-card-container {
+    background: var(--surface-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 1.25rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.chart-canvas-wrapper {
+    position: relative;
+    flex-grow: 1;
+    min-height: 250px;
+    width: 100%;
+}
+.filter-badge-btn {
+    border-radius: 6px;
+    font-size: 0.785rem;
+    font-weight: 500;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--border-card);
+    background: var(--surface-card);
+    color: var(--text-body);
+    transition: all 0.15s ease;
+}
+.filter-badge-btn:hover {
+    background: var(--surface-card-hover);
+    color: var(--text-headline);
+}
+.filter-badge-btn.active {
+    background: var(--samrat-blue);
+    color: #ffffff;
+    border-color: var(--samrat-blue);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header Card -->
+    <div class="page-header-card mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold mb-1">Projects</h4>
+                <div class="page-header-meta">
+                    <span class="page-header-meta-item"><i class="bi bi-kanban me-1"></i> Project Overview</span>
+                    <span class="page-header-meta-item"><i class="bi bi-check2-square me-1"></i> Project Tasks</span>
+                    <span class="page-header-meta-item"><i class="bi bi-speedometer2 me-1"></i> Project Progress</span>
+                    <span class="page-header-meta-item"><i class="bi bi-graph-up-arrow me-1"></i> Project Analytics</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                {% if user.role in ['manager', 'admin', 'organization'] %}
+                <button class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#dummyProjectsReviewModal" onclick="loadDummyProjectsCandidates()">
+                    <i class="bi bi-tools"></i> Review Dummy Projects
+                </button>
+                {% endif %}
+                {% if user.role in ['team_lead', 'manager', 'admin', 'hr_manager', 'trainer'] %}
+                <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#createProjectModal" onclick="prepareCreateProjectModal()">
+                    <i class="bi bi-folder-plus"></i> New Project
+                </button>
+                {% endif %}
+                <button class="btn btn-outline-secondary btn-sm" onclick="refreshCurrentProjectsTab()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs Toolbar -->
+    <div class="card p-2 mb-4 shadow-sm border">
+        <ul class="nav nav-pills nav-fill flex-column flex-sm-row gap-1" id="projectNavPills" style="font-size: 0.84rem;">
+            <li class="nav-item">
+                <button class="nav-link active py-2 px-3 fw-semibold text-start text-sm-center" id="tabBtnProjects" onclick="switchProjectTab('projects')">
+                    <i class="bi bi-folder2-open me-1"></i> Project Overview
+                    <span class="d-none">My Projects</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnTasks" onclick="switchProjectTab('tasks')">
+                    <i class="bi bi-list-task me-1"></i> Project Tasks
+                    <span class="badge bg-secondary-subtle text-secondary ms-1 font-mono" id="myTasksCountPill">0</span>
+                    <span class="d-none">My Tasks</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnProgress" onclick="switchProjectTab('progress')">
+                    <i class="bi bi-pie-chart me-1"></i> Project Progress
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnAnalytics" onclick="switchProjectTab('analytics')">
+                    <i class="bi bi-graph-up-arrow me-1"></i> Project Analytics
+                    <span class="d-none">My Analytics &amp; Trends</span>
+                </button>
+            </li>
+            {% if user.role in ['team_lead', 'manager', 'admin', 'trainer'] %}
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnApprovals" onclick="switchProjectTab('approvals')">
+                    <i class="bi bi-shield-check me-1"></i> {% if user.role in ['manager', 'admin'] %}Project Approvals{% else %}Proposal Queue{% endif %}
+                    <span class="badge bg-warning-subtle text-warning ms-1 font-mono" id="pendingApprovalsCountPill">0</span>
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: MY PROJECTS                                                        -->
+    <!-- ========================================================================= -->
+    <div id="viewMyProjects" class="project-tab-pane">
+        <div class="row g-3" id="projectsGrid">
+            <div class="col-12 text-center text-muted py-5">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                Loading project portfolios...
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: MY TASKS                                                           -->
+    <!-- ========================================================================= -->
+    <div id="viewMyTasks" class="project-tab-pane" style="display: none;">
+        <div class="card p-3 p-md-4 border shadow-sm mb-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-0">Assigned Task Deliverables</h6>
+                    <span class="text-muted small">All active tasks specifically assigned to you across corporate projects</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <select id="taskStatusFilter" class="form-select form-select-sm" style="width: 160px;" onchange="filterTasksTable()">
+                        <option value="ALL">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Task ID</th>
+                            <th>Task Title</th>
+                            <th>Associated Project</th>
+                            <th>Due Date</th>
+                            <th>Weight</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myTasksTableBody">
+                        <tr><td colspan="8" class="text-center text-muted py-4">Loading your assigned deliverables...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: PROJECT PROGRESS                                                   -->
+    <!-- ========================================================================= -->
+    <div id="viewProjectProgress" class="project-tab-pane" style="display: none;">
+        <!-- Top Metrics Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title">Active Projects</span>
+                        <i class="bi bi-kanban metric-icon-subtle text-primary"></i>
+                    </div>
+                    <div class="metric-value text-primary font-mono" id="progTotalProjects">0</div>
+                    <div class="metric-footer text-muted">Assigned portfolios</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title text-success">Completed Tasks</span>
+                        <i class="bi bi-check-circle-fill metric-icon-subtle text-success"></i>
+                    </div>
+                    <div class="metric-value text-success font-mono" id="progCompletedTasks">0</div>
+                    <div class="metric-footer text-muted">Finished deliverables</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title text-warning">Pending / In-Progress</span>
+                        <i class="bi bi-hourglass-split metric-icon-subtle text-warning"></i>
+                    </div>
+                    <div class="metric-value text-warning font-mono" id="progPendingTasks">0</div>
+                    <div class="metric-footer text-muted">Active execution</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title text-danger">Overdue Tasks</span>
+                        <i class="bi bi-exclamation-triangle metric-icon-subtle text-danger"></i>
+                    </div>
+                    <div class="metric-value text-danger font-mono" id="progOverdueTasks">0</div>
+                    <div class="metric-footer text-muted">Past target date</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Progress Breakdown Cards -->
+        <div class="card p-3 p-md-4 border shadow-sm mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-steps me-1 text-primary"></i> Portfolio Execution &amp; Weighted Completion</h6>
+            <div class="d-flex flex-column gap-3" id="projectProgressList">
+                <div class="text-center text-muted py-4">Calculating progress telemetry...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: MY ANALYTICS & TRENDS                                              -->
+    <!-- ========================================================================= -->
+    <div id="viewMyAnalytics" class="project-tab-pane" style="display: none;">
+        <!-- Analytics Header & Filter Bar -->
+        <div class="card p-3 mb-4 shadow-sm border">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div>
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-graph-up-arrow text-primary"></i> Personal Analytics &amp; Performance Trends
+                    </h6>
+                    <span class="text-muted small">Live database telemetry measuring task completion, punctuality, and attendance records</span>
+                </div>
+                <!-- Period Switcher Buttons -->
+                <div class="d-flex flex-wrap align-items-center gap-1" id="analyticsPeriodSelector">
+                    <button class="filter-badge-btn active" data-period="this_month" onclick="changeAnalyticsPeriod('this_month')">This Month</button>
+                    <button class="filter-badge-btn" data-period="last_month" onclick="changeAnalyticsPeriod('last_month')">Last Month</button>
+                    <button class="filter-badge-btn" data-period="this_quarter" onclick="changeAnalyticsPeriod('this_quarter')">Quarter</button>
+                    <button class="filter-badge-btn" data-period="all_time" onclick="changeAnalyticsPeriod('all_time')">All Time</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic KPI Stat Boxes Row -->
+        <div class="row g-3 mb-4" id="analyticsKpisRow">
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="kpi-stat-box">
+                    <div class="kpi-stat-label">Tasks Completed</div>
+                    <div class="kpi-stat-number text-success" id="kpiDoneTasks">0</div>
+                    <span class="text-muted small">100% finished</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="kpi-stat-box">
+                    <div class="kpi-stat-label">Tasks Pending</div>
+                    <div class="kpi-stat-number text-warning" id="kpiPendingTasks">0</div>
+                    <span class="text-muted small">In pipeline</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="kpi-stat-box">
+                    <div class="kpi-stat-label">Days Present</div>
+                    <div class="kpi-stat-number text-primary" id="kpiDaysPresent">0</div>
+                    <span class="text-muted small">On-duty days</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="kpi-stat-box">
+                    <div class="kpi-stat-label">Total Hours</div>
+                    <div class="kpi-stat-number" id="kpiTotalHours">0h</div>
+                    <span class="text-muted small">Span logged</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="kpi-stat-box">
+                    <div class="kpi-stat-label">Punctuality %</div>
+                    <div class="kpi-stat-number text-info" id="kpiOnTimeRatio">0%</div>
+                    <span class="text-muted small">Before 10 AM</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="kpi-stat-box">
+                    <div class="kpi-stat-label">Approved Leaves</div>
+                    <div class="kpi-stat-number text-secondary" id="kpiLeavesApproved">0</div>
+                    <span class="text-muted small">Days off</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="row g-4 mb-4">
+            <!-- Chart 1: Tasks by Stage -->
+            <div class="col-12 col-lg-6">
+                <div class="chart-card-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">My Tasks by Stage</h6>
+                        <span class="badge bg-secondary-subtle text-secondary font-mono">Deliverables</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chartTasksCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 2: Attendance & Ratio Breakdown -->
+            <div class="col-12 col-lg-6">
+                <div class="chart-card-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">Attendance Composition</h6>
+                        <span class="badge bg-secondary-subtle text-secondary font-mono">Ratio</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chartAttendanceCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 3: Skill Domains -->
+            <div class="col-12 col-lg-6">
+                <div class="chart-card-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">Competency Domains</h6>
+                        <span class="badge bg-secondary-subtle text-secondary font-mono">Skills</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chartSkillsCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 4: Workplace Time Off -->
+            <div class="col-12 col-lg-6">
+                <div class="chart-card-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">Work vs. Leave Ratio</h6>
+                        <span class="badge bg-secondary-subtle text-secondary font-mono">Working Days</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chartLeaveCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 5: PROJECT APPROVALS & PROPOSALS QUEUE                                -->
+    <!-- ========================================================================= -->
+    <div id="viewProjectApprovals" class="project-tab-pane" style="display: none;">
+        <!-- Header Info Card -->
+        <div class="card p-3 p-md-4 border shadow-sm mb-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                <div>
+                    <h5 class="fw-bold mb-1 text-headline">
+                        <i class="bi bi-shield-check text-primary me-2"></i>
+                        {% if user.role in ['manager', 'admin'] %}Manager Project Approval Dashboard{% else %}My Project Proposals &amp; Approvals{% endif %}
+                    </h5>
+                    <span class="text-muted small">
+                        {% if user.role in ['manager', 'admin'] %}
+                        Mandatory governance console: review proposals submitted by Team Leads, authorize project activations, manage membership requests, and review deliverables.
+                        {% else %}
+                        Track your proposed initiatives, manager review status, feedback comments, and submit revision updates.
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadPendingApprovals()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh Queue
+                    </button>
+                    {% if user.role in ['team_lead', 'trainer'] %}
+                    <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#createProjectModal" onclick="prepareCreateProjectModal()">
+                        <i class="bi bi-plus-circle me-1"></i> New Proposal
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Proposals List Section -->
+        <div class="card p-3 p-md-4 border shadow-sm mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 text-headline">
+                    <i class="bi bi-folder-check text-warning me-1"></i>
+                    {% if user.role in ['manager', 'admin'] %}Pending Project Proposals for Review{% else %}My Submitted Proposals{% endif %}
+                </h6>
+                <span class="badge bg-secondary-subtle text-secondary font-mono" id="proposalsTableCountBadge">0 Proposals</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Project ID</th>
+                            <th>Project Title &amp; Scope</th>
+                            <th>Submitted By</th>
+                            <th>Timeline</th>
+                            <th>Priority</th>
+                            <th>Proposed Team</th>
+                            <th>Review Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="approvalsTableBody">
+                        <tr><td colspan="8" class="text-center text-muted py-4">Loading proposal queue...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Membership Change Requests Section -->
+        <div class="card p-3 p-md-4 border shadow-sm mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h6 class="fw-bold mb-0 text-headline">
+                        <i class="bi bi-people text-info me-1"></i>
+                        Post-Approval Membership Change Requests
+                    </h6>
+                    <span class="text-muted small">Proposed additions or removals of personnel on active corporate initiatives</span>
+                </div>
+                <span class="badge bg-info-subtle text-info font-mono" id="membershipRequestsCountBadge">0 Requests</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Associated Project</th>
+                            <th>Requested By</th>
+                            <th>Proposed Changes</th>
+                            <th>Justification</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membershipRequestsTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-3">No pending membership change requests found.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+<!-- Quick Task Progress Update Modal -->
+<div class="modal fade" id="updateTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border shadow-lg">
+            <div class="modal-header py-3 border-bottom">
+                <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Update Task Progress</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="updateTaskForm" onsubmit="event.preventDefault(); submitTaskProgress();">
+                    <input type="hidden" id="modalTaskId">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Task Title</label>
+                        <div class="fw-bold text-headline fs-6" id="modalTaskTitle">--</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label mb-0 fw-semibold">Progress Percentage</label>
+                            <span class="badge bg-primary font-mono fs-6" id="modalProgressVal">0%</span>
+                        </div>
+                        <input type="range" class="form-range" id="modalProgressRange" min="0" max="100" step="5" value="0" oninput="document.getElementById('modalProgressVal').textContent = this.value + '%'">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Task Status</label>
+                        <select id="modalTaskStatus" class="form-select">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Notes / Deliverable Update (Optional)</label>
+                        <textarea id="modalTaskNotes" class="form-control" rows="2" placeholder="Summary of progress, blockers, or milestone commit..."></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-3">Save Progress</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.role in ['team_lead', 'manager', 'admin', 'hr_manager', 'trainer'] %}
+<!-- Create Project / Proposal Modal -->
+<div class="modal fade" id="createProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border shadow-lg">
+            <div class="modal-header py-3 border-bottom">
+                <div>
+                    <h6 class="modal-title fw-bold mb-0">
+                        <i class="bi bi-folder-plus me-2 text-primary"></i>
+                        {% if user.role in ['team_lead', 'trainer'] %}
+                        Create Project Proposal (Awaiting Manager Approval)
+                        {% else %}
+                        Create Corporate Project
+                        {% endif %}
+                    </h6>
+                    <span class="text-muted small" style="font-size: 0.75rem;">
+                        {% if user.role in ['team_lead', 'trainer'] %}
+                        Define objectives, deliverables, and proposed team members. Work and group chats activate only after Manager approval.
+                        {% else %}
+                        Initialize and activate a corporate project.
+                        {% endif %}
+                    </span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="createProjectForm" onsubmit="event.preventDefault(); submitProjectProposal(false);">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Project Name / Title *</label>
+                            <input type="text" id="pTitle" class="form-control" required placeholder="e.g. Next-Gen Automated Regression Pipeline">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Project Scope &amp; Description</label>
+                            <textarea id="pDesc" class="form-control" rows="2" placeholder="High-level architecture, business value, and technical background..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Project Objectives *</label>
+                            <textarea id="pObjectives" class="form-control" rows="2" required placeholder="Specific targets, KPIs, and measurable milestones..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Expected Deliverables *</label>
+                            <textarea id="pDeliverables" class="form-control" rows="2" required placeholder="Core code deliverables, APIs, test suites, documentation..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Department / Category</label>
+                            <input type="text" id="pDept" class="form-control" placeholder="Engineering &amp; AI">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Client / Business Unit</label>
+                            <input type="text" id="pClient" class="form-control" placeholder="Internal Core Tech">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Proposed Start Date</label>
+                            <input type="date" id="pStart" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Expected Completion Deadline</label>
+                            <input type="date" id="pDue" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Priority Level</label>
+                            <select id="pPriority" class="form-select">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Reviewing / Authorizing Manager *</label>
+                            <select id="pManager" class="form-select" required>
+                                <option value="">-- Select Authorizing Manager --</option>
+                            </select>
+                            <span class="text-muted small" style="font-size: 0.72rem;">Manager responsible for reviewing and approving this proposal.</span>
+                        </div>
+
+                        <!-- Proposed Member Responsibilities & Required Skills -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Proposed Responsibilities</label>
+                            <textarea id="pResponsibilities" class="form-control" rows="2" placeholder="Proposed member task assignments and technical roles..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Required Technical Skills</label>
+                            <textarea id="pRequiredSkills" class="form-control" rows="2" placeholder="e.g. Python, REST APIs, MongoDB, Pytest, Docker..."></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Project Notes / Prerequisites (Optional)</label>
+                            <textarea id="pNotes" class="form-control" rows="1" placeholder="Infrastructure dependencies, staging requirements, credentials..."></textarea>
+                        </div>
+
+                        <!-- Employee Team Selection Section -->
+                        <div class="col-12">
+                            <div class="border rounded p-3 bg-card-surface">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-bold mb-0">
+                                        <i class="bi bi-people-fill me-1 text-primary"></i> Select Proposed Team Members *
+                                    </label>
+                                    <span class="badge bg-primary px-2 py-1 font-mono" id="selectedMembersCountBadge">0 Selected</span>
+                                </div>
+                                <div class="text-muted small mb-2" style="font-size: 0.775rem;">
+                                    {% if user.role in ['team_lead', 'trainer'] %}
+                                    Members selected here are proposed for Manager review. They will NOT receive active assignments until authorized.
+                                    {% else %}
+                                    Select active employees who will be assigned to this project upon creation.
+                                    {% endif %}
+                                </div>
+                                <div class="input-group input-group-sm mb-2">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="memberSearchInput" class="form-control" placeholder="Search employee by name, ID or department..." oninput="filterEmployeeList()">
+                                </div>
+                                <div id="selectedPillsContainer" class="d-flex flex-wrap gap-1 mb-2" style="min-height: 24px;"></div>
+                                <div class="border rounded p-2 overflow-auto" id="employeeSelectList" style="max-height: 180px;">
+                                    <div class="text-muted small py-3 text-center">Loading staff directory...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        {% if user.role in ['team_lead', 'trainer'] %}
+                        <button type="button" class="btn btn-outline-primary" onclick="submitProjectProposal(true)">
+                            <i class="bi bi-save me-1"></i> Save as Draft
+                        </button>
+                        <button type="button" class="btn btn-primary px-3" onclick="submitProjectProposal(false)">
+                            <i class="bi bi-send me-1"></i> Submit for Manager Approval
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-primary px-3" onclick="submitProjectProposal(false)">
+                            <i class="bi bi-check2-circle me-1"></i> Create &amp; Activate Project
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manager Approve Project Modal -->
+<div class="modal fade" id="managerApproveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border shadow-lg">
+            <div class="modal-header py-3 border-bottom bg-success-subtle">
+                <h6 class="modal-title fw-bold text-success"><i class="bi bi-check-circle-fill me-2"></i> Approve &amp; Activate Project</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="approveProjectId">
+                <p class="mb-2">You are approving project proposal <strong id="approveProjectTitle" class="text-headline">--</strong> (<span id="approveProjectIdDisplay" class="font-mono">--</span>).</p>
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Approving this project will:
+                    <ul class="mb-0 ps-3 mt-1">
+                        <li>Activate the project and assign authorized members.</li>
+                        <li>Automatically create the private project group chat.</li>
+                        <li>Notify the Team Lead and all approved members.</li>
+                        <li>Enable deliverables and task assignment.</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Manager Review Remarks (Optional)</label>
+                    <textarea id="approveReviewNotes" class="form-control" rows="2" placeholder="Approval remarks, resource allocations, or milestone directives..."></textarea>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success px-3" onclick="confirmManagerApprove()">
+                        <i class="bi bi-check-lg me-1"></i> Confirm &amp; Activate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manager Reject Project Modal -->
+<div class="modal fade" id="managerRejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border shadow-lg">
+            <div class="modal-header py-3 border-bottom bg-danger-subtle">
+                <h6 class="modal-title fw-bold text-danger"><i class="bi bi-x-circle-fill me-2"></i> Reject Project Proposal</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="rejectProjectId">
+                <p class="mb-2">You are rejecting proposal <strong id="rejectProjectTitle" class="text-headline">--</strong>.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-danger">Rejection Reason *</label>
+                    <textarea id="rejectReasonInput" class="form-control" rows="3" required placeholder="Specify why this proposal is rejected (e.g. strategic priority alignment, budget constraint, resource unavailability)..."></textarea>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger px-3" onclick="confirmManagerReject()">
+                        <i class="bi bi-x-lg me-1"></i> Reject Proposal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manager Request Changes Modal -->
+<div class="modal fade" id="managerRequestChangesModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border shadow-lg">
+            <div class="modal-header py-3 border-bottom bg-warning-subtle">
+                <h6 class="modal-title fw-bold text-warning-emphasis"><i class="bi bi-arrow-repeat me-2"></i> Request Proposal Changes</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="requestChangesProjectId">
+                <p class="mb-2">Return proposal <strong id="requestChangesProjectTitle" class="text-headline">--</strong> to the Team Lead for revisions.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Required Revisions / Feedback *</label>
+                    <textarea id="changeCommentsInput" class="form-control" rows="3" required placeholder="Describe the changes needed (e.g. adjust timeline, refine deliverable scope, modify team member composition)..."></textarea>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning px-3" onclick="confirmManagerRequestChanges()">
+                        <i class="bi bi-send me-1"></i> Send Revision Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Full Proposal Modal -->
+<div class="modal fade" id="reviewProposalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border shadow-lg">
+            <div class="modal-header py-3 border-bottom">
+                <div>
+                    <h6 class="modal-title fw-bold mb-0" id="rpmTitle">Project Proposal Review</h6>
+                    <span class="text-muted small font-mono" id="rpmId">--</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="rpmBody">
+                <div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Loading proposal details...</div>
+            </div>
+            <div class="modal-footer border-top d-flex justify-content-between" id="rpmFooter">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="d-flex gap-2" id="rpmActionButtons"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Safe Delete / Archive Project Modal -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header border-bottom py-3">
+                <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="deleteProjectModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Archive / Delete Project
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-dark small mb-2">Are you sure you want to archive or remove the following project?</p>
+                <div class="alert alert-light border p-2 mb-3">
+                    <div class="fw-bold text-dark font-mono" id="delProjIdDisplay">PRJ-XXXX</div>
+                    <div class="small text-muted" id="delProjTitleDisplay">Project Title</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Reason for Archival / Removal</label>
+                    <textarea id="delProjReasonInput" class="form-control form-control-sm" rows="2" placeholder="e.g. Project completed, cancelled, or confirmed test entry..."></textarea>
+                </div>
+                <div class="alert alert-warning py-2 small mb-0" style="font-size: 0.78rem;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Safe Archival Policy:</strong> Soft deletion preserves the project's audit logs, employee work diaries, and chat history. Associated employee accounts and attendance are untouched.
+                </div>
+            </div>
+            <div class="modal-footer border-top d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-danger px-3 shadow-sm d-flex align-items-center gap-1" id="btnConfirmDeleteProject" onclick="submitDeleteProject()">
+                    <i class="bi bi-trash"></i> Confirm Archival
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmed Dummy Projects Review Modal (Manager / Admin) -->
+<div class="modal fade" id="dummyProjectsReviewModal" tabindex="-1" aria-labelledby="dummyProjectsReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header border-bottom py-3">
+                <div>
+                    <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="dummyProjectsReviewModalLabel">
+                        <i class="bi bi-shield-check text-warning"></i> Confirmed Dummy &amp; Test Projects Review
+                    </h6>
+                    <span class="text-muted small">Review flagged sandbox, test, or empty placeholder projects for safe cleanup</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 small mb-3" style="font-size: 0.78rem;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Only confirmed test/sandbox entries or abandoned empty placeholders are flagged below. Real projects with work diaries or active assignments are preserved.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle table-sm mb-0" style="font-size: 0.82rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Project ID</th>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Members</th>
+                                <th>Flag Reason</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dummyProjectsTableBody">
+                            <tr><td colspan="6" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading candidates...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+const CURRENT_USER_ROLE = "{{ user.role }}";
+const CURRENT_USER_ID = "{{ user.employee_id }}";
+let currentProjectTab = 'projects';
+let cachedProjects = [];
+let cachedTasks = [];
+let cachedPendingProposals = [];
+let cachedMembershipRequests = [];
+let allEmployees = [];
+let selectedEmployeeIds = new Set();
+let cachedUsersMap = new Map();
+let currentAnalyticsPeriod = 'this_month';
+let editingProjectId = null;
+
+// Chart instances for Analytics Tab
+let chartTaskInst = null;
+let chartAttInst = null;
+let chartSkillInst = null;
+let chartLeaveInst = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Check URL query parameters or hash (#tasks, #progress, #analytics, #approvals)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab') || window.location.hash.replace('#', '');
+    if (['projects', 'tasks', 'progress', 'analytics', 'approvals'].includes(tabParam)) {
+        switchProjectTab(tabParam);
+    } else {
+        switchProjectTab('projects');
+    }
+
+    loadStaffDirectory();
+    loadProjects();
+    loadTasks();
+    if (['team_lead', 'manager', 'admin', 'trainer'].includes(CURRENT_USER_ROLE)) {
+        loadPendingApprovals();
+    }
+});
+
+function switchProjectTab(tab) {
+    currentProjectTab = tab;
+    const tabs = ['projects', 'tasks', 'progress', 'analytics', 'approvals'];
+
+    tabs.forEach(t => {
+        const btn = document.getElementById(`tabBtn${capitalize(t)}`);
+        const view = document.getElementById(`view${t === 'projects' ? 'MyProjects' : (t === 'tasks' ? 'MyTasks' : (t === 'progress' ? 'ProjectProgress' : (t === 'analytics' ? 'MyAnalytics' : 'ProjectApprovals')))}`);
+
+        if (t === tab) {
+            if (btn) {
+                btn.classList.add('active');
+                btn.classList.remove('text-secondary');
+            }
+            if (view) {
+                view.style.display = 'block';
+                view.classList.remove('view-pane-fade');
+                void view.offsetWidth;
+                view.classList.add('view-pane-fade');
+            }
+        } else {
+            if (btn) {
+                btn.classList.remove('active');
+                btn.classList.add('text-secondary');
+            }
+            if (view) {
+                view.style.display = 'none';
+            }
+        }
+    });
+
+    if (tab === 'analytics') {
+        loadAnalyticsData(currentAnalyticsPeriod);
+    } else if (tab === 'progress') {
+        renderProjectProgressTab();
+    } else if (tab === 'approvals') {
+        loadPendingApprovals();
+    }
+}
+
+function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function refreshCurrentProjectsTab() {
+    loadProjects();
+    loadTasks();
+    if (['team_lead', 'manager', 'admin', 'trainer'].includes(CURRENT_USER_ROLE)) {
+        loadPendingApprovals();
+    }
+    if (currentProjectTab === 'analytics') {
+        loadAnalyticsData(currentAnalyticsPeriod);
+    }
+}
+
+// =============================================================================
+// TAB 1: MY PROJECTS
+// =============================================================================
+async function loadProjects() {
+    try {
+        const res = await fetch('/api/projects');
+        const data = await res.json();
+        cachedProjects = data.projects || [];
+        const grid = document.getElementById('projectsGrid');
+
+        if (cachedProjects.length > 0) {
+            grid.innerHTML = cachedProjects.map(p => {
+                let badgeClass = 'badge-on-time';
+                if (p.status === 'Completed') badgeClass = 'badge-present';
+                else if (p.status === 'Delayed') badgeClass = 'badge-incomplete';
+
+                const memberCount = p.members ? p.members.length : 0;
+                const memberBadges = (p.members || []).slice(0, 4).map(mId => {
+                    const u = cachedUsersMap.get(mId);
+                    const name = u ? u.full_name : mId;
+                    const initial = name ? name.charAt(0).toUpperCase() : '?';
+                    return `
+                        <span class="avatar-initial" title="${escapeHtml(name)} (${mId})" 
+                              style="width: 24px; height: 24px; font-size: 0.65rem; background: #1e293b; color: #38bdf8; border: 1.5px solid var(--border-card); border-radius: 50%; margin-left: -6px;">
+                            ${initial}
+                        </span>
+                    `;
+                }).join('');
+
+                const overflowCount = memberCount > 4 ? `+${memberCount - 4}` : '';
+
+                return `
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="card p-3 p-md-4 h-100 d-flex flex-column border">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge ${badgeClass}">${p.status}</span>
+                                <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.7rem;">${p.priority} Priority</span>
+                            </div>
+                            <h6 class="fw-bold mb-1 text-headline">${escapeHtml(p.title)}</h6>
+                            <p class="text-muted small flex-grow-1 mb-3" style="font-size: 0.8rem; line-height: 1.4;">${p.description ? escapeHtml(p.description.substring(0, 110)) + '...' : 'No description provided.'}</p>
+
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between text-muted small mb-1" style="font-size: 0.75rem;">
+                                    <span>Weighted Progress</span>
+                                    <span class="font-mono fw-semibold text-headline">${p.progress_percentage || 0}%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar ${p.progress_percentage === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${p.progress_percentage || 0}%"></div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="d-flex align-items-center" style="padding-left: 6px;">
+                                    <div class="d-flex align-items-center">
+                                        ${memberBadges}
+                                        ${overflowCount ? `<span class="badge bg-light text-secondary border ms-1 font-mono" style="font-size: 0.65rem;">${overflowCount}</span>` : ''}
+                                    </div>
+                                    <span class="text-muted small font-mono ms-2" style="font-size: 0.72rem;">${memberCount} Assigned</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <a href="/inbox?conversation=PRJ-CHAT-${p.project_id}" class="btn btn-sm btn-outline-primary py-0 d-flex align-items-center gap-1" style="font-size: 0.775rem;" title="Open Project Group Chat">
+                                        <i class="bi bi-chat-dots-fill"></i> Chat
+                                    </a>
+                                    <a href="/projects/${p.project_id}" class="btn btn-sm btn-outline-secondary py-0" style="font-size: 0.775rem;">Workspace</a>
+                                    ${(CURRENT_USER_ROLE === 'manager' || CURRENT_USER_ROLE === 'admin' || CURRENT_USER_ROLE === 'team_lead') ? `
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0" style="font-size: 0.775rem;" onclick="promptDeleteProject('${p.project_id}', '${escapeHtml(p.title || p.name || '')}')" title="Archive / Delete Project">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            grid.innerHTML = '<div class="col-12 text-center text-muted py-5">No assigned projects found.</div>';
+        }
+
+        renderProjectProgressTab();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// =============================================================================
+// TAB 2: MY TASKS
+// =============================================================================
+async function loadTasks() {
+    try {
+        const res = await fetch('/api/tasks');
+        const data = await res.json();
+        cachedTasks = data.tasks || [];
+
+        const pill = document.getElementById('myTasksCountPill');
+        if (pill) pill.textContent = cachedTasks.length;
+
+        filterTasksTable();
+        renderProjectProgressTab();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function filterTasksTable() {
+    const filter = document.getElementById('taskStatusFilter') ? document.getElementById('taskStatusFilter').value : 'ALL';
+    const tbody = document.getElementById('myTasksTableBody');
+    if (!tbody) return;
+
+    let filtered = cachedTasks;
+    if (filter !== 'ALL') {
+        filtered = cachedTasks.filter(t => t.status === filter);
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No tasks found matching filter.</td></tr>';
+        return;
+    }
+
+    const todayStr = "{{ today_date }}";
+
+    tbody.innerHTML = filtered.map(t => {
+        const isOverdue = t.due_date && t.due_date < todayStr && t.status !== 'Completed';
+        let statusBadge = '<span class="badge badge-incomplete">Pending</span>';
+        if (t.status === 'Completed' || t.progress_percentage === 100) {
+            statusBadge = '<span class="badge badge-present">Completed</span>';
+        } else if (t.status === 'In Progress' || t.progress_percentage > 0) {
+            statusBadge = '<span class="badge bg-primary-subtle text-primary border border-primary-subtle">In Progress</span>';
+        }
+
+        if (isOverdue) {
+            statusBadge += ' <span class="badge badge-late ms-1">Overdue</span>';
+        }
+
+        return `
+            <tr>
+                <td class="font-mono fw-semibold">${t.task_id}</td>
+                <td>
+                    <div class="fw-semibold text-headline">${escapeHtml(t.title)}</div>
+                    ${t.description ? `<div class="text-muted small text-truncate" style="max-width: 250px;">${escapeHtml(t.description)}</div>` : ''}
+                </td>
+                <td>
+                    <span class="badge bg-light text-secondary border">${escapeHtml(t.project_title || t.project_id)}</span>
+                </td>
+                <td class="font-mono text-muted small ${isOverdue ? 'text-danger fw-bold' : ''}">
+                    ${t.due_date || 'No Deadline'}
+                </td>
+                <td class="font-mono small">${t.weight || 1.0}x</td>
+                <td style="min-width: 140px;">
+                    <div class="d-flex justify-content-between small text-muted mb-1 font-mono">
+                        <span>Progress</span>
+                        <span class="fw-bold">${t.progress_percentage || 0}%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar ${t.progress_percentage === 100 ? 'bg-success' : 'bg-primary'}" style="width: ${t.progress_percentage || 0}%"></div>
+                    </div>
+                </td>
+                <td>${statusBadge}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="openUpdateTaskModal('${t.task_id}')" title="Update Progress">
+                        <i class="bi bi-pencil-square me-1"></i> Update
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function openUpdateTaskModal(taskId) {
+    const task = cachedTasks.find(t => t.task_id === taskId);
+    if (!task) return;
+
+    document.getElementById('modalTaskId').value = task.task_id;
+    document.getElementById('modalTaskTitle').textContent = task.title;
+    const progress = task.progress_percentage || 0;
+    document.getElementById('modalProgressRange').value = progress;
+    document.getElementById('modalProgressVal').textContent = progress + '%';
+    document.getElementById('modalTaskStatus').value = task.status || 'Pending';
+    document.getElementById('modalTaskNotes').value = task.notes || '';
+
+    const modal = new bootstrap.Modal(document.getElementById('updateTaskModal'));
+    modal.show();
+}
+
+async function submitTaskProgress() {
+    const taskId = document.getElementById('modalTaskId').value;
+    const progress = parseInt(document.getElementById('modalProgressRange').value, 10);
+    const status = document.getElementById('modalTaskStatus').value;
+    const notes = document.getElementById('modalTaskNotes').value.trim();
+
+    try {
+        const res = await fetch(`/api/tasks/${taskId}/progress`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                progress_percentage: progress,
+                status: status,
+                notes: notes
+            })
+        });
+
+        if (res.ok) {
+            showToast('Task progress updated successfully.', 'success');
+            const modalEl = document.getElementById('updateTaskModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            loadTasks();
+            loadProjects();
+        } else {
+            const data = await res.json();
+            showToast(data.error || 'Failed to update task progress.', 'error');
+        }
+    } catch (e) {
+        showToast('Error updating task progress.', 'error');
+    }
+}
+
+// =============================================================================
+// TAB 3: PROJECT PROGRESS TELEMETRY
+// =============================================================================
+function renderProjectProgressTab() {
+    const totalProj = cachedProjects.length;
+    const totalTasks = cachedTasks.length;
+    const completedTasks = cachedTasks.filter(t => t.status === 'Completed' || t.progress_percentage === 100).length;
+    const pendingTasks = totalTasks - completedTasks;
+    const todayStr = "{{ today_date }}";
+    const overdueTasks = cachedTasks.filter(t => t.due_date && t.due_date < todayStr && t.status !== 'Completed').length;
+
+    document.getElementById('progTotalProjects').textContent = totalProj;
+    document.getElementById('progCompletedTasks').textContent = completedTasks;
+    document.getElementById('progPendingTasks').textContent = pendingTasks;
+    document.getElementById('progOverdueTasks').textContent = overdueTasks;
+
+    const listContainer = document.getElementById('projectProgressList');
+    if (!listContainer) return;
+
+    if (cachedProjects.length === 0) {
+        listContainer.innerHTML = '<div class="text-center text-muted py-4">No active projects assigned.</div>';
+        return;
+    }
+
+    listContainer.innerHTML = cachedProjects.map(p => {
+        const pTasks = cachedTasks.filter(t => t.project_id === p.project_id);
+        const pCompleted = pTasks.filter(t => t.status === 'Completed' || t.progress_percentage === 100).length;
+        const progress = p.progress_percentage || 0;
+
+        return `
+            <div class="border rounded p-3 bg-card-surface">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary-subtle text-primary border font-mono">${p.project_id}</span>
+                            <span class="fw-bold text-headline">${escapeHtml(p.title)}</span>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            <span>Department: ${escapeHtml(p.department || 'General')}</span> &bull; 
+                            <span>Due Date: ${p.due_date || 'Ongoing'}</span>
+                        </div>
+                    </div>
+                    <div class="text-sm-end">
+                        <span class="badge ${p.status === 'Completed' ? 'badge-present' : 'badge-on-time'}">${p.status}</span>
+                        <div class="font-mono text-muted small mt-1">${pCompleted} of ${pTasks.length} tasks complete</div>
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    <div class="d-flex justify-content-between text-muted small mb-1 font-mono">
+                        <span>Overall Project Milestone Progress</span>
+                        <span class="fw-bold text-headline">${progress}%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar ${progress === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${progress}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// =============================================================================
+// TAB 4: MY ANALYTICS & TRENDS
+// =============================================================================
+function changeAnalyticsPeriod(period) {
+    currentAnalyticsPeriod = period;
+    document.querySelectorAll('#analyticsPeriodSelector .filter-badge-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.period === period);
+    });
+    loadAnalyticsData(period);
+}
+
+async function loadAnalyticsData(period) {
+    try {
+        const res = await fetch(`/api/analytics/overview?period=${period}`);
+        const result = await res.json();
+        const data = result.data || {};
+        const kpis = data.summary_kpis || {};
+
+        document.getElementById('kpiDoneTasks').textContent = kpis.completed_tasks || 0;
+        document.getElementById('kpiPendingTasks').textContent = kpis.pending_tasks || 0;
+        document.getElementById('kpiDaysPresent').textContent = kpis.present_days || 0;
+        document.getElementById('kpiTotalHours').textContent = (kpis.total_hours || 0) + 'h';
+        document.getElementById('kpiOnTimeRatio').textContent = (kpis.on_time_ratio || 0) + '%';
+        document.getElementById('kpiLeavesApproved').textContent = kpis.approved_leave_days || 0;
+
+        renderAnalyticsCharts(data);
+    } catch (e) {
+        console.error('Error loading analytics:', e);
+    }
+}
+
+function renderAnalyticsCharts(data) {
+    if (typeof Chart === 'undefined') return;
+    const colors = typeof getChartThemeColors === 'function' ? getChartThemeColors() : {
+        textColor: '#94a3b8',
+        gridColor: 'rgba(255, 255, 255, 0.08)',
+        palette: ['#00c2ff', '#0056d6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+    };
+
+    if (chartTaskInst) chartTaskInst.destroy();
+    if (chartAttInst) chartAttInst.destroy();
+    if (chartSkillInst) chartSkillInst.destroy();
+    if (chartLeaveInst) chartLeaveInst.destroy();
+
+    // Chart 1: Tasks by Stage
+    const tasks = data.task_status_distribution || { labels: ['Completed', 'In Progress', 'Pending'], values: [0, 0, 0] };
+    const ctxTasks = document.getElementById('chartTasksCanvas');
+    if (ctxTasks) {
+        chartTaskInst = new Chart(ctxTasks, {
+            type: 'bar',
+            data: {
+                labels: tasks.labels,
+                datasets: [{
+                    label: 'Tasks',
+                    data: tasks.values,
+                    backgroundColor: ['#10b981', '#00c2ff', '#f59e0b'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: colors.textColor, precision: 0 }, grid: { color: colors.gridColor } },
+                    x: { ticks: { color: colors.textColor }, grid: { display: false } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // Chart 2: Attendance Breakdown
+    const att = data.attendance_breakdown || { labels: ['On-Time', 'Late', 'Leaves / Off'], values: [1, 0, 0] };
+    const ctxAtt = document.getElementById('chartAttendanceCanvas');
+    if (ctxAtt) {
+        chartAttInst = new Chart(ctxAtt, {
+            type: 'doughnut',
+            data: {
+                labels: att.labels,
+                datasets: [{
+                    data: att.values,
+                    backgroundColor: ['#10b981', '#f59e0b', '#64748b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: colors.textColor } }
+                }
+            }
+        });
+    }
+
+    // Chart 3: Skills
+    const skills = data.skill_category_distribution || { labels: ['General'], values: [1] };
+    const ctxSkills = document.getElementById('chartSkillsCanvas');
+    if (ctxSkills) {
+        chartSkillInst = new Chart(ctxSkills, {
+            type: 'polarArea',
+            data: {
+                labels: skills.labels,
+                datasets: [{
+                    data: skills.values,
+                    backgroundColor: colors.palette
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: colors.textColor } }
+                }
+            }
+        });
+    }
+
+    // Chart 4: Leave Summary
+    const ctxLeave = document.getElementById('chartLeaveCanvas');
+    if (ctxLeave) {
+        chartLeaveInst = new Chart(ctxLeave, {
+            type: 'pie',
+            data: {
+                labels: ['Working Days', 'Approved Leaves'],
+                datasets: [{
+                    data: [(data.summary_kpis && data.summary_kpis.present_days) || 1, (data.summary_kpis && data.summary_kpis.approved_leave_days) || 0],
+                    backgroundColor: ['#0056d6', '#f59e0b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: colors.textColor } } }
+            }
+        });
+    }
+}
+
+// =============================================================================
+// STAFF DIRECTORY & CREATE PROJECT (FOR AUTHORIZED ROLES)
+// =============================================================================
+async function loadStaffDirectory() {
+    try {
+        const res = await fetch('/api/projects/eligible-members');
+        const data = await res.json();
+        allEmployees = data.employees || [];
+        cachedUsersMap.clear();
+        allEmployees.forEach(u => cachedUsersMap.set(u.employee_id, u));
+
+        const mgrSelect = document.getElementById('pManager');
+        if (mgrSelect) {
+            mgrSelect.innerHTML = '<option value="">-- No Lead Assigned --</option>';
+            const leads = data.leads || [];
+            leads.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.employee_id;
+                opt.textContent = `${u.full_name} (${u.employee_id}) - ${u.designation || u.role}`;
+                mgrSelect.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.error('Error loading eligible staff directory:', e);
+    }
+}
+
+function prepareCreateProjectModal() {
+    editingProjectId = null;
+    const form = document.getElementById('createProjectForm');
+    if (form) form.reset();
+    selectedEmployeeIds.clear();
+    updateSelectedPills();
+    renderEmployeeCheckboxList(allEmployees);
+}
+
+function renderEmployeeCheckboxList(list) {
+    const container = document.getElementById('employeeSelectList');
+    if (!container) return;
+
+    if (list.length === 0) {
+        container.innerHTML = '<div class="text-muted small py-3 text-center">No matching staff members found.</div>';
+        return;
+    }
+
+    container.innerHTML = list.map(emp => {
+        const isChecked = selectedEmployeeIds.has(emp.employee_id);
+        const skillsBadges = (emp.skills && emp.skills.length > 0)
+            ? emp.skills.map(s => `<span class="badge bg-light text-secondary border font-mono ms-1" style="font-size: 0.65rem;">${escapeHtml(s)}</span>`).join('')
+            : '';
+
+        return `
+            <div class="form-check d-flex align-items-center justify-content-between p-2 border-bottom hover-card">
+                <div class="d-flex align-items-center gap-2">
+                    <input class="form-check-input ms-0 mt-0" type="checkbox" id="empCheck_${emp.employee_id}" 
+                           ${isChecked ? 'checked' : ''} onchange="toggleEmployee('${emp.employee_id}')">
+                    <label class="form-check-label small mb-0 cursor-pointer" for="empCheck_${emp.employee_id}">
+                        <span class="fw-semibold text-headline">${escapeHtml(emp.full_name)}</span>
+                        <span class="text-muted font-mono" style="font-size: 0.72rem;">(${emp.employee_id})</span>
+                        <span class="text-secondary small">&bull; ${escapeHtml(emp.designation || 'Engineer')} &bull; ${escapeHtml(emp.department || 'General')}</span>
+                        <span class="d-inline-flex flex-wrap align-items-center">${skillsBadges}</span>
+                    </label>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.65rem;">Eligible</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function toggleEmployee(empId) {
+    if (selectedEmployeeIds.has(empId)) {
+        selectedEmployeeIds.delete(empId);
+    } else {
+        selectedEmployeeIds.add(empId);
+    }
+    updateSelectedPills();
+    const chk = document.getElementById(`empCheck_${empId}`);
+    if (chk) chk.checked = selectedEmployeeIds.has(empId);
+}
+
+function updateSelectedPills() {
+    const container = document.getElementById('selectedPillsContainer');
+    const badge = document.getElementById('selectedMembersCountBadge');
+    if (!container || !badge) return;
+
+    badge.textContent = `${selectedEmployeeIds.size} Selected`;
+
+    container.innerHTML = Array.from(selectedEmployeeIds).map(empId => {
+        const emp = cachedUsersMap.get(empId);
+        const name = emp ? emp.full_name : empId;
+        return `
+            <span class="badge bg-light text-secondary border px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                <span class="fw-semibold">${escapeHtml(name)}</span>
+                <button type="button" class="btn-close ms-1" style="font-size: 0.5rem;" onclick="toggleEmployee('${empId}')"></button>
+            </span>
+        `;
+    }).join('');
+}
+
+function filterEmployeeList() {
+    const query = document.getElementById('memberSearchInput').value.toLowerCase().trim();
+    const filtered = allEmployees.filter(emp =>
+        emp.full_name.toLowerCase().includes(query) ||
+        emp.employee_id.toLowerCase().includes(query) ||
+        (emp.department && emp.department.toLowerCase().includes(query))
+    );
+    renderEmployeeCheckboxList(filtered);
+}
+
+async function submitProjectProposal(isDraft) {
+    const title = document.getElementById('pTitle').value.trim();
+    const description = document.getElementById('pDesc').value.trim();
+    const objectives = document.getElementById('pObjectives').value.trim();
+    const deliverables = document.getElementById('pDeliverables').value.trim();
+    const department = document.getElementById('pDept').value.trim();
+    const client = document.getElementById('pClient').value.trim();
+    const start_date = document.getElementById('pStart').value;
+    const due_date = document.getElementById('pDue').value;
+    const priority = document.getElementById('pPriority').value;
+    const manager_employee_id = document.getElementById('pManager').value || null;
+    const responsibilities = document.getElementById('pResponsibilities').value.trim();
+    const required_skills = document.getElementById('pRequiredSkills').value.trim();
+    const notes = document.getElementById('pNotes').value.trim();
+
+    if (!title) {
+        showToast('Please provide a project name / title.', 'error');
+        return;
+    }
+    if (!isDraft && !objectives) {
+        showToast('Please specify project objectives.', 'error');
+        return;
+    }
+    if (!isDraft && !deliverables) {
+        showToast('Please specify expected deliverables.', 'error');
+        return;
+    }
+    if (!isDraft && !manager_employee_id && ['team_lead', 'trainer'].includes(CURRENT_USER_ROLE)) {
+        showToast('Please select the authorizing manager.', 'error');
+        return;
+    }
+
+    const payload = {
+        title,
+        description,
+        objectives,
+        deliverables,
+        department,
+        client,
+        start_date,
+        due_date,
+        priority,
+        manager_employee_id,
+        responsibilities,
+        required_skills,
+        notes,
+        selected_members: Array.from(selectedEmployeeIds),
+        members: Array.from(selectedEmployeeIds),
+        is_draft: isDraft
+    };
+
+    try {
+        let res;
+        if (editingProjectId) {
+            payload.submit_for_approval = !isDraft;
+            res = await fetch(`/api/projects/${editingProjectId}/proposal`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } else {
+            res = await fetch('/api/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        const data = await res.json();
+        if (res.ok) {
+            const successMsg = isDraft 
+                ? 'Proposal draft saved.' 
+                : (['team_lead', 'trainer'].includes(CURRENT_USER_ROLE) 
+                    ? 'Proposal submitted for Manager approval.' 
+                    : 'Project created and activated.');
+            showToast(successMsg, 'success');
+            const modalEl = document.getElementById('createProjectModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            document.getElementById('createProjectForm').reset();
+            selectedEmployeeIds.clear();
+            updateSelectedPills();
+            editingProjectId = null;
+            loadProjects();
+            if (['team_lead', 'manager', 'admin', 'trainer'].includes(CURRENT_USER_ROLE)) {
+                loadPendingApprovals();
+            }
+        } else {
+            showToast(data.error || 'Failed to submit proposal.', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('An error occurred submitting the project proposal.', 'error');
+    }
+}
+
+// =============================================================================
+// TAB 5: PENDING APPROVALS QUEUE & REVIEW
+// =============================================================================
+async function loadPendingApprovals() {
+    try {
+        const res = await fetch('/api/projects/pending-approvals');
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedPendingProposals = data.proposals || [];
+        cachedMembershipRequests = data.membership_requests || [];
+
+        const pendingProposalsCount = cachedPendingProposals.filter(p => p.status === 'PENDING_APPROVAL').length;
+        const pendingMcrCount = cachedMembershipRequests.filter(r => r.status === 'PENDING').length;
+        const totalPending = pendingProposalsCount + pendingMcrCount;
+
+        const pill = document.getElementById('pendingApprovalsCountPill');
+        if (pill) pill.textContent = totalPending;
+
+        const pCountBadge = document.getElementById('proposalsTableCountBadge');
+        if (pCountBadge) pCountBadge.textContent = `${cachedPendingProposals.length} Proposals`;
+
+        const mCountBadge = document.getElementById('membershipRequestsCountBadge');
+        if (mCountBadge) mCountBadge.textContent = `${cachedMembershipRequests.length} Requests`;
+
+        renderProposalsTable(cachedPendingProposals);
+        renderMembershipRequestsTable(cachedMembershipRequests);
+    } catch (e) {
+        console.error('Error loading pending approvals:', e);
+    }
+}
+
+function renderProposalsTable(proposals) {
+    const tbody = document.getElementById('approvalsTableBody');
+    if (!tbody) return;
+
+    if (!proposals || proposals.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No project proposals found in your queue.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = proposals.map(p => {
+        let statusBadge = '<span class="badge bg-secondary-subtle text-secondary font-mono">DRAFT</span>';
+        if (p.status === 'PENDING_APPROVAL') {
+            statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle font-mono"><i class="bi bi-hourglass-split me-1"></i>Pending Approval</span>';
+        } else if (p.status === 'CHANGES_REQUESTED') {
+            statusBadge = '<span class="badge bg-warning text-dark font-mono"><i class="bi bi-arrow-repeat me-1"></i>Changes Requested</span>';
+        } else if (p.status === 'REJECTED') {
+            statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono"><i class="bi bi-x-circle me-1"></i>Rejected</span>';
+        } else if (p.status === 'ACTIVE' || p.status === 'APPROVED') {
+            statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle font-mono"><i class="bi bi-check-circle me-1"></i>Active</span>';
+        }
+
+        let prioBadge = 'bg-secondary-subtle text-secondary';
+        if (p.priority === 'Critical') prioBadge = 'bg-danger-subtle text-danger border border-danger-subtle';
+        else if (p.priority === 'High') prioBadge = 'bg-warning-subtle text-warning border border-warning-subtle';
+        else if (p.priority === 'Medium') prioBadge = 'bg-info-subtle text-info border border-info-subtle';
+
+        const leadUser = cachedUsersMap.get(p.project_lead || p.created_by);
+        const leadName = leadUser ? leadUser.full_name : (p.project_lead || p.created_by || '--');
+
+        const mgrUser = cachedUsersMap.get(p.assigned_manager || p.manager_employee_id);
+        const mgrName = mgrUser ? mgrUser.full_name : (p.assigned_manager || p.manager_employee_id || '--');
+
+        const memberCount = (p.selected_members || p.members || []).length;
+        const timelineStr = (p.start_date && p.due_date) ? `${p.start_date} &rarr; ${p.due_date}` : (p.due_date ? `Due ${p.due_date}` : 'Flexible');
+
+        let actionsHtml = `
+            <button class="btn btn-sm btn-outline-secondary py-0" onclick="openReviewProposalModal('${p.project_id}')" title="Review full proposal details">
+                <i class="bi bi-eye"></i> Details
+            </button>
+        `;
+
+        if (['manager', 'admin'].includes(CURRENT_USER_ROLE) && p.status === 'PENDING_APPROVAL') {
+            actionsHtml = `
+                <div class="d-flex align-items-center justify-content-end gap-1">
+                    <button class="btn btn-sm btn-outline-secondary py-0" onclick="openReviewProposalModal('${p.project_id}')" title="Full Breakdown">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success py-0" onclick="openApproveModal('${p.project_id}', '${escapeJs(p.title)}')" title="Approve & Activate">
+                        <i class="bi bi-check-lg"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning py-0" onclick="openRequestChangesModal('${p.project_id}', '${escapeJs(p.title)}')" title="Request Changes">
+                        <i class="bi bi-arrow-repeat"></i> Changes
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0" onclick="openRejectModal('${p.project_id}', '${escapeJs(p.title)}')" title="Reject Proposal">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            `;
+        } else if (['team_lead', 'trainer'].includes(CURRENT_USER_ROLE) && ['CHANGES_REQUESTED', 'DRAFT'].includes(p.status)) {
+            actionsHtml = `
+                <div class="d-flex align-items-center justify-content-end gap-1">
+                    <button class="btn btn-sm btn-outline-secondary py-0" onclick="openReviewProposalModal('${p.project_id}')" title="Full Breakdown">
+                        <i class="bi bi-eye"></i> Details
+                    </button>
+                    <button class="btn btn-sm btn-primary py-0" onclick="openEditProposalModal('${p.project_id}')" title="Edit and Resubmit Proposal">
+                        <i class="bi bi-pencil-square"></i> Revise
+                    </button>
+                </div>
+            `;
+        }
+
+        return `
+            <tr>
+                <td class="font-mono small fw-bold text-headline">${p.project_id}</td>
+                <td>
+                    <div class="fw-bold text-headline">${escapeHtml(p.title)}</div>
+                    <div class="text-muted small" style="font-size: 0.75rem;">${p.description ? escapeHtml(p.description.substring(0, 90)) + '...' : 'No scope notes.'}</div>
+                </td>
+                <td>
+                    <div class="small fw-semibold text-headline"><i class="bi bi-person-badge me-1 text-primary"></i>${escapeHtml(leadName)}</div>
+                    <div class="text-muted small" style="font-size: 0.7rem;">Mgr: ${escapeHtml(mgrName)}</div>
+                </td>
+                <td class="small font-mono text-muted">${timelineStr}</td>
+                <td><span class="badge ${prioBadge} font-mono" style="font-size: 0.7rem;">${p.priority || 'Medium'}</span></td>
+                <td>
+                    <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.72rem;">
+                        <i class="bi bi-people me-1"></i>${memberCount} Members
+                    </span>
+                </td>
+                <td>${statusBadge}</td>
+                <td class="text-end">${actionsHtml}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderMembershipRequestsTable(requests) {
+    const tbody = document.getElementById('membershipRequestsTableBody');
+    if (!tbody) return;
+
+    if (!requests || requests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No pending membership change requests found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = requests.map(req => {
+        const addPills = (req.add_members || []).map(m => `<span class="badge bg-success-subtle text-success border border-success-subtle font-mono ms-1">+${m}</span>`).join('');
+        const remPills = (req.remove_members || []).map(m => `<span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono ms-1">-${m}</span>`).join('');
+
+        let statusBadge = '<span class="badge bg-warning-subtle text-warning border font-mono">Pending</span>';
+        if (req.status === 'APPROVED') statusBadge = '<span class="badge bg-success-subtle text-success border font-mono">Approved</span>';
+        else if (req.status === 'REJECTED') statusBadge = '<span class="badge bg-danger-subtle text-danger border font-mono">Rejected</span>';
+
+        let actionHtml = '<span class="text-muted small">--</span>';
+        if (['manager', 'admin'].includes(CURRENT_USER_ROLE) && req.status === 'PENDING') {
+            actionHtml = `
+                <div class="d-flex align-items-center justify-content-end gap-1">
+                    <button class="btn btn-sm btn-success py-0" onclick="reviewMembershipRequest('${req.project_id}', '${req.request_id}', 'approve')" title="Approve Changes">
+                        <i class="bi bi-check-lg"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0" onclick="reviewMembershipRequest('${req.project_id}', '${req.request_id}', 'reject')" title="Reject Changes">
+                        <i class="bi bi-x-lg"></i> Reject
+                    </button>
+                </div>
+            `;
+        }
+
+        return `
+            <tr>
+                <td class="font-mono small fw-bold text-headline">${req.request_id}</td>
+                <td>
+                    <div class="fw-semibold text-headline small">${escapeHtml(req.project_title || req.project_id)}</div>
+                    <div class="text-muted small font-mono" style="font-size: 0.7rem;">${req.project_id}</div>
+                </td>
+                <td class="small">${escapeHtml(req.requested_by_name || req.requested_by)}</td>
+                <td>
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        ${addPills || '<span class="text-muted small">None added</span>'}
+                        ${remPills ? '<span class="mx-1 text-muted">|</span>' + remPills : ''}
+                    </div>
+                </td>
+                <td class="small text-muted" style="max-width: 200px;">${req.reason ? escapeHtml(req.reason) : '--'}</td>
+                <td>${statusBadge}</td>
+                <td class="text-end">${actionHtml}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// =============================================================================
+// MANAGER MODALS & PROPOSAL REVIEW
+// =============================================================================
+function openApproveModal(projectId, title) {
+    document.getElementById('approveProjectId').value = projectId;
+    document.getElementById('approveProjectIdDisplay').textContent = projectId;
+    document.getElementById('approveProjectTitle').textContent = title;
+    document.getElementById('approveReviewNotes').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('managerApproveModal'));
+    modal.show();
+}
+
+async function confirmManagerApprove() {
+    const projectId = document.getElementById('approveProjectId').value;
+    const review_notes = document.getElementById('approveReviewNotes').value.trim();
+    try {
+        const res = await fetch(`/api/projects/${projectId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ review_notes })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Project approved and activated successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('managerApproveModal')).hide();
+            const rpm = bootstrap.Modal.getInstance(document.getElementById('reviewProposalModal'));
+            if (rpm) rpm.hide();
+            loadPendingApprovals();
+            loadProjects();
+        } else {
+            showToast(data.error || 'Failed to approve project.', 'error');
+        }
+    } catch (e) {
+        showToast('Error approving project.', 'error');
+    }
+}
+
+function openRejectModal(projectId, title) {
+    document.getElementById('rejectProjectId').value = projectId;
+    document.getElementById('rejectProjectTitle').textContent = title;
+    document.getElementById('rejectReasonInput').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('managerRejectModal'));
+    modal.show();
+}
+
+async function confirmManagerReject() {
+    const projectId = document.getElementById('rejectProjectId').value;
+    const rejection_reason = document.getElementById('rejectReasonInput').value.trim();
+    if (!rejection_reason) {
+        showToast('Rejection reason is required.', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`/api/projects/${projectId}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rejection_reason })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Project proposal rejected.', 'info');
+            bootstrap.Modal.getInstance(document.getElementById('managerRejectModal')).hide();
+            const rpm = bootstrap.Modal.getInstance(document.getElementById('reviewProposalModal'));
+            if (rpm) rpm.hide();
+            loadPendingApprovals();
+            loadProjects();
+        } else {
+            showToast(data.error || 'Failed to reject proposal.', 'error');
+        }
+    } catch (e) {
+        showToast('Error rejecting proposal.', 'error');
+    }
+}
+
+function openRequestChangesModal(projectId, title) {
+    document.getElementById('requestChangesProjectId').value = projectId;
+    document.getElementById('requestChangesProjectTitle').textContent = title;
+    document.getElementById('changeCommentsInput').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('managerRequestChangesModal'));
+    modal.show();
+}
+
+async function confirmManagerRequestChanges() {
+    const projectId = document.getElementById('requestChangesProjectId').value;
+    const comments = document.getElementById('changeCommentsInput').value.trim();
+    if (!comments) {
+        showToast('Please provide feedback comments for the required changes.', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`/api/projects/${projectId}/request-changes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comments })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Change request sent to Team Lead.', 'warning');
+            bootstrap.Modal.getInstance(document.getElementById('managerRequestChangesModal')).hide();
+            const rpm = bootstrap.Modal.getInstance(document.getElementById('reviewProposalModal'));
+            if (rpm) rpm.hide();
+            loadPendingApprovals();
+        } else {
+            showToast(data.error || 'Failed to send change request.', 'error');
+        }
+    } catch (e) {
+        showToast('Error requesting changes.', 'error');
+    }
+}
+
+async function reviewMembershipRequest(projectId, requestId, action) {
+    let review_notes = '';
+    if (action === 'reject') {
+        review_notes = prompt('Enter rejection reason for this membership change:') || '';
+        if (review_notes === null) return;
+    }
+    try {
+        const res = await fetch(`/api/projects/${projectId}/membership-change-request/${requestId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, review_notes })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || `Membership change request ${action}ed successfully.`, 'success');
+            loadPendingApprovals();
+            loadProjects();
+        } else {
+            showToast(data.error || 'Failed to review membership change request.', 'error');
+        }
+    } catch (e) {
+        showToast('Error reviewing membership change request.', 'error');
+    }
+}
+
+async function openReviewProposalModal(projectId) {
+    const modalEl = document.getElementById('reviewProposalModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    const titleEl = document.getElementById('rpmTitle');
+    const idEl = document.getElementById('rpmId');
+    const bodyEl = document.getElementById('rpmBody');
+    const footerButtonsEl = document.getElementById('rpmActionButtons');
+
+    titleEl.textContent = 'Loading Proposal...';
+    idEl.textContent = projectId;
+    bodyEl.innerHTML = '<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Loading proposal details...</div>';
+    footerButtonsEl.innerHTML = '';
+
+    try {
+        const res = await fetch(`/api/projects/${projectId}`);
+        const data = await res.json();
+        if (!res.ok) {
+            bodyEl.innerHTML = `<div class="alert alert-danger py-2">${data.error || 'Failed to load proposal details.'}</div>`;
+            return;
+        }
+
+        const p = data.project;
+        titleEl.textContent = `Proposal Review: ${p.title}`;
+        idEl.textContent = `ID: ${p.project_id}`;
+
+        let statusBadge = `<span class="badge bg-warning-subtle text-warning border">${p.status}</span>`;
+        if (p.status === 'ACTIVE' || p.status === 'APPROVED') statusBadge = '<span class="badge bg-success-subtle text-success border">ACTIVE</span>';
+        else if (p.status === 'REJECTED') statusBadge = '<span class="badge bg-danger-subtle text-danger border">REJECTED</span>';
+        else if (p.status === 'CHANGES_REQUESTED') statusBadge = '<span class="badge bg-warning text-dark">CHANGES REQUESTED</span>';
+
+        // Render member cards
+        const membersList = p.selected_member_details || p.member_details || [];
+        const membersHtml = membersList.length > 0 ? membersList.map(m => {
+            const skillsStr = (m.skills || []).map(s => `<span class="badge bg-light text-secondary border font-mono me-1">${escapeHtml(s)}</span>`).join('');
+            return `
+                <tr>
+                    <td class="small fw-semibold text-headline">${escapeHtml(m.full_name)} <span class="font-mono text-muted">(${m.employee_id})</span></td>
+                    <td class="small text-muted">${escapeHtml(m.designation || 'Engineer')} &bull; ${escapeHtml(m.department || 'General')}</td>
+                    <td class="small">${skillsStr || '<span class="text-muted">--</span>'}</td>
+                    <td class="small font-mono"><span class="badge bg-info-subtle text-info border">${m.availability || 'Available'}</span></td>
+                </tr>
+            `;
+        }).join('') : '<tr><td colspan="4" class="text-muted small text-center py-2">No proposed members assigned.</td></tr>';
+
+        // Status alerts
+        let alertBanner = '';
+        if (p.status === 'REJECTED' && p.rejection_reason) {
+            alertBanner = `
+                <div class="alert alert-danger py-2 small mb-3">
+                    <strong><i class="bi bi-x-circle-fill me-1"></i> Proposal Rejected:</strong>
+                    ${escapeHtml(p.rejection_reason)}
+                </div>
+            `;
+        } else if (p.status === 'CHANGES_REQUESTED' && p.change_request_comments) {
+            alertBanner = `
+                <div class="alert alert-warning py-2 small mb-3">
+                    <strong><i class="bi bi-arrow-repeat me-1"></i> Manager Revision Feedback:</strong>
+                    ${escapeHtml(p.change_request_comments)}
+                </div>
+            `;
+        }
+
+        bodyEl.innerHTML = `
+            ${alertBanner}
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge bg-primary-subtle text-primary border font-mono">${p.priority || 'Medium'} Priority</span>
+                ${statusBadge}
+            </div>
+
+            <div class="mb-3">
+                <label class="text-muted small fw-bold">Project Description</label>
+                <div class="p-2 border rounded bg-card-surface small">${p.description ? escapeHtml(p.description) : 'No description provided.'}</div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="text-muted small fw-bold"><i class="bi bi-bullseye text-primary me-1"></i> Objectives</label>
+                    <div class="p-2 border rounded bg-card-surface small" style="min-height: 60px;">${escapeHtml(p.objectives || 'None specified')}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="text-muted small fw-bold"><i class="bi bi-box-seam text-success me-1"></i> Expected Deliverables</label>
+                    <div class="p-2 border rounded bg-card-surface small" style="min-height: 60px;">${escapeHtml(p.deliverables || 'None specified')}</div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3">
+                    <label class="text-muted small fw-bold">Proposed Start</label>
+                    <div class="font-mono small">${p.start_date || 'Not set'}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="text-muted small fw-bold">Target Deadline</label>
+                    <div class="font-mono small">${p.due_date || 'Not set'}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="text-muted small fw-bold">Team Lead</label>
+                    <div class="small fw-semibold">${escapeHtml(p.project_lead || p.created_by || '--')}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="text-muted small fw-bold">Reviewing Manager</label>
+                    <div class="small fw-semibold">${escapeHtml(p.assigned_manager || p.manager_employee_id || '--')}</div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="text-muted small fw-bold">Proposed Responsibilities</label>
+                    <div class="p-2 border rounded bg-card-surface small">${escapeHtml(p.responsibilities || 'Standard project deliverables')}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="text-muted small fw-bold">Required Technical Skills</label>
+                    <div class="p-2 border rounded bg-card-surface small font-mono">${escapeHtml(p.required_skills || 'General software engineering')}</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="text-muted small fw-bold mb-1"><i class="bi bi-people-fill text-primary me-1"></i> Proposed Team Members &amp; Current Availability</label>
+                <div class="table-responsive border rounded">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead>
+                            <tr class="table-light">
+                                <th>Member Name &amp; ID</th>
+                                <th>Designation / Dept</th>
+                                <th>Skills</th>
+                                <th>Workload Telemetry</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${membersHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            ${p.notes ? `
+            <div class="mb-2">
+                <label class="text-muted small fw-bold">Project Notes / Prerequisites</label>
+                <div class="p-2 border rounded bg-card-surface small font-mono">${escapeHtml(p.notes)}</div>
+            </div>` : ''}
+        `;
+
+        // Configure actions in footer
+        if (['manager', 'admin'].includes(CURRENT_USER_ROLE) && p.status === 'PENDING_APPROVAL') {
+            footerButtonsEl.innerHTML = `
+                <button class="btn btn-outline-danger btn-sm" onclick="openRejectModal('${p.project_id}', '${escapeJs(p.title)}')">
+                    <i class="bi bi-x-lg me-1"></i> Reject
+                </button>
+                <button class="btn btn-outline-warning btn-sm" onclick="openRequestChangesModal('${p.project_id}', '${escapeJs(p.title)}')">
+                    <i class="bi bi-arrow-repeat me-1"></i> Request Changes
+                </button>
+                <button class="btn btn-success btn-sm" onclick="openApproveModal('${p.project_id}', '${escapeJs(p.title)}')">
+                    <i class="bi bi-check-lg me-1"></i> Approve &amp; Activate
+                </button>
+            `;
+        } else if (['team_lead', 'trainer'].includes(CURRENT_USER_ROLE) && ['CHANGES_REQUESTED', 'DRAFT'].includes(p.status)) {
+            footerButtonsEl.innerHTML = `
+                <button class="btn btn-primary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('reviewProposalModal')).hide(); openEditProposalModal('${p.project_id}')">
+                    <i class="bi bi-pencil-square me-1"></i> Edit &amp; Resubmit Proposal
+                </button>
+            `;
+        }
+    } catch (e) {
+        bodyEl.innerHTML = '<div class="alert alert-danger py-2">Error connecting to server.</div>';
+    }
+}
+
+async function openEditProposalModal(projectId) {
+    try {
+        const res = await fetch(`/api/projects/${projectId}`);
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || 'Failed to load project details for editing.', 'error');
+            return;
+        }
+
+        const p = data.project;
+        editingProjectId = projectId;
+
+        document.getElementById('pTitle').value = p.title || '';
+        document.getElementById('pDesc').value = p.description || '';
+        document.getElementById('pObjectives').value = p.objectives || '';
+        document.getElementById('pDeliverables').value = p.deliverables || '';
+        document.getElementById('pDept').value = p.department || '';
+        document.getElementById('pClient').value = p.client || '';
+        document.getElementById('pStart').value = p.start_date || '';
+        document.getElementById('pDue').value = p.due_date || '';
+        document.getElementById('pPriority').value = p.priority || 'Medium';
+        document.getElementById('pManager').value = p.assigned_manager || p.manager_employee_id || '';
+        document.getElementById('pResponsibilities').value = p.responsibilities || '';
+        document.getElementById('pRequiredSkills').value = p.required_skills || '';
+        document.getElementById('pNotes').value = p.notes || '';
+
+        selectedEmployeeIds.clear();
+        const mems = p.selected_members || p.members || [];
+        mems.forEach(m => selectedEmployeeIds.add(m));
+
+        updateSelectedPills();
+        renderEmployeeCheckboxList(allEmployees);
+
+        const modal = new bootstrap.Modal(document.getElementById('createProjectModal'));
+        modal.show();
+    } catch (e) {
+        showToast('Error preparing proposal edit modal.', 'error');
+    }
+}
+
+let projectToDeleteId = null;
+
+function promptDeleteProject(projectId, projectTitle) {
+    projectToDeleteId = projectId;
+    const idEl = document.getElementById('delProjIdDisplay');
+    const titleEl = document.getElementById('delProjTitleDisplay');
+    const reasonEl = document.getElementById('delProjReasonInput');
+    if (idEl) idEl.textContent = projectId;
+    if (titleEl) titleEl.textContent = projectTitle;
+    if (reasonEl) reasonEl.value = '';
+    const modalEl = document.getElementById('deleteProjectModal');
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+async function submitDeleteProject() {
+    if (!projectToDeleteId) return;
+    const reasonInput = document.getElementById('delProjReasonInput');
+    const reason = reasonInput ? reasonInput.value.trim() : '';
+    const btn = document.getElementById('btnConfirmDeleteProject');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Archiving...';
+    }
+
+    try {
+        const res = await fetch(`/api/projects/${projectToDeleteId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: reason || 'Archived via project management controls' })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Project archived successfully.', 'success');
+            const modalEl = document.getElementById('deleteProjectModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+            projectToDeleteId = null;
+            await loadProjects();
+        } else {
+            showToast(data.error || 'Failed to archive project.', 'error');
+        }
+    } catch (err) {
+        showToast('Network error while archiving project.', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-trash"></i> Confirm Archival';
+        }
+    }
+}
+
+async function loadDummyProjectsCandidates() {
+    const tbody = document.getElementById('dummyProjectsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Scanning project candidates...</td></tr>';
+
+    try {
+        const res = await fetch('/api/projects/dummy-candidates');
+        const data = await res.json();
+        const candidates = data.candidates || [];
+
+        if (candidates.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-success py-4"><i class="bi bi-check-circle me-1"></i> No confirmed dummy or sandbox projects detected. All projects have genuine work.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = candidates.map(c => `
+            <tr>
+                <td class="font-mono fw-bold">${c.project_id}</td>
+                <td>${escapeHtml(c.title)}</td>
+                <td><span class="badge bg-light text-secondary border">${c.status}</span></td>
+                <td>${c.members_count} member(s), ${c.tasks_count} task(s)</td>
+                <td><span class="badge bg-warning-subtle text-warning">${escapeHtml(c.flag_reason)}</span></td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" onclick="archiveCandidateDummyProject('${c.project_id}', '${escapeHtml(c.title)}')">
+                        <i class="bi bi-trash me-1"></i> Clean Archive
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load candidates.</td></tr>';
+    }
+}
+
+async function archiveCandidateDummyProject(projectId, title) {
+    if (!confirm(`Are you sure you want to clean up confirmed dummy project "${title}" (${projectId})? It will be safely soft-deleted/archived.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/projects/${projectId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'Confirmed dummy project cleanup by authorized Manager' })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(`Cleaned dummy project ${projectId}.`, 'success');
+            await loadDummyProjectsCandidates();
+            await loadProjects();
+        } else {
+            showToast(data.error || 'Failed to clean project.', 'error');
+        }
+    } catch (err) {
+        showToast('Network error while cleaning project.', 'error');
+    }
+}
+function escapeJs(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, " ");
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+</script>
+{% endblock %}

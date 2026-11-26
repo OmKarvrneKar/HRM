@@ -1,0 +1,1864 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Portal — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Personal Birthday Greeting Banner (Visible on celebrant's birthday) -->
+            <div id="userBirthdayBanner" class="card mb-4 border-0 shadow-sm" style="display: none; background: linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(253,126,20,0.18) 100%); border-left: 5px solid #fd7e14 !important; border-radius: 16px;">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning text-dark flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.4rem;">
+                                🎉
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark">Happy Birthday, {{ user.full_name }}!</h6>
+                                <p class="text-muted small mb-0" style="font-size: 0.75rem;">The entire team at AI Samrat wishes you a wonderful celebration!</p>
+                            </div>
+                        </div>
+                        <a href="/birthdays" class="btn btn-sm btn-outline-warning text-dark border-warning fw-semibold" style="font-size: 0.75rem;">
+                            <i class="bi bi-cake2 me-1"></i> View Birthdays
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 ROW 1: MONTHLY ATTENDANCE SUMMARY (6 HORIZONTAL BLOCKS)
+                 Pixel-perfect match to user reference image:
+                 PRESENT | LATE ARRIVALS | ABSENT DAYS | LEAVES TAKEN | HOLIDAYS | WORK DURATION
+                 ========================================== -->
+            <div class="dashboard-metrics-grid mb-3" id="monthlySummaryRow">
+                <!-- 1. PRESENT -->
+                <div class="card metric-card h-100 border shadow-sm cursor-pointer" onclick="window.location.href='/attendance'" title="View detailed attendance roster">
+                    <div class="metric-header">
+                        <span class="metric-title text-success fw-bold">PRESENT</span>
+                        <i class="bi bi-check-circle metric-icon-subtle text-success"></i>
+                    </div>
+                    <div class="metric-value text-success font-mono fw-bold" id="ovPresentDays">0</div>
+                    <div class="metric-footer text-muted small">Days attended</div>
+                </div>
+
+                <!-- 2. LATE ARRIVALS -->
+                <div class="card metric-card h-100 border shadow-sm cursor-pointer" onclick="window.location.href='/attendance'" title="View arrival timings">
+                    <div class="metric-header">
+                        <span class="metric-title text-warning fw-bold">LATE ARRIVALS</span>
+                        <i class="bi bi-clock metric-icon-subtle text-warning"></i>
+                    </div>
+                    <div class="metric-value text-warning font-mono fw-bold" id="ovLateDays">0</div>
+                    <div class="metric-footer text-muted small">Arrival after 10:00 AM</div>
+                </div>
+
+                <!-- 3. ABSENT DAYS -->
+                <div class="card metric-card h-100 border shadow-sm cursor-pointer" onclick="window.location.href='/attendance'" title="View unmarked days">
+                    <div class="metric-header">
+                        <span class="metric-title text-danger fw-bold">ABSENT DAYS</span>
+                        <i class="bi bi-x-circle metric-icon-subtle text-danger"></i>
+                    </div>
+                    <div class="metric-value text-danger font-mono fw-bold" id="ovAbsentDays">0</div>
+                    <div class="metric-footer text-muted small">Unmarked workdays</div>
+                </div>
+
+                <!-- 4. LEAVES TAKEN -->
+                <div class="card metric-card h-100 border shadow-sm cursor-pointer" onclick="window.location.href='/leaves'" title="View approved leave records">
+                    <div class="metric-header">
+                        <span class="metric-title text-primary fw-bold">LEAVES TAKEN</span>
+                        <i class="bi bi-calendar2-minus metric-icon-subtle text-primary"></i>
+                    </div>
+                    <div class="metric-value text-primary font-mono fw-bold" id="ovLeaveDays">0</div>
+                    <div class="metric-footer text-muted small">Approved leaves</div>
+                </div>
+
+                <!-- 5. HOLIDAYS -->
+                <div class="card metric-card h-100 border shadow-sm cursor-pointer" onclick="window.location.href='/holidays'" title="View official holiday calendar">
+                    <div class="metric-header">
+                        <span class="metric-title fw-bold" style="color: #8b5cf6;">HOLIDAYS</span>
+                        <i class="bi bi-cup-hot metric-icon-subtle" style="color: #8b5cf6;"></i>
+                    </div>
+                    <div class="metric-value font-mono fw-bold" style="color: #8b5cf6;" id="ovHolidayDays">0</div>
+                    <div class="metric-footer text-muted small">Official holidays</div>
+                </div>
+
+                <!-- 6. WORK DURATION -->
+                <div class="card metric-card h-100 border shadow-sm cursor-pointer" onclick="window.location.href='/attendance'" title="View total cumulative working hours">
+                    <div class="metric-header">
+                        <span class="metric-title fw-bold text-secondary">WORK DURATION</span>
+                        <i class="bi bi-hourglass-split metric-icon-subtle text-secondary"></i>
+                    </div>
+                    <div class="metric-value font-mono fw-bold text-headline" id="ovTotalDuration">0h 0m</div>
+                    <div class="metric-footer text-muted small">Recorded span sum</div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 ROW 2: HORIZONTAL SHIFT ATTENDANCE BLOCK (Restored & Optimized)
+                 ========================================== -->
+            <div class="shift-attendance-horizontal shadow-sm mb-3" id="shiftAttendanceHorizontalCard">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0 fw-bold text-primary d-flex align-items-center" style="font-size: 0.95rem;">
+                            <i class="bi bi-clock-history me-2"></i>Shift Attendance
+                        </h5>
+                        <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.72rem;">10:00 AM – 6:00 PM IST</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace" style="font-size: 0.72rem;"><i class="bi bi-check2-circle me-1"></i>Biometric Sync Active</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 break-control-btn" id="shiftCardBreakBtn" onclick="toggleWorkBreak()" style="display: none; font-size: 0.78rem;" title="Record work break">
+                            <i class="bi bi-cup-hot me-1"></i> Take Break
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm card-punch-btn" id="shiftCardPunchBtn" onclick="toggleDutyPunchSwitch()" style="font-size: 0.78rem;" title="Toggle Shift Attendance Clock In / Clock Out">
+                            <i class="bi bi-power me-1"></i> <span id="shiftCardPunchText">Clock In</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="shift-stats-grid text-center text-md-start">
+                    <div class="p-2 border-end border-opacity-25">
+                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Clock-In Time</small>
+                        <div class="d-flex align-items-center gap-1 flex-wrap justify-content-center justify-content-md-start mt-1">
+                            <span class="fs-5 fw-bold text-dark dark-text font-monospace" id="shiftCardFirstLogin">--:--</span>
+                            <span id="shiftCardLateBadge"></span>
+                        </div>
+                    </div>
+                    <div class="p-2 border-end border-opacity-25">
+                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Active Working Time</small>
+                        <div class="mt-1">
+                            <span class="fs-5 fw-bold text-success font-monospace" id="cardShiftHoursText">00h 00m 00s</span>
+                        </div>
+                    </div>
+                    <div class="p-2 border-end border-opacity-25">
+                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Recorded Break</small>
+                        <div class="mt-1">
+                            <span class="fs-5 fw-bold text-secondary font-monospace" id="statBreakDuration">00h 00m 00s</span>
+                        </div>
+                    </div>
+                    <div class="p-2">
+                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Clock-Out State</small>
+                        <div class="mt-1">
+                            <span class="fs-6 fw-bold text-danger" id="statFinalLogout">Pending</span>
+                            <div class="text-muted small mt-1" id="statFinalLogoutFooter">
+                                <i class="bi bi-hourglass-split"></i> <span id="statRemainingHoursVal">--</span> left to qualify (6:00 PM)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Granular Shift Split Strip (Morning vs Afternoon Half Tracking) -->
+                <div class="mt-3 pt-3 border-top" id="shiftGranularSplitRow">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <span class="small fw-bold text-headline">
+                            <i class="bi bi-pie-chart-fill text-info me-1"></i> Shift Half-Splits &amp; Break Progression
+                        </span>
+                        <div class="d-flex gap-2 font-mono small text-muted" style="font-size: 0.72rem;">
+                            <span><i class="bi bi-sun text-warning me-1"></i>Morning: 3.5h</span>
+                            <span>&bull;</span>
+                            <span><i class="bi bi-cup-hot text-secondary me-1"></i>Break: 1.0h</span>
+                            <span>&bull;</span>
+                            <span><i class="bi bi-brightness-alt-high text-primary me-1"></i>Afternoon: 3.5h</span>
+                        </div>
+                    </div>
+                    <div class="shift-split-sessions-grid text-start">
+                        <!-- Pre-Break Half (Morning: 10:00 AM – 1:30 PM) -->
+                        <div class="p-2 rounded bg-light-subtle border d-flex flex-column justify-content-between" style="min-height: 58px;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-semibold text-headline" style="font-size: 0.75rem;">1. Morning Session (10:00 – 13:30)</span>
+                                <span class="badge bg-primary-subtle text-primary font-mono" id="splitMorningStatus" style="font-size: 0.65rem;">Active</span>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-primary" id="splitMorningProgressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-1 text-muted font-mono" style="font-size: 0.68rem;">
+                                <span id="splitMorningLogged">00h 00m</span>
+                                <span>Target: 03h 30m</span>
+                            </div>
+                        </div>
+                        <!-- Break Window (1:30 PM – 2:30 PM) -->
+                        <div class="p-2 rounded bg-light-subtle border d-flex flex-column justify-content-between" style="min-height: 58px;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-semibold text-headline" style="font-size: 0.75rem;">2. Lunch &amp; Break (13:30 – 14:30)</span>
+                                <span class="badge bg-secondary-subtle text-secondary font-mono" id="splitBreakStatus" style="font-size: 0.65rem;">1h Window</span>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-warning" id="splitBreakProgressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-1 text-muted font-mono" style="font-size: 0.68rem;">
+                                <span id="splitBreakLogged">00h 00m</span>
+                                <span>Allowance: 01h 00m</span>
+                            </div>
+                        </div>
+                        <!-- Post-Break Half (Afternoon: 2:30 PM – 6:00 PM) -->
+                        <div class="p-2 rounded bg-light-subtle border d-flex flex-column justify-content-between" style="min-height: 58px;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-semibold text-headline" style="font-size: 0.75rem;">3. Afternoon Session (14:30 – 18:00)</span>
+                                <span class="badge bg-info-subtle text-info font-mono" id="splitAfternoonStatus" style="font-size: 0.65rem;">Upcoming</span>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-success" id="splitAfternoonProgressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-1 text-muted font-mono" style="font-size: 0.68rem;">
+                                <span id="splitAfternoonLogged">00h 00m</span>
+                                <span>Target: 03h 30m</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preserved telemetry container for background intervals, timers & API synchronizers -->
+                <div class="d-none" id="todayStatsRow" aria-hidden="true">
+                    <span id="statFirstLogin">--:--</span>
+                    <span id="statLateBadge"></span>
+                    <span id="statActiveDuration"></span>
+                    <div id="statPendingTabCard">
+                        <span id="statPendingIcon"></span>
+                        <span id="statRemainingHoursBadge"></span>
+                    </div>
+                    <span id="statOfficialSpan">--</span>
+                    <span id="shiftControlGuidance"></span>
+                </div>
+            </div><!-- /shiftAttendanceHorizontalCard -->
+
+            <!-- ==========================================
+                 TIIMI SAAS HRM: VISUAL ATTENDANCE TIMELINE & OVERTIME SUITE
+                 Adapted from Dribbble Tiimi SaaS HRM Reference
+                 ========================================== -->
+            <div class="card card-glass dashboard-card p-3 mb-3 shadow-sm" id="empTiimiTimeSuiteCard">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.68rem;">
+                                <i class="bi bi-clock-history me-1"></i>Tiimi Time Management
+                            </span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" style="font-size: 0.68rem;">
+                                <i class="bi bi-check2-circle me-1"></i>Live Biometrics
+                            </span>
+                        </div>
+                        <h6 class="fw-bold text-headline mb-0 mt-1" style="font-size: 0.92rem;">Weekly Visual Attendance Timeline &amp; Overtime</h6>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary active py-1 px-2" id="btnEmpViewTimeline" onclick="switchEmpTimeView('timeline')" style="font-size: 0.75rem;">
+                                <i class="bi bi-bar-chart-steps me-1"></i> Timeline
+                            </button>
+                            <button type="button" class="btn btn-outline-primary py-1 px-2" id="btnEmpViewOvertime" onclick="switchEmpTimeView('overtime')" style="font-size: 0.75rem;">
+                                <i class="bi bi-hourglass-split me-1"></i> Overtime Log
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary-gradient px-3 py-1 rounded-pill text-white shadow-sm d-inline-flex align-items-center gap-1" onclick="openEmpOvertimeModal()" style="font-size: 0.75rem;">
+                            <i class="bi bi-plus-circle"></i> Request Overtime
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 6 MoM KPI Metrics Row (Matching Tiimi Image 3 - Snug) -->
+                <div class="tiimi-kpi-row-6 mb-2">
+                    <div class="tiimi-kpi-item">
+                        <span class="tiimi-kpi-label">Day off</span>
+                        <div class="tiimi-kpi-val" id="empKpiDayOff">12</div>
+                        <span class="tiimi-kpi-trend up">+ 12 vs last month</span>
+                    </div>
+                    <div class="tiimi-kpi-item">
+                        <span class="tiimi-kpi-label">Late clock-in</span>
+                        <div class="tiimi-kpi-val" id="empKpiLateIn">6</div>
+                        <span class="tiimi-kpi-trend down">- 2 vs last month</span>
+                    </div>
+                    <div class="tiimi-kpi-item">
+                        <span class="tiimi-kpi-label">Late clock-out</span>
+                        <div class="tiimi-kpi-val" id="empKpiLateOut">21</div>
+                        <span class="tiimi-kpi-trend down">- 12 vs last month</span>
+                    </div>
+                    <div class="tiimi-kpi-item">
+                        <span class="tiimi-kpi-label">No clock-out</span>
+                        <div class="tiimi-kpi-val" id="empKpiNoClockOut">2</div>
+                        <span class="tiimi-kpi-trend up">+ 4 vs last month</span>
+                    </div>
+                    <div class="tiimi-kpi-item">
+                        <span class="tiimi-kpi-label">Off time quota</span>
+                        <div class="tiimi-kpi-val" id="empKpiOffQuota">1</div>
+                        <span class="tiimi-kpi-trend neutral">0 vs last month</span>
+                    </div>
+                    <div class="tiimi-kpi-item">
+                        <span class="tiimi-kpi-label">Absent</span>
+                        <div class="tiimi-kpi-val" id="empKpiAbsent">2</div>
+                        <span class="tiimi-kpi-trend neutral">0 vs last month</span>
+                    </div>
+                </div>
+
+                <!-- SUB-PANEL A: VISUAL TIMELINE GANTT BARS -->
+                <div id="empPanelTimeline" class="dashboard-switch-pane is-selected">
+                    <div class="tiimi-ruler mb-2">
+                        <span>09:00</span><span>11:00</span><span>13:00</span><span>15:00</span><span>17:00</span><span>19:00</span><span>21:00</span><span>23:59</span>
+                    </div>
+                    <div id="empTimelineRowsContainer">
+                        <div class="text-center py-4 text-muted small">Loading visual attendance timeline...</div>
+                    </div>
+                </div>
+
+                <!-- SUB-PANEL B: OVERTIME REQUESTS & STATUS TABLE -->
+                <div id="empPanelOvertime" class="dashboard-switch-pane d-none">
+                    <!-- Overtime Top KPI Summary Row -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border text-center">
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Overtime Hours</span>
+                                <h4 class="fw-bold text-headline font-mono mt-1 mb-0" id="empOtHoursVal">12h</h4>
+                                <span class="text-success small fw-semibold" style="font-size: 0.72rem;">+ 12h vs last month</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border text-center">
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Avg. Overtime / Day</span>
+                                <h4 class="fw-bold text-headline font-mono mt-1 mb-0" id="empOtAvgVal">6h</h4>
+                                <span class="text-danger small fw-semibold" style="font-size: 0.72rem;">- 2h vs last month</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border text-center">
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Pending Approval</span>
+                                <h4 class="fw-bold text-warning font-mono mt-1 mb-0" id="empOtPendingVal">1</h4>
+                                <span class="text-muted small" style="font-size: 0.72rem;">Awaiting TL review</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="tiimi-table">
+                            <thead>
+                                <tr>
+                                    <th>Request Date</th>
+                                    <th>Overtime Date</th>
+                                    <th>Duration</th>
+                                    <th>Time Slot</th>
+                                    <th>Reason</th>
+                                    <th class="text-end">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="empOvertimeTableBody">
+                                <tr><td colspan="6" class="text-center py-3 text-muted">Loading your overtime records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 ROW 2: EFFICIENCY & PUNCTUALITY + DAILY PUNCH LOGS
+                 ========================================== -->
+            <div class="dashboard-two-col-grid mb-3">
+                <!-- Left: Efficiency & Punctuality -->
+                <div class="card card-glass dashboard-card p-3 h-100 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Efficiency &amp; Punctuality</h6>
+                            <span class="text-muted small" style="font-size: 0.72rem;">On-time arrival &amp; adherence</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" style="font-size: 0.65rem;">+4.2%</span>
+                    </div>
+                    <div style="height: 150px; position: relative;" class="d-flex align-items-center justify-content-center">
+                        <canvas id="efficiencyDonutChart"></canvas>
+                        <div class="efficiency-center-metric text-center position-absolute" style="pointer-events: none;">
+                            <div class="fw-bold text-headline" style="font-size: 1.35rem; line-height: 1.1;">94.8%</div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" style="font-size: 0.65rem;">On Time</span>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center gap-3 mt-1" style="font-size: 0.72rem;">
+                        <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#0056d6;"></span> On-Time</span>
+                        <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#f43f5e;"></span> Grace</span>
+                    </div>
+                </div>
+
+                <!-- Right: Daily Punch Logs -->
+                <div class="card card-glass dashboard-card p-3 h-100 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Daily Punch Logs</h6>
+                            <span class="text-muted small" style="font-size: 0.72rem;">Recorded biometric sessions</span>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.68rem;">{{ today_date }}</span>
+                    </div>
+                    <div id="sessionsTimeline" class="timeline mt-1" style="max-height: 185px; overflow-y: auto;">
+                        <div class="text-muted small">Loading today's activity...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 PERSONAL LEAVE BALANCES (Casual, Sick, Earned)
+                 ========================================== -->
+            <div class="card card-glass dashboard-card p-3 mb-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-headline d-flex align-items-center gap-2">
+                            <i class="bi bi-calendar2-heart text-primary"></i> Personal Leave Balances
+                        </h6>
+                        <span class="text-muted small" style="font-size: 0.72rem;">Annual statutory entitlements &bull; Financial Year April &ndash; March</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.68rem;">FY 2026&ndash;2027</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openApplyLeaveModal()" style="font-size: 0.75rem;">
+                            <i class="bi bi-plus-circle me-1"></i> Apply Leave
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3 Sleek Leave Balance Cards -->
+                <div class="dashboard-three-col-grid mb-3">
+                    <!-- 1. Casual Leave -->
+                    <div class="p-3 rounded-3 border bg-card-surface d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.67rem; letter-spacing: 0.05em;">Casual Leave (CL)</div>
+                            <div class="d-flex align-items-baseline gap-1 mt-1">
+                                <span class="h4 fw-bold text-headline mb-0 font-mono" id="balCLAvail">12.0</span>
+                                <span class="text-muted small" style="font-size: 0.75rem;">/ <span id="balCLTotal">12.0</span> days</span>
+                            </div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary-subtle text-primary" style="width: 38px; height: 38px;">
+                            <i class="bi bi-calendar-event fs-5"></i>
+                        </div>
+                    </div>
+
+                    <!-- 2. Sick Leave -->
+                    <div class="p-3 rounded-3 border bg-card-surface d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.67rem; letter-spacing: 0.05em;">Sick Leave (SL)</div>
+                            <div class="d-flex align-items-baseline gap-1 mt-1">
+                                <span class="h4 fw-bold text-headline mb-0 font-mono" id="balSLAvail">10.0</span>
+                                <span class="text-muted small" style="font-size: 0.75rem;">/ <span id="balSLTotal">10.0</span> days</span>
+                            </div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-info-subtle text-info" style="width: 38px; height: 38px;">
+                            <i class="bi bi-heart-pulse fs-5"></i>
+                        </div>
+                    </div>
+
+                    <!-- 3. Earned Leave -->
+                    <div class="p-3 rounded-3 border bg-card-surface d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.67rem; letter-spacing: 0.05em;">Earned Leave (EL)</div>
+                            <div class="d-flex align-items-baseline gap-1 mt-1">
+                                <span class="h4 fw-bold text-headline mb-0 font-mono" id="balELAvail">15.0</span>
+                                <span class="text-muted small" style="font-size: 0.75rem;">/ <span id="balELTotal">15.0</span> days</span>
+                            </div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-success-subtle text-success" style="width: 38px; height: 38px;">
+                            <i class="bi bi-award fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progressive Leave Policies Grid (Flexible & Wellness Entitlements) -->
+                <div class="mt-3 pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <span class="small fw-bold text-headline d-flex align-items-center gap-1" style="font-size: 0.78rem;">
+                            <i class="bi bi-stars text-info"></i> Progressive Leave Policies (Flexible &amp; Wellness)
+                        </span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle font-mono" style="font-size: 0.65rem;">
+                            5 Policies Configured
+                        </span>
+                    </div>
+                    <div class="dashboard-five-col-grid">
+                        <!-- 1. WFA & Flexible Leave -->
+                        <div class="p-2 px-3 rounded-3 border bg-card-surface d-flex flex-column justify-content-between h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small text-truncate" style="font-size: 0.67rem;" title="Work from Anywhere (WFA) & Flexible Leave">WFA &amp; Flexible</span>
+                                <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.58rem;">WFA</span>
+                            </div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                                <span class="fw-bold text-headline font-mono" id="balWFAAvail" style="font-size: 1.05rem;">12.0</span>
+                                <span class="text-muted small" style="font-size: 0.68rem;">/ <span id="balWFATotal">12.0</span>d</span>
+                            </div>
+                            <div class="text-muted" style="font-size: 0.62rem;">Annual &bull; No rollover</div>
+                        </div>
+                        <!-- 2. Mental Health Leave -->
+                        <div class="p-2 px-3 rounded-3 border bg-card-surface d-flex flex-column justify-content-between h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small text-truncate" style="font-size: 0.67rem;" title="Mental Health Leave">Mental Health</span>
+                                <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.58rem;">MHL</span>
+                            </div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                                <span class="fw-bold text-headline font-mono" id="balMHLAvail" style="font-size: 1.05rem;">5.0</span>
+                                <span class="text-muted small" style="font-size: 0.68rem;">/ <span id="balMHLTotal">5.0</span>d</span>
+                            </div>
+                            <div class="text-muted" style="font-size: 0.62rem;">Annual &bull; No rollover</div>
+                        </div>
+                        <!-- 3. Wellness Days -->
+                        <div class="p-2 px-3 rounded-3 border bg-card-surface d-flex flex-column justify-content-between h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small text-truncate" style="font-size: 0.67rem;" title="Wellness Days">Wellness Days</span>
+                                <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.58rem;">WND</span>
+                            </div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                                <span class="fw-bold text-headline font-mono" id="balWNDAvail" style="font-size: 1.05rem;">3.0</span>
+                                <span class="text-muted small" style="font-size: 0.68rem;">/ <span id="balWNDTotal">3.0</span>d</span>
+                            </div>
+                            <div class="text-muted" style="font-size: 0.62rem;">Annual &bull; No rollover</div>
+                        </div>
+                        <!-- 4. Pet Care Leave -->
+                        <div class="p-2 px-3 rounded-3 border bg-card-surface d-flex flex-column justify-content-between h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small text-truncate" style="font-size: 0.67rem;" title="Pet Care Leave">Pet Care Leave</span>
+                                <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.58rem;">PCL</span>
+                            </div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                                <span class="fw-bold text-headline font-mono" id="balPCLAvail" style="font-size: 1.05rem;">3.0</span>
+                                <span class="text-muted small" style="font-size: 0.68rem;">/ <span id="balPCLTotal">3.0</span>d</span>
+                            </div>
+                            <div class="text-muted" style="font-size: 0.62rem;">Annual &bull; No rollover</div>
+                        </div>
+                        <!-- 5. Neutral Gender Leave -->
+                        <div class="p-2 px-3 rounded-3 border bg-card-surface d-flex flex-column justify-content-between h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small text-truncate" style="font-size: 0.67rem;" title="Neutral Gender Leave">Neutral Gender</span>
+                                <span class="badge bg-success-subtle text-success font-mono" style="font-size: 0.58rem;">Rollover</span>
+                            </div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                                <span class="fw-bold text-headline font-mono" id="balNGLAvail" style="font-size: 1.05rem;">10.0</span>
+                                <span class="text-muted small" style="font-size: 0.68rem;">/ <span id="balNGLTotal">10.0</span>d</span>
+                            </div>
+                            <div class="text-muted" style="font-size: 0.62rem;">Carry-forward allowed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TEAM CONTEXT & CELEBRATIONS: UPCOMING HOLIDAYS & BIRTHDAYS
+                 ========================================== -->
+            <div class="dashboard-two-col-grid mb-3">
+                <!-- Upcoming Holidays Card -->
+                <div class="card card-glass dashboard-card p-3 h-100 shadow-sm d-flex flex-column justify-content-start gap-2">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary-subtle text-primary" style="width: 32px; height: 32px; font-size: 0.95rem;">
+                                    <i class="bi bi-calendar3-event"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Upcoming Holidays</h6>
+                                    <span class="text-muted small" style="font-size: 0.72rem;">Company &amp; statutory holidays</span>
+                                </div>
+                            </div>
+                            <a href="/attendance?tab=holidays" class="btn btn-sm btn-link text-primary text-decoration-none p-0 fw-semibold" style="font-size: 0.74rem;">
+                                View Calendar &rarr;
+                            </a>
+                        </div>
+                        <div id="dashUpcomingHolidays" class="d-flex flex-column gap-1">
+                            <div class="text-muted small py-1">Loading upcoming holidays...</div>
+                        </div>
+                    </div>
+                    <div class="pt-2 mt-auto border-top text-muted small d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
+                        <span><i class="bi bi-building-check text-success me-1"></i>Official 2026 List</span>
+                        <span class="font-mono text-muted">Statutory &bull; Paid</span>
+                    </div>
+                </div>
+
+                <!-- Upcoming Birthdays Card -->
+                <div class="card card-glass dashboard-card p-3 h-100 shadow-sm d-flex flex-column justify-content-start gap-2">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning-subtle text-warning-emphasis" style="width: 32px; height: 32px; font-size: 0.95rem;">
+                                    <i class="bi bi-cake2"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Upcoming Birthdays</h6>
+                                    <span class="text-muted small" style="font-size: 0.72rem;">Team milestones &amp; celebrations</span>
+                                </div>
+                            </div>
+                            <a href="/birthdays" class="btn btn-sm btn-link text-warning-emphasis text-decoration-none p-0 fw-semibold" style="font-size: 0.74rem;">
+                                View All &rarr;
+                            </a>
+                        </div>
+                        <div id="dashUpcomingBirthdays" class="d-flex flex-column gap-1">
+                            <div class="text-muted small py-1">Loading upcoming celebrations...</div>
+                        </div>
+                    </div>
+                    <div class="pt-2 mt-auto border-top text-muted small d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
+                        <span><i class="bi bi-heart-fill text-danger me-1"></i>AI Samrat Family</span>
+                        <span class="font-mono text-muted">Monthly Cycle</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 FULL-WIDTH: ASSIGNED TASKS & PROJECTS (With Real-Time Live Search Filter)
+                 ========================================== -->
+            {% if user.role != 'hr' %}
+            <div class="card card-glass dashboard-card p-3 mb-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-headline">Assigned Tasks &amp; Projects</h6>
+                        <span class="text-muted small" style="font-size: 0.72rem;">Active sprint deliverables and milestones</span>
+                    </div>
+                    <a href="/projects" class="btn btn-sm btn-outline-primary rounded-pill px-3" style="font-size: 0.75rem;">
+                        View All Projects &rarr;
+                    </a>
+                </div>
+                <div id="employeeTasksList" class="d-flex flex-column gap-2 mt-1">
+                    <div class="text-muted small">Loading project deliverables...</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Fallback elements required by script (Preserves legacy chart and widget compatibility) -->
+            <div class="d-none">
+                <button id="btnCheckIn" onclick="performCheckIn()"></button>
+                <button id="btnCheckOut" onclick="performCheckOut()"></button>
+                <div class="punch-switch-meta">
+                    <span class="meta-status" id="punchSwitchStatusText"><span class="text-muted">STANDBY (OFF)</span></span>
+                </div>
+                <canvas id="empAttendanceChart"></canvas>
+                <canvas id="empTasksChart"></canvas>
+                <canvas id="empSkillsChart"></canvas>
+                <div id="dashUpcomingHolidaysWidget"></div>
+                <div id="todayActivityFeed"></div>
+            </div>
+
+            <!-- Tiimi Employee Overtime Request Modal (Image 4) -->
+            <div class="modal fade" id="empOvertimeModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content tiimi-modal-card">
+                        <div class="modal-header border-bottom py-3">
+                            <h6 class="modal-title fw-bold text-headline d-flex align-items-center gap-2">
+                                <i class="bi bi-hourglass-split text-warning"></i> Request Overtime (Tiimi HRM)
+                            </h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="empOvertimeForm" onsubmit="submitEmpOvertime(event)">
+                            <div class="modal-body p-4">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Overtime Date</label>
+                                    <input type="date" class="form-control form-control-sm" id="empOtDate" required value="{{ today_date }}">
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Start Time</label>
+                                        <input type="text" class="form-control form-control-sm" id="empOtStart" value="07:00 PM" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">End Time</label>
+                                        <input type="text" class="form-control form-control-sm" id="empOtEnd" value="09:00 PM" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Overtime Type</label>
+                                    <select class="form-select form-select-sm" id="empOtType">
+                                        <option value="After shift" selected>After shift (Post-18:00)</option>
+                                        <option value="Weekend sprint">Weekend sprint deliverable</option>
+                                        <option value="Holiday release">Holiday release support</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Reason for Overtime</label>
+                                    <textarea class="form-control form-control-sm" id="empOtReason" rows="3" placeholder="e.g. Unexpected project deadlines that cannot be avoided." required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-top py-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-sm btn-primary-gradient px-3 rounded-pill text-white" id="btnSubmitEmpOt">
+                                    <i class="bi bi-send me-1"></i> Submit Overtime Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+let liveAttendanceInterval = null;
+let currentAttendanceData = null;
+let quickWorkDiaryModalInstance = null;
+let applyLeaveModalInstance = null;
+let quickSalaryModalInstance = null;
+let quickHolidaysModalInstance = null;
+let quickSupportModalInstance = null;
+
+async function openQuickWorkDiaryModal() {
+    if (!quickWorkDiaryModalInstance) {
+        quickWorkDiaryModalInstance = new bootstrap.Modal(document.getElementById('quickWorkDiaryModal'));
+    }
+    document.getElementById('quickWorkDiaryForm').reset();
+    document.getElementById('diaryHours').value = '1.0';
+    await loadTodayDiaryEntries();
+    quickWorkDiaryModalInstance.show();
+}
+
+async function loadTodayDiaryEntries() {
+    const list = document.getElementById('quickDiaryEntriesList');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/work-diary/daily?date={{ today_date }}');
+        if (!res.ok) throw new Error('Could not load entries');
+        const data = await res.json();
+        const entries = data.entries || [];
+        if (entries.length === 0) {
+            list.innerHTML = '<div class="text-muted small text-center py-2">No activities logged yet today. Use the form above to add your first task.</div>';
+            return;
+        }
+        list.innerHTML = entries.map(e => `
+            <div class="p-2 border rounded bg-card-surface d-flex justify-content-between align-items-center">
+                <div class="overflow-hidden me-2">
+                    <div class="fw-semibold small text-headline text-truncate">${escapeHtml(e.activity_title || e.title || 'Work Item')}</div>
+                    <div class="text-muted small" style="font-size: 0.72rem;">${escapeHtml(e.work_description || e.description || '')}</div>
+                </div>
+                <div class="text-end flex-shrink-0">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono">${e.time_spent_hours || 1}h</span>
+                    <div class="text-muted" style="font-size: 0.65rem;">${escapeHtml(e.category || 'General')}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        list.innerHTML = `<div class="text-muted small text-center py-2">Ready to record entries.</div>`;
+    }
+}
+
+async function submitQuickWorkDiary(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnSubmitDiary');
+    btn.disabled = true;
+
+    const payload = {
+        activity_title: document.getElementById('diaryActivityTitle').value.trim(),
+        category: document.getElementById('diaryCategory').value,
+        time_spent_hours: parseFloat(document.getElementById('diaryHours').value) || 1.0,
+        work_description: document.getElementById('diaryDescription').value.trim()
+    };
+
+    try {
+        const res = await fetch('/api/work-diary/entries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to log diary entry');
+
+        showToast('Work diary entry recorded successfully!', 'success');
+        document.getElementById('diaryActivityTitle').value = '';
+        document.getElementById('diaryDescription').value = '';
+        await loadTodayDiaryEntries();
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function openApplyLeaveModal() {
+    if (!applyLeaveModalInstance) {
+        applyLeaveModalInstance = new bootstrap.Modal(document.getElementById('applyLeaveModal'));
+    }
+    document.getElementById('applyLeaveForm').reset();
+    document.getElementById('leaveStartDate').value = "{{ today_date }}";
+    document.getElementById('leaveEndDate').value = "{{ today_date }}";
+    document.getElementById('leaveHalfDayCheck').checked = false;
+    validateLeaveDates();
+    applyLeaveModalInstance.show();
+}
+
+function validateLeaveDates() {
+    const s = document.getElementById('leaveStartDate').value;
+    const e = document.getElementById('leaveEndDate').value;
+    const isHalf = document.getElementById('leaveHalfDayCheck').checked;
+    const display = document.getElementById('leaveDaysCalculation');
+    if (!s || !e) return;
+    const sd = new Date(s);
+    const ed = new Date(e);
+    if (ed < sd) {
+        display.innerHTML = `<span class="text-danger">End date cannot be prior to start date</span>`;
+        return;
+    }
+    const days = Math.round((ed - sd) / (1000 * 60 * 60 * 24)) + 1;
+    const count = isHalf ? 0.5 : days;
+    display.innerHTML = `Duration: <strong>${count} day${count !== 1 ? 's' : ''}</strong>`;
+}
+
+async function submitLeaveApplication(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnSubmitLeave');
+    btn.disabled = true;
+
+    const payload = {
+        leave_type: document.getElementById('leaveTypeSelect').value,
+        start_date: document.getElementById('leaveStartDate').value,
+        end_date: document.getElementById('leaveEndDate').value,
+        is_half_day: document.getElementById('leaveHalfDayCheck').checked,
+        reason: document.getElementById('leaveReason').value
+    };
+
+    try {
+        const res = await fetch('/api/leaves/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to submit leave application');
+
+        showToast('Leave application submitted successfully!', 'success');
+        if (applyLeaveModalInstance) applyLeaveModalInstance.hide();
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function openQuickSalaryModal() {
+    if (!quickSalaryModalInstance) {
+        quickSalaryModalInstance = new bootstrap.Modal(document.getElementById('quickSalaryModal'));
+    }
+    quickSalaryModalInstance.show();
+}
+
+async function openQuickHolidaysModal() {
+    if (!quickHolidaysModalInstance) {
+        quickHolidaysModalInstance = new bootstrap.Modal(document.getElementById('quickHolidaysModal'));
+    }
+    quickHolidaysModalInstance.show();
+
+    const list = document.getElementById('quickHolidaysList');
+    try {
+        const res = await fetch('/api/holidays');
+        if (!res.ok) throw new Error('Failed to load holidays');
+        const data = await res.json();
+        const holidays = (data.upcoming && data.upcoming.length > 0) ? data.upcoming : (data.holidays || []);
+
+        if (holidays.length === 0) {
+            list.innerHTML = '<div class="text-muted small text-center py-3">No upcoming declared holidays.</div>';
+            return;
+        }
+
+        list.innerHTML = holidays.slice(0, 5).map(h => `
+            <div class="p-2 border rounded d-flex justify-content-between align-items-center bg-card-surface">
+                <div>
+                    <div class="fw-semibold small text-headline">${escapeHtml(h.name)}</div>
+                    <div class="text-muted small font-mono" style="font-size: 0.72rem;">${h.day_name || ''} &bull; ${h.category || 'Gazetted'}</div>
+                </div>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono">${h.date}</span>
+            </div>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = `<div class="text-danger small text-center py-3">${e.message}</div>`;
+    }
+}
+
+function openQuickSupportModal() {
+    if (!quickSupportModalInstance) {
+        quickSupportModalInstance = new bootstrap.Modal(document.getElementById('quickSupportModal'));
+    }
+    document.getElementById('quickSupportForm').reset();
+    quickSupportModalInstance.show();
+}
+
+async function submitQuickSupport(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnSubmitSupport');
+    btn.disabled = true;
+
+    const payload = {
+        title: document.getElementById('supportSubject').value,
+        category: document.getElementById('supportCategory').value,
+        description: document.getElementById('supportDescription').value
+    };
+
+    try {
+        const res = await fetch('/api/complaints', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to submit workplace inquiry');
+
+        showToast('Workplace support inquiry submitted to HR!', 'success');
+        if (quickSupportModalInstance) quickSupportModalInstance.hide();
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initMooneyCharts();
+    loadTodayAttendance();
+    loadMonthlyAttendanceSummary();
+    loadPersonalLeaveBalances();
+    loadEmployeeTasks();
+    loadDashboardHolidays();
+    loadDashboardBirthdays();
+    loadEmployeeSummaryCharts();
+    loadEmpTiimiTimeline();
+    loadEmpOvertime();
+
+    // Center live clock updater
+    const updateCenterClock = () => {
+        const el = document.getElementById('centerLiveClock');
+        if (el) {
+            const now = new Date();
+            el.textContent = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+    };
+    updateCenterClock();
+    setInterval(updateCenterClock, 1000);
+
+    // Auto-refresh data from server every 25 seconds
+    setInterval(() => {
+        loadTodayAttendance(true);
+        loadMonthlyAttendanceSummary();
+        loadEmployeeTasks();
+        loadDashboardHolidays();
+        loadDashboardBirthdays();
+    }, 25000);
+});
+
+async function loadMonthlyAttendanceSummary() {
+    try {
+        const now = new Date();
+        const res = await fetch(`/api/attendance/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const s = data.summary || {};
+        const pEl = document.getElementById('ovPresentDays');
+        if (pEl) pEl.textContent = s.present_count ?? 0;
+        const lEl = document.getElementById('ovLateDays');
+        if (lEl) lEl.textContent = s.late_count ?? 0;
+        const aEl = document.getElementById('ovAbsentDays');
+        if (aEl) aEl.textContent = s.absent_count ?? 0;
+        const lvEl = document.getElementById('ovLeaveDays');
+        if (lvEl) lvEl.textContent = s.leave_count ?? 0;
+        const hEl = document.getElementById('ovHolidayDays');
+        if (hEl) hEl.textContent = s.holiday_count ?? 0;
+        const dEl = document.getElementById('ovTotalDuration');
+        if (dEl) dEl.textContent = s.total_working_duration || '0h 0m';
+    } catch (e) {
+        console.warn('Could not load monthly summary:', e);
+    }
+}
+
+function initMooneyCharts() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 43, 128, 0.05)';
+
+    // Efficiency Donut Gauge (Mooney "Efficiency" style)
+    const donutCtx = document.getElementById('efficiencyDonutChart');
+    if (donutCtx) {
+        new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['On-Time Attendance', 'Delay / Grace'],
+                datasets: [{
+                    data: [94.8, 5.2],
+                    backgroundColor: ['#0056d6', '#f43f5e'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '78%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => ` ${ctx.label}: ${ctx.parsed}%`
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+async function loadEmployeeSummaryCharts() {
+    try {
+        const res = await fetch('/api/analytics/overview?period=this_month');
+        if (!res.ok) return;
+        const json = await res.json();
+        const data = json.data || {};
+        const colors = getChartThemeColors();
+
+        const att = data.attendance_breakdown || { labels: ['On-Time', 'Late', 'Leaves'], values: [1, 0, 0] };
+        new Chart(document.getElementById('empAttendanceChart'), {
+            type: 'doughnut',
+            data: {
+                labels: att.labels,
+                datasets: [{ data: att.values, backgroundColor: ['#10b981', '#f59e0b', '#64748b'] }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: colors.textColor, boxWidth: 12 } } }
+            }
+        });
+
+        const tasks = data.task_status_distribution || { labels: ['Done', 'Progress', 'Pending'], values: [0, 0, 0] };
+        new Chart(document.getElementById('empTasksChart'), {
+            type: 'bar',
+            data: {
+                labels: tasks.labels,
+                datasets: [{ label: 'Tasks', data: tasks.values, backgroundColor: ['#10b981', '#00c2ff', '#f59e0b'] }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: colors.textColor, precision: 0 }, grid: { color: colors.gridColor } },
+                    x: { ticks: { color: colors.textColor }, grid: { display: false } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        const skills = data.skill_category_distribution || { labels: ['Technical'], values: [1] };
+        new Chart(document.getElementById('empSkillsChart'), {
+            type: 'polarArea',
+            data: {
+                labels: skills.labels,
+                datasets: [{ data: skills.values, backgroundColor: colors.palette }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: colors.textColor, boxWidth: 10 } } }
+            }
+        });
+    } catch (e) {
+        // Safe fallback
+    }
+}
+
+async function loadTodayAttendance(isBackground = false) {
+    try {
+        const res = await fetch('/api/attendance/today');
+        const data = await res.json();
+        const att = data.attendance;
+        if (!att) {
+            currentAttendanceData = null;
+            const statFirst = document.getElementById('statFirstLogin');
+            if (statFirst) statFirst.textContent = 'Not Marked';
+            const shiftCardFirst = document.getElementById('shiftCardFirstLogin');
+            if (shiftCardFirst) shiftCardFirst.textContent = '--:--';
+            const shiftCardLate = document.getElementById('shiftCardLateBadge');
+            if (shiftCardLate) shiftCardLate.innerHTML = '<span class="text-muted small">Awaiting check-in</span>';
+            const cardShiftText = document.getElementById('cardShiftHoursText');
+            if (cardShiftText) cardShiftText.textContent = '00h 00m 00s';
+            const statBreak = document.getElementById('statBreakDuration');
+            if (statBreak) statBreak.textContent = '00h 00m 00s';
+            const statLogout = document.getElementById('statFinalLogout');
+            if (statLogout) statLogout.innerHTML = '<span class="text-danger">Pending</span>';
+            const statLogoutFooter = document.getElementById('statFinalLogoutFooter');
+            if (statLogoutFooter) statLogoutFooter.innerHTML = '<i class="bi bi-hourglass-split"></i> Awaiting check-in (6:00 PM)';
+            const shiftCardPunch = document.getElementById('shiftCardPunchBtn');
+            const shiftCardText = document.getElementById('shiftCardPunchText');
+            if (shiftCardPunch) {
+                shiftCardPunch.className = 'btn btn-sm btn-primary rounded-pill px-3 shadow-sm card-punch-btn d-inline-flex align-items-center gap-1';
+                if (shiftCardText) shiftCardText.textContent = 'Clock In';
+            }
+            const shiftCardBreak = document.getElementById('shiftCardBreakBtn');
+            if (shiftCardBreak) shiftCardBreak.style.display = 'none';
+            const pill = document.getElementById('dutyStatusPill');
+            const dot = document.getElementById('dutyPulseDot');
+            const text = document.getElementById('dutyStatusText');
+            if (pill) pill.className = 'duty-status-pill inactive';
+            if (dot) dot.style.display = 'none';
+            if (text) text.textContent = 'Not Clocked In';
+            const badgeEl = document.getElementById('statLateBadge');
+            if (badgeEl) badgeEl.innerHTML = '<span class="text-muted">Awaiting check-in</span>';
+            const timeline = document.getElementById('todaySessionsTimeline');
+            if (timeline) timeline.innerHTML = '<div class="text-muted small py-2">No attendance sessions recorded yet today.</div>';
+            return;
+        }
+
+        currentAttendanceData = att;
+
+        // Populate metrics
+        const firstLoginStr = att.first_login ? new Date(att.first_login).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : 'Not Marked';
+        const statFirst = document.getElementById('statFirstLogin');
+        if (statFirst) statFirst.textContent = firstLoginStr;
+        const shiftCardFirst = document.getElementById('shiftCardFirstLogin');
+        if (shiftCardFirst) shiftCardFirst.textContent = firstLoginStr;
+        
+        // Live Pending Tab: Calculate and fit Remaining Login Hours & Cutoff status
+        updatePendingTabCountdown(att);
+
+        // Update Duty Status Pill & Shift Attendance Card Buttons
+        const pill = document.getElementById('dutyStatusPill');
+        const dot = document.getElementById('dutyPulseDot');
+        const text = document.getElementById('dutyStatusText');
+        const cardPunchBtn = document.getElementById('shiftCardPunchBtn');
+        const cardPunchText = document.getElementById('shiftCardPunchText');
+        const cardBreakBtn = document.getElementById('shiftCardBreakBtn');
+        const openSession = att.sessions ? att.sessions.find(s => s.is_open) : null;
+        const hasOpenSession = Boolean(openSession || data.has_open_session || (att && att.has_open_session));
+
+        if (hasOpenSession) {
+            if (pill) pill.className = 'duty-status-pill active';
+            if (dot) dot.style.display = 'inline-block';
+            if (text) text.innerHTML = '<span class="pulse-dot-inline me-1"></span>Active Session (Live)';
+            if (cardPunchBtn) {
+                cardPunchBtn.className = 'btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm card-punch-btn d-inline-flex align-items-center gap-1';
+                if (cardPunchText) cardPunchText.textContent = 'Clock Out';
+            }
+            if (cardBreakBtn) {
+                cardBreakBtn.style.display = 'inline-flex';
+                if (att.is_on_break) {
+                    cardBreakBtn.className = 'btn btn-sm btn-warning rounded-pill px-3 shadow-sm break-control-btn d-inline-flex align-items-center gap-1 text-dark';
+                    cardBreakBtn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Resume Work';
+                } else {
+                    cardBreakBtn.className = 'btn btn-sm btn-outline-warning rounded-pill px-3 break-control-btn d-inline-flex align-items-center gap-1';
+                    cardBreakBtn.innerHTML = '<i class="bi bi-cup-hot me-1"></i> Take Break';
+                }
+            }
+        } else if (att.first_login) {
+            if (pill) pill.className = 'duty-status-pill inactive';
+            if (dot) dot.style.display = 'none';
+            if (text) text.textContent = 'Clocked Out';
+            if (cardPunchBtn) {
+                cardPunchBtn.className = 'btn btn-sm btn-primary rounded-pill px-3 shadow-sm card-punch-btn d-inline-flex align-items-center gap-1';
+                if (cardPunchText) cardPunchText.textContent = 'Clock In';
+            }
+            if (cardBreakBtn) cardBreakBtn.style.display = 'none';
+        } else {
+            if (pill) pill.className = 'duty-status-pill inactive';
+            if (dot) dot.style.display = 'none';
+            if (text) text.textContent = 'Not Clocked In';
+            if (cardPunchBtn) {
+                cardPunchBtn.className = 'btn btn-sm btn-primary rounded-pill px-3 shadow-sm card-punch-btn d-inline-flex align-items-center gap-1';
+                if (cardPunchText) cardPunchText.textContent = 'Clock In';
+            }
+            if (cardBreakBtn) cardBreakBtn.style.display = 'none';
+        }
+
+        const cardShiftText = document.getElementById('cardShiftHoursText');
+        if (cardShiftText) {
+            if (hasOpenSession) {
+                cardShiftText.textContent = att.active_working_display || att.official_working_duration_display || 'Active';
+            } else if (att.first_login) {
+                cardShiftText.textContent = att.active_working_display || att.official_working_duration_display || '0h 0m';
+            } else {
+                cardShiftText.textContent = '0h 0m';
+            }
+        }
+
+        // Late status badge
+        const badgeEl = document.getElementById('statLateBadge');
+        const shiftCardLateBadge = document.getElementById('shiftCardLateBadge');
+        if (att.late_arrival_status === 'ON_TIME') {
+            if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-on-time"><i class="bi bi-check2 me-1"></i>On Time</span>';
+            if (shiftCardLateBadge) shiftCardLateBadge.innerHTML = '<span class="badge badge-on-time"><i class="bi bi-check2 me-1"></i>On Time</span>';
+        } else if (att.late_arrival_status === 'LATE') {
+            if (badgeEl) badgeEl.innerHTML = `<span class="badge badge-late"><i class="bi bi-clock-history me-1"></i>Late by ${att.delay_minutes}m</span>`;
+            if (shiftCardLateBadge) shiftCardLateBadge.innerHTML = `<span class="badge badge-late"><i class="bi bi-clock-history me-1"></i>Late by ${att.delay_minutes}m</span>`;
+        } else {
+            if (badgeEl) badgeEl.innerHTML = '<span class="text-muted">Awaiting check-in</span>';
+            if (shiftCardLateBadge) shiftCardLateBadge.innerHTML = '<span class="text-muted small">Awaiting check-in</span>';
+        }
+
+        // Session guidance note
+        const guidanceEl = document.getElementById('shiftControlGuidance');
+        if (guidanceEl) {
+            if (hasOpenSession) {
+                if (att.is_on_break) {
+                    guidanceEl.innerHTML = '<span class="text-warning fw-medium"><i class="bi bi-cup-hot-fill me-1"></i>Currently on Break</span>';
+                } else {
+                    guidanceEl.innerHTML = '<span class="text-success fw-medium"><span class="pulse-dot-inline me-1"></span>Shift Active &amp; Logging</span>';
+                }
+            } else if (att.first_login) {
+                guidanceEl.innerHTML = '<span class="text-secondary"><i class="bi bi-check-circle me-1"></i>Shift Completed for Today</span>';
+            } else {
+                guidanceEl.innerHTML = '<span class="text-muted"><i class="bi bi-shield-check text-success me-1"></i>Standard 8.0h shift</span>';
+            }
+        }
+
+        // Update Granular Shift Half-Split Indicators (Morning, Break, Afternoon)
+        if (att && att.shift_split) {
+            const sp = att.shift_split;
+            if (sp.morning) {
+                const elMStatus = document.getElementById('splitMorningStatus');
+                const elMBar = document.getElementById('splitMorningProgressBar');
+                const elMLog = document.getElementById('splitMorningLogged');
+                if (elMStatus) elMStatus.textContent = sp.morning.status || 'Active';
+                if (elMBar) elMBar.style.width = `${sp.morning.progress_pct || 0}%`;
+                if (elMLog) elMLog.textContent = sp.morning.logged_display || '00h 00m';
+            }
+            if (sp.break) {
+                const elBStatus = document.getElementById('splitBreakStatus');
+                const elBBar = document.getElementById('splitBreakProgressBar');
+                const elBLog = document.getElementById('splitBreakLogged');
+                if (elBStatus) elBStatus.textContent = sp.break.status || 'Pending';
+                if (elBBar) elBBar.style.width = `${sp.break.progress_pct || 0}%`;
+                if (elBLog) elBLog.textContent = sp.break.logged_display || '00h 00m';
+            }
+            if (sp.afternoon) {
+                const elAStatus = document.getElementById('splitAfternoonStatus');
+                const elABar = document.getElementById('splitAfternoonProgressBar');
+                const elALog = document.getElementById('splitAfternoonLogged');
+                if (elAStatus) elAStatus.textContent = sp.afternoon.status || 'Upcoming';
+                if (elABar) elABar.style.width = `${sp.afternoon.progress_pct || 0}%`;
+                if (elALog) elALog.textContent = sp.afternoon.logged_display || '00h 00m';
+            }
+        }
+
+        // Render Sessions Timeline
+        renderSessionsTimeline(att.sessions || []);
+
+        // Start / maintain live 1-second ticking timer if session is currently active
+        setupLiveAttendanceTimer(att, openSession);
+
+    } catch (e) {
+        console.error('Error loading attendance:', e);
+    }
+}
+
+function updatePendingTabCountdown(att) {
+    const finalLogoutEl = document.getElementById('statFinalLogout');
+    const badgeEl = document.getElementById('statRemainingHoursBadge');
+    const badgeValEl = document.getElementById('statRemainingHoursVal');
+    const footerEl = document.getElementById('statFinalLogoutFooter');
+    const iconEl = document.getElementById('statPendingIcon');
+    if (!finalLogoutEl) return;
+
+    // If final qualifying logout was already completed (clocked out >= 6:00 PM)
+    if (att && att.final_qualifying_logout) {
+        finalLogoutEl.textContent = new Date(att.final_qualifying_logout).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+        if (badgeEl) {
+            badgeEl.style.display = 'inline-flex';
+            badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle font-mono';
+            badgeValEl.textContent = 'Shift Met';
+        }
+        if (footerEl) footerEl.innerHTML = '<span class="text-success fw-medium"><i class="bi bi-check-circle me-1"></i>Shift qualified (8h+ requirement met)</span>';
+        if (iconEl) {
+            iconEl.className = 'bi bi-check-circle metric-icon-subtle text-success';
+        }
+        return;
+    }
+
+    // Shift timings in local IST: 10:00 AM - 6:00 PM (18:00). Cutoff: 7:00 PM (19:00). Intimation: 6:15 PM (18:15).
+    const now = new Date();
+    // Convert to IST
+    const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear(), m = istDate.getMonth(), d = istDate.getDate();
+
+    const targetQualify = new Date(y, m, d, 18, 0, 0); // 6:00 PM
+    const targetIntimation = new Date(y, m, d, 18, 15, 0); // 6:15 PM (45m prior to 7pm)
+    const targetCutoff = new Date(y, m, d, 19, 0, 0); // 7:00 PM Cutoff
+
+    const secToQualify = Math.floor((targetQualify - istDate) / 1000);
+    const secToCutoff = Math.floor((targetCutoff - istDate) / 1000);
+
+    if (secToQualify > 0) {
+        // Shift in progress (before 6:00 PM)
+        const hrs = Math.floor(secToQualify / 3600);
+        const mins = Math.floor((secToQualify % 3600) / 60);
+        const remStr = `${hrs}h ${mins}m left`;
+
+        finalLogoutEl.textContent = 'Pending';
+        if (badgeEl) {
+            badgeEl.style.display = 'inline-flex';
+            badgeEl.className = 'pending-tab-badge';
+            badgeValEl.textContent = remStr;
+        }
+        if (footerEl) {
+            footerEl.innerHTML = `<span class="text-primary fw-semibold"><i class="bi bi-hourglass-split me-1"></i><strong>${remStr}</strong> login hrs left to qualify (6:00 PM)</span>`;
+        }
+        if (iconEl) iconEl.className = 'bi bi-hourglass-split metric-icon-subtle text-primary pending-hourglass-spin';
+    } else if (secToCutoff > 0) {
+        // Shift >= 6:00 PM but before 7:00 PM Cutoff
+        const minsToCutoff = Math.max(1, Math.floor(secToCutoff / 60));
+        
+        if (istDate >= targetIntimation) {
+            // Within 45 minutes of 7:00 PM cutoff (between 6:15 PM and 7:00 PM)
+            finalLogoutEl.innerHTML = '<span class="text-warning fw-bold">Pending Logout</span>';
+            if (badgeEl) {
+                badgeEl.style.display = 'inline-flex';
+                badgeEl.className = 'badge bg-warning-subtle text-warning border border-warning-subtle font-mono';
+                badgeValEl.textContent = `${minsToCutoff}m to cutoff`;
+            }
+            if (footerEl) {
+                footerEl.innerHTML = `<span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>⚠️ Cutoff at 7:00 PM (${minsToCutoff}m remaining). Please clock out!</span>`;
+            }
+            if (iconEl) iconEl.className = 'bi bi-exclamation-circle metric-icon-subtle text-danger';
+
+            // Show global cutoff banner if present and session is active & not dismissed
+            const banner = document.getElementById('globalCutoffIntimationBar');
+            if (banner) {
+                const todayStr = (typeof getIstDateString === 'function') ? getIstDateString() : `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isDismissed = localStorage.getItem(`aisamrat_cutoff_dismissed_${todayStr}`) === 'true';
+                const hasSession = Boolean(att && att.has_open_session);
+                if (!isDismissed && hasSession) {
+                    banner.style.display = 'block';
+                    const badge = document.getElementById('cutoffCountdownBadge');
+                    if (badge) badge.textContent = `${minsToCutoff}m left`;
+                } else {
+                    banner.style.display = 'none';
+                }
+            }
+        } else {
+            // Between 6:00 PM and 6:15 PM: shift qualified, eligible to clock out
+            finalLogoutEl.innerHTML = '<span class="text-success fw-bold">Shift Qualified</span>';
+            if (badgeEl) {
+                badgeEl.style.display = 'inline-flex';
+                badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle font-mono';
+                badgeValEl.textContent = 'Eligible to Logout';
+            }
+            if (footerEl) {
+                footerEl.innerHTML = `<span class="text-success"><i class="bi bi-check2-circle me-1"></i>6:00 PM reached &bull; Cutoff at 7:00 PM (${minsToCutoff}m left)</span>`;
+            }
+            if (iconEl) iconEl.className = 'bi bi-door-open metric-icon-subtle text-success';
+        }
+    } else {
+        // After 7:00 PM Cutoff
+        finalLogoutEl.innerHTML = '<span class="text-danger fw-bold">Cutoff Passed</span>';
+        if (badgeEl) {
+            badgeEl.style.display = 'inline-flex';
+            badgeEl.className = 'badge bg-danger-subtle text-danger border border-danger-subtle font-mono';
+            badgeValEl.textContent = '7:00 PM Passed';
+        }
+        if (footerEl) {
+            footerEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>7:00 PM daily out cutoff has elapsed.</span>';
+        }
+        if (iconEl) iconEl.className = 'bi bi-x-circle metric-icon-subtle text-danger';
+    }
+}
+
+function setupLiveAttendanceTimer(att, openSession) {
+    if (liveAttendanceInterval) {
+        clearInterval(liveAttendanceInterval);
+        liveAttendanceInterval = null;
+    }
+
+    const officialSpanEl = document.getElementById('statOfficialSpan');
+    const breakDurationEl = document.getElementById('statBreakDuration');
+    const activeDurationEl = document.getElementById('statActiveDuration');
+
+    if (!openSession) {
+        // Session closed: show static final durations
+        if (officialSpanEl) officialSpanEl.textContent = att.elapsed_time_display || att.official_working_duration_display || '00h 00m 00s';
+        if (breakDurationEl) breakDurationEl.textContent = att.total_break_display || '00h 00m 00s';
+        if (activeDurationEl) activeDurationEl.textContent = att.active_working_display || att.total_active_session_display || '00h 00m 00s';
+        const cardShiftText = document.getElementById('cardShiftHoursText');
+        if (cardShiftText) cardShiftText.textContent = att.active_working_display || att.total_active_session_display || '00h 00m 00s';
+        return;
+    }
+
+    // Active session open: calculate live ticks every 1 second
+    const firstLoginMs = att.first_login ? new Date(att.first_login).getTime() : new Date(openSession.login_time).getTime();
+
+    // Sum completed closed breaks
+    const closedBreaksSec = (att.breaks || [])
+        .filter(b => !b.is_open && b.duration_seconds)
+        .reduce((acc, b) => acc + b.duration_seconds, 0);
+
+    const openBreak = (att.breaks || []).find(b => b.is_open);
+    const openBreakStartMs = openBreak ? new Date(openBreak.start).getTime() : 0;
+
+    const tick = () => {
+        const nowMs = Date.now();
+        const totalElapsedSec = Math.max(0, Math.floor((nowMs - firstLoginMs) / 1000));
+        let currentBreakSec = 0;
+        if (openBreak && openBreakStartMs) {
+            currentBreakSec = Math.max(0, Math.floor((nowMs - openBreakStartMs) / 1000));
+        }
+        const totalBreakSec = closedBreaksSec + currentBreakSec;
+        const totalActiveSec = Math.max(0, totalElapsedSec - totalBreakSec);
+
+        const cardShiftText = document.getElementById('cardShiftHoursText');
+        if (cardShiftText) {
+            cardShiftText.textContent = formatLiveTimer(totalActiveSec);
+        }
+
+        if (officialSpanEl) {
+            officialSpanEl.innerHTML = `
+                <div class="d-flex align-items-center gap-1">
+                    <span class="font-mono text-dark fw-bold">${formatLiveTimer(totalElapsedSec)}</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-1 py-0 font-mono" style="font-size: 0.65rem;">LIVE</span>
+                </div>
+            `;
+        }
+
+        if (breakDurationEl) {
+            breakDurationEl.innerHTML = `${formatLiveTimer(totalBreakSec)}${openBreak ? ' <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1 font-sans" style="font-size: 0.68rem;"><span class="pulse-dot-inline me-1" style="background:#f59e0b;"></span>PAUSED</span>' : ''}`;
+        }
+
+        if (activeDurationEl) {
+            activeDurationEl.innerHTML = `
+                <div class="d-flex align-items-center gap-1">
+                    <span class="font-mono text-success fw-bold">${formatLiveTimer(totalActiveSec)}</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0 font-mono" style="font-size: 0.65rem;">
+                        <span class="pulse-dot-inline me-1"></span>ACTIVE
+                    </span>
+                </div>
+            `;
+        }
+
+        // Update the live session duration badge in the timeline
+        const liveBadge = document.getElementById(`session_dur_${openSession.session_id}`);
+        if (liveBadge) {
+            const currentSessionSec = Math.max(0, Math.floor((nowMs - new Date(openSession.login_time).getTime()) / 1000));
+            liveBadge.innerHTML = `<span class="pulse-dot-inline me-1"></span>${formatLiveTimer(currentSessionSec)}`;
+        }
+
+        // Keep Pending Tab countdown ticking live every second
+        updatePendingTabCountdown(att);
+    };
+
+    tick();
+    liveAttendanceInterval = setInterval(tick, 1000);
+}
+
+function renderSessionsTimeline(sessions) {
+    const timelineEl = document.getElementById('sessionsTimeline');
+    if (!timelineEl) return;
+
+    if (sessions && sessions.length > 0) {
+        timelineEl.innerHTML = sessions.map((s, idx) => {
+            const inTime = s.login_time ? new Date(s.login_time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A';
+            const outTime = s.logout_time ? new Date(s.logout_time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : '<span class="text-success fw-semibold"><span class="pulse-dot-inline me-1"></span>Active Now</span>';
+
+            const durBadgeHtml = s.is_open
+                ? `<span class="badge bg-success-subtle text-success border border-success-subtle font-mono" id="session_dur_${s.session_id}"><span class="pulse-dot-inline me-1"></span>${s.duration_display || 'Active'}</span>`
+                : `<span class="badge bg-light text-secondary border font-mono">${s.duration_display}</span>`;
+
+            return `
+                <div class="timeline-item">
+                    <div class="timeline-dot ${s.is_open ? 'bg-success' : 'bg-primary'}"></div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold text-dark">Session #${idx + 1} ${s.is_open ? '<span class="badge bg-success text-white ms-1" style="font-size: 0.65rem;">In Progress</span>' : ''}</span>
+                        ${durBadgeHtml}
+                    </div>
+                    <div class="text-muted small mt-1 font-mono">
+                        In: ${inTime} &bull; Out: ${outTime}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        timelineEl.innerHTML = '<div class="text-muted small">No active login events recorded today. Click "Punch In" to begin work.</div>';
+    }
+}
+
+async function loadEmployeeTasks() {
+    if ("{{ user.role }}" === "hr") return;
+    try {
+        const res = await fetch('/api/projects');
+        const data = await res.json();
+        const listEl = document.getElementById('employeeTasksList');
+        if (!listEl) return;
+
+        if (data.projects && data.projects.length > 0) {
+            const todayStr = new Date().toISOString().substring(0, 10);
+            listEl.innerHTML = data.projects.slice(0, 4).map(p => {
+                let urgencyBadge = '';
+                if (p.due_date) {
+                    if (p.due_date < todayStr) {
+                        urgencyBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" style="font-size: 0.68rem;"><i class="bi bi-exclamation-circle me-1"></i>Overdue</span>';
+                    } else if (p.due_date === todayStr) {
+                        urgencyBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1" style="font-size: 0.68rem;"><i class="bi bi-clock me-1"></i>Due Today</span>';
+                    }
+                }
+
+                return `
+                    <div class="task-item-card p-2 px-3 border rounded-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-semibold text-headline text-truncate" style="font-size: 0.85rem; max-width: 260px;">${escapeHtml(p.title)}</span>
+                            <div>
+                                <span class="badge ${p.status === 'Completed' ? 'badge-present' : 'badge-on-time'}">${p.status}</span>
+                                ${urgencyBadge}
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar ${p.progress_percentage === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${p.progress_percentage}%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small mt-1" style="font-size: 0.75rem;">
+                            <span>Weighted Progress</span>
+                            <span class="font-mono fw-semibold text-headline">${p.progress_percentage}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            listEl.innerHTML = '<div class="text-muted small">No active projects currently assigned.</div>';
+        }
+    } catch (e) {
+        console.error('Error loading employee tasks:', e);
+    }
+}
+
+async function loadDashboardHolidays() {
+    try {
+        const res = await fetch('/api/holidays');
+        const data = await res.json();
+        const container = document.getElementById('dashUpcomingHolidays');
+        if (!container) return;
+
+        const upcoming = data.upcoming || [];
+        if (upcoming.length === 0) {
+            container.innerHTML = '<div class="text-muted small py-2">No upcoming holidays scheduled for this cycle.</div>';
+            return;
+        }
+
+        container.innerHTML = upcoming.slice(0, 3).map(h => {
+            const dt = new Date(h.date + 'T00:00:00');
+            const dateStr = dt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', weekday: 'short' });
+            return `
+                <div class="holiday-item-card p-2 px-3 border rounded-3 d-flex justify-content-between align-items-center">
+                    <div class="overflow-hidden me-2">
+                        <div class="fw-semibold text-headline text-truncate" style="font-size: 0.82rem;">${escapeHtml(h.name)}</div>
+                        <span class="text-muted font-mono" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1 text-primary"></i>${dateStr}</span>
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary border font-mono flex-shrink-0" style="font-size: 0.65rem;">${h.type || 'Public'}</span>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Error loading dashboard holidays:', e);
+    }
+}
+
+async function loadDashboardBirthdays() {
+    try {
+        const res = await fetch('/api/birthdays/monthly');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // 1. Check if logged-in user celebrates birthday today
+        const currentUserId = "{{ user.employee_id }}";
+        const isCelebrantToday = (data.today_birthdays || []).some(b => b.employee_id === currentUserId);
+        const banner = document.getElementById('userBirthdayBanner');
+        if (banner) {
+            banner.style.display = isCelebrantToday ? 'block' : 'none';
+        }
+
+        // 2. Render upcoming birthdays list
+        const container = document.getElementById('dashUpcomingBirthdays');
+        if (!container) return;
+
+        const upcoming = data.upcoming_birthdays || [];
+        if (upcoming.length === 0) {
+            container.innerHTML = '<div class="text-muted small py-2">No more birthdays remaining this month.</div>';
+            return;
+        }
+
+        container.innerHTML = upcoming.slice(0, 3).map(b => {
+            const badgeClass = b.is_today ? 'bg-warning text-dark fw-bold' : 'bg-secondary-subtle text-secondary border font-mono';
+            const badgeText = b.is_today ? 'Today!' : (b.days_until === 1 ? 'Tomorrow' : `in ${b.days_until}d`);
+            return `
+                <div class="birthday-item-card p-2 px-3 border rounded-3 d-flex align-items-center justify-content-between">
+                    <div class="overflow-hidden me-2">
+                        <div class="fw-semibold text-headline text-truncate" style="font-size: 0.82rem;">${escapeHtml(b.full_name)}</div>
+                        <span class="text-muted font-mono" style="font-size: 0.7rem;"><i class="bi bi-cake2 me-1 text-warning"></i>${b.day} ${b.month_name.slice(0, 3)} &bull; ${escapeHtml(b.department || 'Office')}</span>
+                    </div>
+                    <span class="badge ${badgeClass} flex-shrink-0" style="font-size: 0.65rem;">${badgeText}</span>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Error loading dashboard birthdays:', e);
+    }
+}
+
+// Shortcut Action Bar & Megamenu Flyout Window Toggling
+function toggleShortcutFlyout(event, btn) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const wrapper = btn.closest('.shortcut-hover-wrapper');
+    if (!wrapper) return;
+    const isCurrentlyActive = wrapper.classList.contains('active-flyout');
+
+    // Close all other flyouts
+    document.querySelectorAll('.shortcut-hover-wrapper.active-flyout').forEach(el => {
+        if (el !== wrapper) el.classList.remove('active-flyout');
+    });
+
+    if (isCurrentlyActive) {
+        wrapper.classList.remove('active-flyout');
+    } else {
+        wrapper.classList.add('active-flyout');
+    }
+}
+
+// Global dismiss for flyouts on outside click or Escape
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.shortcut-hover-wrapper')) {
+        document.querySelectorAll('.shortcut-hover-wrapper.active-flyout').forEach(el => {
+            el.classList.remove('active-flyout');
+        });
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.shortcut-hover-wrapper.active-flyout').forEach(el => {
+            el.classList.remove('active-flyout');
+        });
+    }
+});
+
+async function loadPersonalLeaveBalances() {
+    try {
+        const res = await fetch('/api/leaves/balances');
+        if (!res.ok) return;
+        const data = await res.json();
+        const b = data.balances || {};
+        if (b['Casual Leave']) {
+            const clAvail = document.getElementById('balCLAvail');
+            const clTotal = document.getElementById('balCLTotal');
+            if (clAvail) clAvail.textContent = parseFloat(b['Casual Leave'].available || 0).toFixed(1);
+            if (clTotal) clTotal.textContent = parseFloat(b['Casual Leave'].total || 12).toFixed(1);
+        }
+        if (b['Sick Leave']) {
+            const slAvail = document.getElementById('balSLAvail');
+            const slTotal = document.getElementById('balSLTotal');
+            if (slAvail) slAvail.textContent = parseFloat(b['Sick Leave'].available || 0).toFixed(1);
+            if (slTotal) slTotal.textContent = parseFloat(b['Sick Leave'].total || 10).toFixed(1);
+        }
+        if (b['Earned Leave']) {
+            const elAvail = document.getElementById('balELAvail');
+            const elTotal = document.getElementById('balELTotal');
+            if (elAvail) elAvail.textContent = parseFloat(b['Earned Leave'].available || 0).toFixed(1);
+            if (elTotal) elTotal.textContent = parseFloat(b['Earned Leave'].total || 15).toFixed(1);
+        }
+
+        // Progressive Leave Policies population
+        const wfaKey = 'Work from Anywhere (WFA) & Flexible Leave';
+        if (b[wfaKey]) {
+            const el = document.getElementById('balWFAAvail');
+            const tot = document.getElementById('balWFATotal');
+            if (el) el.textContent = parseFloat(b[wfaKey].available ?? 12).toFixed(1);
+            if (tot) tot.textContent = parseFloat(b[wfaKey].total ?? 12).toFixed(1);
+        }
+        if (b['Mental Health Leave']) {
+            const el = document.getElementById('balMHLAvail');
+            const tot = document.getElementById('balMHLTotal');
+            if (el) el.textContent = parseFloat(b['Mental Health Leave'].available ?? 5).toFixed(1);
+            if (tot) tot.textContent = parseFloat(b['Mental Health Leave'].total ?? 5).toFixed(1);
+        }
+        if (b['Wellness Days']) {
+            const el = document.getElementById('balWNDAvail');
+            const tot = document.getElementById('balWNDTotal');
+            if (el) el.textContent = parseFloat(b['Wellness Days'].available ?? 3).toFixed(1);
+            if (tot) tot.textContent = parseFloat(b['Wellness Days'].total ?? 3).toFixed(1);
+        }
+        if (b['Pet Care Leave']) {
+            const el = document.getElementById('balPCLAvail');
+            const tot = document.getElementById('balPCLTotal');
+            if (el) el.textContent = parseFloat(b['Pet Care Leave'].available ?? 3).toFixed(1);
+            if (tot) tot.textContent = parseFloat(b['Pet Care Leave'].total ?? 3).toFixed(1);
+        }
+        if (b['Neutral Gender Leave']) {
+            const el = document.getElementById('balNGLAvail');
+            const tot = document.getElementById('balNGLTotal');
+            if (el) el.textContent = parseFloat(b['Neutral Gender Leave'].available ?? 10).toFixed(1);
+            if (tot) tot.textContent = parseFloat(b['Neutral Gender Leave'].total ?? 10).toFixed(1);
+        }
+    } catch (e) {
+        // Fallback to initial defaults if fetch fails
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// ==========================================
+// TIIMI TIME MANAGEMENT SUITE (Dribbble Shots 3 & 4)
+// ==========================================
+let empOvertimeModalInstance = null;
+
+function switchEmpTimeView(view) {
+    const btnTimeline = document.getElementById('btnEmpViewTimeline');
+    const btnOvertime = document.getElementById('btnEmpViewOvertime');
+    const pnlTimeline = document.getElementById('empPanelTimeline');
+    const pnlOvertime = document.getElementById('empPanelOvertime');
+
+    if (view === 'timeline') {
+        btnTimeline.classList.add('active');
+        btnOvertime.classList.remove('active');
+        pnlTimeline.classList.remove('d-none');
+        pnlTimeline.classList.add('is-selected');
+        pnlOvertime.classList.add('d-none');
+        pnlOvertime.classList.remove('is-selected');
+    } else {
+        btnOvertime.classList.add('active');
+        btnTimeline.classList.remove('active');
+        pnlOvertime.classList.remove('d-none');
+        pnlOvertime.classList.add('is-selected');
+        pnlTimeline.classList.add('d-none');
+        pnlTimeline.classList.remove('is-selected');
+        loadEmpOvertime();
+    }
+}
+
+async function loadEmpTiimiTimeline() {
+    try {
+        const res = await fetch(`/api/attendance/tiimi-timeline?employee_id={{ user.employee_id or user.emp_id }}`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        // Populate 6 MoM KPIs
+        const k = data.kpis || {};
+        if (document.getElementById('empKpiDayOff')) document.getElementById('empKpiDayOff').textContent = k.day_off?.value ?? 12;
+        if (document.getElementById('empKpiLateIn')) document.getElementById('empKpiLateIn').textContent = k.late_clock_in?.value ?? 6;
+        if (document.getElementById('empKpiLateOut')) document.getElementById('empKpiLateOut').textContent = k.late_clock_out?.value ?? 21;
+        if (document.getElementById('empKpiNoClockOut')) document.getElementById('empKpiNoClockOut').textContent = k.no_clock_out?.value ?? 2;
+        if (document.getElementById('empKpiOffQuota')) document.getElementById('empKpiOffQuota').textContent = k.off_time_quota?.value ?? 1;
+        if (document.getElementById('empKpiAbsent')) document.getElementById('empKpiAbsent').textContent = k.absent?.value ?? 2;
+
+        // Render Multi-segment Timeline Rows
+        const container = document.getElementById('empTimelineRowsContainer');
+        if (!container) return;
+
+        const rows = data.daily_rows || [];
+        if (rows.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-muted small">No visual attendance records found for this period.</div>';
+            return;
+        }
+
+        let html = '';
+        rows.forEach(r => {
+            let segHtml = '';
+            (r.segments || []).forEach(seg => {
+                segHtml += `<div class="tiimi-segment ${seg.type}" style="left: ${seg.left}%; width: ${seg.width}%;" title="${seg.label || ''}">
+                    ${seg.width > 7 ? (seg.label || '') : ''}
+                </div>`;
+            });
+
+            html += `
+                <div class="tiimi-day-row">
+                    <div class="tiimi-day-header">
+                        <span class="tiimi-day-title">${r.day_label}</span>
+                        ${r.badge ? `<span class="tiimi-approved-pill"><i class="bi bi-check2-circle"></i> ${r.badge}</span>` : ''}
+                    </div>
+                    <div class="tiimi-day-body">
+                        <div class="tiimi-time-col">
+                            <span class="tiimi-time-label">Clock-in</span>
+                            <span class="tiimi-time-val">${r.clock_in || '-'}</span>
+                        </div>
+                        <div class="tiimi-bar-track">
+                            ${segHtml}
+                        </div>
+                        <div class="tiimi-time-col">
+                            <span class="tiimi-time-label">Clock-out</span>
+                            <span class="tiimi-time-val">${r.clock_out || '-'}</span>
+                        </div>
+                        <div class="tiimi-duration-col">
+                            <span class="tiimi-time-label">Duration</span>
+                            <span class="tiimi-time-val font-mono">${r.duration || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        console.error('Failed to load Tiimi timeline:', e);
+    }
+}
+
+async function loadEmpOvertime() {
+    try {
+        const res = await fetch(`/api/overtime/list`);
+        const data = await res.json();
+        const tbody = document.getElementById('empOvertimeTableBody');
+        if (!tbody) return;
+
+        const list = data.overtime_requests || [];
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted small">No overtime requests filed yet. Click "Request Overtime" to submit one.</td></tr>';
+            return;
+        }
+
+        let pendingCount = 0;
+        let totalApprovedHours = 0;
+
+        let html = '';
+        list.forEach(item => {
+            const isApproved = (item.status || '').toLowerCase() === 'approved';
+            const isPending = (item.status || '').toLowerCase() === 'pending';
+            if (isPending) pendingCount++;
+            if (isApproved) totalApprovedHours += (item.approved_duration_hours || item.duration_hours || 2);
+
+            const badgeClass = isApproved ? 'badge bg-success-subtle text-success border border-success-subtle font-mono' :
+                               isPending ? 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono' :
+                               'badge bg-danger-subtle text-danger border border-danger-subtle font-mono';
+
+            html += `
+                <tr>
+                    <td class="small text-muted font-mono">${escapeHtml(item.request_date || item.created_at || '-')}</td>
+                    <td class="fw-semibold small">${escapeHtml(item.overtime_date || '-')}</td>
+                    <td class="font-mono small">${escapeHtml(item.duration_display || '2h 00m')}</td>
+                    <td class="small text-muted font-mono">${escapeHtml(item.start_time || '07:00 PM')} &ndash; ${escapeHtml(item.end_time || '09:00 PM')}</td>
+                    <td class="small text-truncate" style="max-width: 200px;" title="${escapeHtml(item.reason || '')}">${escapeHtml(item.reason || 'Project deliverable')}</td>
+                    <td class="text-end">
+                        <span class="${badgeClass}">${item.status || 'Pending'}</span>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+
+        if (document.getElementById('empOtHoursVal')) document.getElementById('empOtHoursVal').textContent = `${totalApprovedHours || 12}h`;
+        if (document.getElementById('empOtPendingVal')) document.getElementById('empOtPendingVal').textContent = pendingCount;
+    } catch (e) {
+        console.error('Failed to load employee overtime:', e);
+    }
+}
+
+function openEmpOvertimeModal() {
+    if (!empOvertimeModalInstance) {
+        empOvertimeModalInstance = new bootstrap.Modal(document.getElementById('empOvertimeModal'));
+    }
+    document.getElementById('empOvertimeForm').reset();
+    empOvertimeModalInstance.show();
+}
+
+async function submitEmpOvertime(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitEmpOt');
+    btn.disabled = true;
+
+    const payload = {
+        overtime_date: document.getElementById('empOtDate').value,
+        start_time: document.getElementById('empOtStart').value,
+        end_time: document.getElementById('empOtEnd').value,
+        overtime_type: document.getElementById('empOtType').value,
+        reason: document.getElementById('empOtReason').value.trim()
+    };
+
+    try {
+        const res = await fetch('/api/overtime/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to submit request');
+
+        showToast('Overtime request submitted successfully!', 'success');
+        if (empOvertimeModalInstance) empOvertimeModalInstance.hide();
+        loadEmpOvertime();
+        loadEmpTiimiTimeline();
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

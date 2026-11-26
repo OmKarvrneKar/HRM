@@ -1,0 +1,3083 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Samrat HRMS{% endblock %}</title>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('ai_samrat_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            if (theme === 'dark') {
+                document.documentElement.style.backgroundColor = '#070f1e';
+                document.documentElement.style.colorScheme = 'dark';
+            } else {
+                document.documentElement.style.backgroundColor = '#dbeafe';
+                document.documentElement.style.colorScheme = 'light';
+            }
+            document.addEventListener('DOMContentLoaded', function() {
+                if (document.body) {
+                    document.body.classList.remove('dark-mode', 'light-mode');
+                    document.body.classList.add(theme === 'dark' ? 'dark-mode' : 'light-mode');
+                }
+            });
+        })();
+    </script>
+    <style>
+        html[data-theme="dark"], html[data-bs-theme="dark"] {
+            background-color: #070f1e !important;
+            color-scheme: dark !important;
+        }
+        html[data-theme="light"], html[data-bs-theme="light"] {
+            background-color: #dbeafe !important;
+            color-scheme: light !important;
+        }
+    </style>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css?v=3.4">
+    <link rel="icon" type="image/jpeg" href="/static/img/ai_samrat_logo.jpeg">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    {% block head_extra %}{% endblock %}
+</head>
+<body data-authenticated="{% if user %}true{% else %}false{% endif %}">
+    <div id="topLoadingBar"></div>
+    <div class="d-flex w-100 min-vh-100">
+        {% if user and request.path != '/login' and request.endpoint != 'login' and request.endpoint != 'page_views.login_page' %}
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar d-flex flex-column">
+            <div class="sidebar-brand-block d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+                        <img src="/static/img/ai_samrat_official_logo.png" alt="AI SAMRAT" class="sidebar-brand-logo-img">
+                        <div>
+                            <div class="sidebar-brand-title"><span class="brand-text-ai">AI</span> <span class="brand-text-samrat">SAMRAT</span></div>
+                        </div>
+                    </a>
+                    <button type="button" class="festival-celebration-trigger" id="festivalCelebrationButton"
+                            onclick="triggerFestivalAnimation()" aria-label="Celebrate today's festival" title="Celebrate today's festival" hidden>
+                        <span id="festivalCelebrationIcon" aria-hidden="true"></span>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-muted d-lg-none p-0 text-decoration-none" onclick="toggleSidebarDrawer(false)" aria-label="Close menu">
+                    <i class="bi bi-x-lg fs-5"></i>
+                </button>
+            </div>
+
+            <!-- Sleek HRMS Sub-Heading / Label between Logo Header and Workspace Title -->
+            <div class="sidebar-hrms-label-wrap px-3 mb-2">
+                <div class="sidebar-hrms-badge d-flex align-items-center">
+                    <span class="d-flex align-items-center gap-1">
+                        <span class="hrms-dot"></span>
+                        <span class="hrms-text">HRMS</span>
+                    </span>
+                </div>
+            </div>
+
+            <nav class="flex-grow-1 overflow-auto" id="sidebarNav">
+                {% if user.role == 'employee' %}
+                <div class="sidebar-section-header">Workspace</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/dashboard/employee" class="nav-link {% if request.path == '/dashboard/employee' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2"></i> Overview
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/work-diary" class="nav-link {% if request.path.startswith('/work-diary') %}active{% endif %}">
+                            <i class="bi bi-journal-check"></i> Work Diary
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/attendance" class="nav-link {% if request.path == '/attendance' %}active{% endif %}">
+                            <i class="bi bi-clock"></i> My Attendance
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/leaves" class="nav-link {% if request.path.startswith('/leaves') %}active{% endif %}">
+                            <i class="bi bi-calendar2-check"></i> Leave &amp; Permissions
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/projects" class="nav-link {% if request.path.startswith('/projects') %}active{% endif %}">
+                            <i class="bi bi-kanban"></i> Projects &amp; Tasks
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Communication &amp; Notices</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/inbox" class="nav-link {% if request.path in ['/communication', '/inbox', '/mailbox'] or request.path.startswith('/communication') or request.path.startswith('/inbox') or request.path.startswith('/mailbox') %}active{% endif %}">
+                            <i class="bi bi-chat-square-quote"></i> Communication Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/complaints" class="nav-link {% if request.path.startswith('/complaints') %}active{% endif %}">
+                            <i class="bi bi-chat-square-text"></i> Workplace Concerns
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/notifications" class="nav-link {% if request.path == '/notifications' %}active{% endif %}">
+                            <i class="bi bi-bell"></i> Notifications
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Enterprise Suite</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/facilities" class="nav-link {% if request.path == '/facilities' %}active{% endif %}">
+                            <i class="bi bi-door-open"></i> Meeting Rooms
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/assets" class="nav-link {% if request.path == '/assets' %}active{% endif %}">
+                            <i class="bi bi-laptop"></i> Assets &amp; Software
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/policies" class="nav-link {% if request.path == '/policies' %}active{% endif %}">
+                            <i class="bi bi-file-earmark-lock"></i> Policy Vault
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tasks-certificates" class="nav-link {% if request.path in ['/performance', '/tasks-certificates'] %}active{% endif %}">
+                            <i class="bi bi-award"></i> Tasks &amp; Certificates
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/kudos-support" class="nav-link {% if request.path in ['/engagement', '/kudos-support'] %}active{% endif %}">
+                            <i class="bi bi-heart-pulse"></i> Kudos &amp; Support
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/exit-tenure" class="nav-link {% if request.path in ['/separation', '/exit-tenure'] %}active{% endif %}">
+                            <i class="bi bi-door-closed"></i> Exit &amp; Tenure
+                        </a>
+                    </li>
+                </ul>
+
+                {% elif user.role == 'hr' %}
+                <div class="sidebar-section-header">Operations</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/dashboard/hr" class="nav-link {% if request.path == '/dashboard/hr' %}active{% endif %}">
+                            <i class="bi bi-speedometer2"></i> Operations Center
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/dashboard/employee" class="nav-link {% if request.path == '/dashboard/employee' %}active{% endif %}">
+                            <i class="bi bi-person-workspace"></i> My Employee Portal
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/work-diary" class="nav-link {% if request.path.startswith('/work-diary') %}active{% endif %}">
+                            <i class="bi bi-journal-check"></i> Work Diary
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/profiles" class="nav-link {% if request.path == '/profiles' %}active{% endif %}">
+                            <i class="bi bi-people"></i> Staff Directory &amp; Hiring
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/attendance" class="nav-link {% if request.path == '/attendance' %}active{% endif %}">
+                            <i class="bi bi-calendar-check"></i> Employee Attendance
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/leaves" class="nav-link {% if request.path.startswith('/leaves') %}active{% endif %}">
+                            <i class="bi bi-calendar2-check"></i> Leave Administration
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/holidays" class="nav-link {% if request.path.startswith('/holidays') %}active{% endif %}">
+                            <i class="bi bi-calendar-event"></i> Holiday Calendar
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/birthdays" class="nav-link {% if request.path.startswith('/birthdays') %}active{% endif %}">
+                            <i class="bi bi-cake2"></i> Birthday Calendar
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/complaints" class="nav-link {% if request.path.startswith('/complaints') %}active{% endif %}">
+                            <i class="bi bi-chat-square-text"></i> Confidential Concerns
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Communication &amp; Governance</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/inbox" class="nav-link {% if request.path in ['/communication', '/inbox', '/mailbox'] or request.path.startswith('/communication') or request.path.startswith('/inbox') or request.path.startswith('/mailbox') %}active{% endif %}">
+                            <i class="bi bi-chat-square-quote"></i> Communication Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/notifications" class="nav-link {% if request.path == '/notifications' %}active{% endif %}">
+                            <i class="bi bi-bell"></i> Notifications
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/settings" class="nav-link {% if request.path.startswith('/settings') %}active{% endif %}">
+                            <i class="bi bi-sliders"></i> Organizational Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/audit-logs" class="nav-link {% if request.path.startswith('/audit-logs') %}active{% endif %}">
+                            <i class="bi bi-shield-lock"></i> Audit Trail
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Enterprise &amp; Recruitment</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/payroll-center" class="nav-link {% if request.path == '/payroll-center' %}active{% endif %}">
+                            <i class="bi bi-wallet2"></i> Payroll Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/recruitment" class="nav-link {% if request.path == '/recruitment' %}active{% endif %}">
+                            <i class="bi bi-person-plus"></i> Recruitment &amp; ATS
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/facilities" class="nav-link {% if request.path == '/facilities' %}active{% endif %}">
+                            <i class="bi bi-door-open"></i> Meeting Rooms
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/assets" class="nav-link {% if request.path == '/assets' %}active{% endif %}">
+                            <i class="bi bi-laptop"></i> Assets &amp; Software
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/policies" class="nav-link {% if request.path == '/policies' %}active{% endif %}">
+                            <i class="bi bi-file-earmark-lock"></i> Policy Vault
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tasks-certificates" class="nav-link {% if request.path in ['/performance', '/tasks-certificates'] %}active{% endif %}">
+                            <i class="bi bi-award"></i> Tasks &amp; Certificates
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/kudos-support" class="nav-link {% if request.path in ['/engagement', '/kudos-support'] %}active{% endif %}">
+                            <i class="bi bi-heart-pulse"></i> Kudos &amp; Support
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/exit-tenure" class="nav-link {% if request.path in ['/separation', '/exit-tenure'] %}active{% endif %}">
+                            <i class="bi bi-door-closed"></i> Exit &amp; Tenure
+                        </a>
+                    </li>
+                </ul>
+
+                {% elif user.role == 'manager' %}
+                <div class="sidebar-section-header">Operations Oversight</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/dashboard/manager" class="nav-link {% if request.path in ['/dashboard/manager', '/dashboard/hr-manager', '/dashboard/organization'] %}active{% endif %}">
+                            <i class="bi bi-speedometer"></i> Manager Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/dashboard/employee" class="nav-link {% if request.path == '/dashboard/employee' %}active{% endif %}">
+                            <i class="bi bi-person-workspace"></i> My Employee Portal
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/projects" class="nav-link {% if request.path.startswith('/projects') %}active{% endif %}">
+                            <i class="bi bi-kanban"></i> Projects
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/attendance" class="nav-link {% if request.path == '/attendance' %}active{% endif %}">
+                            <i class="bi bi-calendar2-week"></i> Operational Attendance
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/leaves" class="nav-link {% if request.path.startswith('/leaves') %}active{% endif %}">
+                            <i class="bi bi-calendar2-check"></i> Leave Review
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/profiles" class="nav-link {% if request.path == '/profiles' %}active{% endif %}">
+                            <i class="bi bi-people"></i> Staff Directory
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/work-diary" class="nav-link {% if request.path.startswith('/work-diary') %}active{% endif %}">
+                            <i class="bi bi-journal-check"></i> Work Diaries
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/holidays" class="nav-link {% if request.path.startswith('/holidays') %}active{% endif %}">
+                            <i class="bi bi-calendar-event"></i> Holiday Calendar
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Communication</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/inbox" class="nav-link {% if request.path in ['/communication', '/inbox', '/mailbox'] or request.path.startswith('/communication') or request.path.startswith('/inbox') or request.path.startswith('/mailbox') %}active{% endif %}">
+                            <i class="bi bi-chat-square-quote"></i> Communication Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/notifications" class="nav-link {% if request.path == '/notifications' %}active{% endif %}">
+                            <i class="bi bi-megaphone"></i> Announcements
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Enterprise &amp; Hiring</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/recruitment" class="nav-link {% if request.path == '/recruitment' %}active{% endif %}">
+                            <i class="bi bi-clipboard2-check"></i> Candidate Scorecards &amp; MRF
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/facilities" class="nav-link {% if request.path == '/facilities' %}active{% endif %}">
+                            <i class="bi bi-door-open"></i> Meeting Rooms
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/assets" class="nav-link {% if request.path == '/assets' %}active{% endif %}">
+                            <i class="bi bi-laptop"></i> Assets &amp; Software
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/policies" class="nav-link {% if request.path == '/policies' %}active{% endif %}">
+                            <i class="bi bi-file-earmark-lock"></i> Policy Vault
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tasks-certificates" class="nav-link {% if request.path in ['/performance', '/tasks-certificates'] %}active{% endif %}">
+                            <i class="bi bi-award"></i> Tasks &amp; Certificates
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/kudos-support" class="nav-link {% if request.path in ['/engagement', '/kudos-support'] %}active{% endif %}">
+                            <i class="bi bi-heart-pulse"></i> Kudos &amp; Support
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/exit-tenure" class="nav-link {% if request.path in ['/separation', '/exit-tenure'] %}active{% endif %}">
+                            <i class="bi bi-door-closed"></i> Exit &amp; Tenure
+                        </a>
+                    </li>
+                </ul>
+
+                {% elif user.role in ['team_lead', 'tl'] %}
+                <div class="sidebar-section-header">Workspace</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/dashboard/team-lead" class="nav-link {% if request.path in ['/dashboard/team-lead', '/dashboard/trainer'] %}active{% endif %}">
+                            <i class="bi bi-speedometer2"></i> Team Lead Overview
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/projects" class="nav-link {% if request.path.startswith('/projects') %}active{% endif %}">
+                            <i class="bi bi-kanban"></i> Projects
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Team Operations</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/profiles" class="nav-link {% if request.path == '/profiles' %}active{% endif %}">
+                            <i class="bi bi-people"></i> Staff Directory
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/attendance" class="nav-link {% if request.path == '/attendance' %}active{% endif %}">
+                            <i class="bi bi-clock"></i> Team Attendance &amp; Availability
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/leaves" class="nav-link {% if request.path.startswith('/leaves') %}active{% endif %}">
+                            <i class="bi bi-calendar2-check"></i> Leave &amp; Permissions
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/work-diary" class="nav-link {% if request.path.startswith('/work-diary') %}active{% endif %}">
+                            <i class="bi bi-journal-check"></i> Work Diaries
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/holidays" class="nav-link {% if request.path.startswith('/holidays') %}active{% endif %}">
+                            <i class="bi bi-calendar-event"></i> Holiday Calendar
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Communication</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/inbox" class="nav-link {% if request.path in ['/communication', '/inbox', '/mailbox'] or request.path.startswith('/communication') or request.path.startswith('/inbox') or request.path.startswith('/mailbox') %}active{% endif %}">
+                            <i class="bi bi-chat-square-quote"></i> Communication Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/notifications" class="nav-link {% if request.path == '/notifications' %}active{% endif %}">
+                            <i class="bi bi-bell"></i> Notifications
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Self Service</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/dashboard/employee" class="nav-link {% if request.path == '/dashboard/employee' %}active{% endif %}">
+                            <i class="bi bi-person-workspace"></i> My Employee Portal
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Enterprise &amp; Hiring</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/recruitment" class="nav-link {% if request.path == '/recruitment' %}active{% endif %}">
+                            <i class="bi bi-clipboard2-check"></i> Candidate Scorecards &amp; MRF
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/facilities" class="nav-link {% if request.path == '/facilities' %}active{% endif %}">
+                            <i class="bi bi-door-open"></i> Meeting Rooms
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/assets" class="nav-link {% if request.path == '/assets' %}active{% endif %}">
+                            <i class="bi bi-laptop"></i> Assets &amp; Software
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/policies" class="nav-link {% if request.path == '/policies' %}active{% endif %}">
+                            <i class="bi bi-file-earmark-lock"></i> Policy Vault
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tasks-certificates" class="nav-link {% if request.path in ['/performance', '/tasks-certificates'] %}active{% endif %}">
+                            <i class="bi bi-award"></i> Tasks &amp; Certificates
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/kudos-support" class="nav-link {% if request.path in ['/engagement', '/kudos-support'] %}active{% endif %}">
+                            <i class="bi bi-heart-pulse"></i> Kudos &amp; Support
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/exit-tenure" class="nav-link {% if request.path in ['/separation', '/exit-tenure'] %}active{% endif %}">
+                            <i class="bi bi-door-closed"></i> Exit &amp; Tenure
+                        </a>
+                    </li>
+                </ul>
+
+                {% elif user.role == 'admin' %}
+                <div class="sidebar-section-header">Administration</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/dashboard/admin" class="nav-link {% if request.path == '/dashboard/admin' %}active{% endif %}">
+                            <i class="bi bi-speedometer2"></i> System Administration
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/dashboard/employee" class="nav-link {% if request.path == '/dashboard/employee' %}active{% endif %}">
+                            <i class="bi bi-person-workspace"></i> My Employee Portal
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Governance &amp; Directory</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/profiles" class="nav-link {% if request.path == '/profiles' %}active{% endif %}">
+                            <i class="bi bi-person-badge"></i> User Accounts &amp; Roles
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/settings" class="nav-link {% if request.path.startswith('/settings') %}active{% endif %}">
+                            <i class="bi bi-sliders"></i> Organizational Settings
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Infrastructure &amp; Logs</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/attendance" class="nav-link {% if request.path == '/attendance' %}active{% endif %}">
+                            <i class="bi bi-calendar-check"></i> Operational Attendance
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/holidays" class="nav-link {% if request.path.startswith('/holidays') %}active{% endif %}">
+                            <i class="bi bi-calendar-event"></i> Holiday Calendar
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/audit-logs" class="nav-link {% if request.path.startswith('/audit-logs') %}active{% endif %}">
+                            <i class="bi bi-shield-lock"></i> Audit Trail
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Communication</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/inbox" class="nav-link {% if request.path in ['/communication', '/inbox', '/mailbox'] or request.path.startswith('/communication') or request.path.startswith('/inbox') or request.path.startswith('/mailbox') %}active{% endif %}">
+                            <i class="bi bi-chat-square-quote"></i> Communication Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/notifications" class="nav-link {% if request.path == '/notifications' %}active{% endif %}">
+                            <i class="bi bi-bell"></i> Notifications
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-header">Enterprise &amp; Recruitment</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a href="/payroll-center" class="nav-link {% if request.path == '/payroll-center' %}active{% endif %}">
+                            <i class="bi bi-wallet2"></i> Payroll Center
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/recruitment" class="nav-link {% if request.path == '/recruitment' %}active{% endif %}">
+                            <i class="bi bi-person-plus"></i> Recruitment &amp; ATS
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/facilities" class="nav-link {% if request.path == '/facilities' %}active{% endif %}">
+                            <i class="bi bi-door-open"></i> Meeting Rooms
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/assets" class="nav-link {% if request.path == '/assets' %}active{% endif %}">
+                            <i class="bi bi-laptop"></i> Assets &amp; Software
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/policies" class="nav-link {% if request.path == '/policies' %}active{% endif %}">
+                            <i class="bi bi-file-earmark-lock"></i> Policy Vault
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tasks-certificates" class="nav-link {% if request.path in ['/performance', '/tasks-certificates'] %}active{% endif %}">
+                            <i class="bi bi-award"></i> Tasks &amp; Certificates
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/kudos-support" class="nav-link {% if request.path in ['/engagement', '/kudos-support'] %}active{% endif %}">
+                            <i class="bi bi-heart-pulse"></i> Kudos &amp; Support
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/exit-tenure" class="nav-link {% if request.path in ['/separation', '/exit-tenure'] %}active{% endif %}">
+                            <i class="bi bi-door-closed"></i> Exit &amp; Tenure
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </nav>
+
+            <div class="mt-auto pt-3">
+                <div class="sidebar-user-card d-flex align-items-center justify-content-between">
+                    <a href="/profile/{{ user.employee_id }}" class="d-flex align-items-center gap-2 overflow-hidden flex-grow-1 text-decoration-none text-reset" title="Open Detailed Profile Management Screen: {{ user.full_name }}">
+                        <div class="avatar-initial flex-shrink-0">{{ (user.full_name or user.employee_id or 'U')[:1] }}</div>
+                        <div class="overflow-hidden text-start">
+                            <div class="fw-semibold text-truncate user-name-styled" style="font-size: 0.815rem;">{{ user.full_name or user.employee_id }}</div>
+                            <div class="text-muted text-truncate" style="font-size: 0.69rem;">Profile Management &rarr;</div>
+                        </div>
+                    </a>
+                    <a href="/logout" class="sidebar-logout-btn btn btn-sm btn-link text-muted p-1 text-decoration-none flex-shrink-0 ms-2" onclick="performSecureLogout(event)" title="Sign Out">
+                        <i class="bi bi-box-arrow-right fs-6"></i>
+                    </a>
+                </div>
+            </div>
+        </aside>
+        <script>
+            (function() {
+                // Immediate synchronous scroll restoration
+                try {
+                    const nav = document.getElementById('sidebarNav');
+                    if (nav) {
+                        const saved = sessionStorage.getItem('aisamrat_sidebar_scroll');
+                        if (saved !== null) {
+                            nav.scrollTop = parseInt(saved, 10) || 0;
+                        }
+                    }
+                } catch(e) {}
+
+                function scrollSidebarToActive(force) {
+                    try {
+                        const nav = document.getElementById('sidebarNav') || document.querySelector('.sidebar nav');
+                        if (!nav) return;
+
+                        // 1. Locate active link (by .active class or matching pathname)
+                        let active = nav.querySelector('.nav-link.active');
+                        if (!active) {
+                            const curPath = window.location.pathname.replace(/\/+$/, '') || '/';
+                            const allLinks = Array.from(nav.querySelectorAll('.nav-link[href]'));
+                            const match = allLinks.find(l => {
+                                const h = (l.getAttribute('href') || '').replace(/\/+$/, '') || '/';
+                                return h === curPath;
+                            }) || allLinks.find(l => {
+                                const h = (l.getAttribute('href') || '');
+                                return h && h !== '/' && curPath.startsWith(h);
+                            });
+                            if (match) {
+                                match.classList.add('active');
+                                active = match;
+                            }
+                        }
+
+                        // 2. Restore saved scroll position first if available
+                        const saved = sessionStorage.getItem('aisamrat_sidebar_scroll');
+                        if (saved !== null && !force) {
+                            nav.scrollTop = parseInt(saved, 10) || 0;
+                        }
+
+                        // 3. Keep active link comfortably in view if outside or on direct page entry
+                        if (active) {
+                            const navTop = nav.scrollTop;
+                            const navHeight = nav.clientHeight || 500;
+                            const activeTop = active.offsetTop;
+                            const activeHeight = active.offsetHeight || 38;
+
+                            const isOutOfView = (activeTop < navTop) || (activeTop + activeHeight > navTop + navHeight);
+                            if (isOutOfView || (saved === null)) {
+                                const targetScroll = Math.max(0, activeTop - (navHeight / 2) + (activeHeight / 2));
+                                nav.scrollTop = targetScroll;
+                                try { sessionStorage.setItem('aisamrat_sidebar_scroll', String(nav.scrollTop)); } catch(e) {}
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                window.restoreSidebarActiveTab = scrollSidebarToActive;
+
+                // Execute immediately on parse
+                scrollSidebarToActive(false);
+
+                // Execute on DOM ready
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() { scrollSidebarToActive(false); });
+                } else {
+                    scrollSidebarToActive(false);
+                }
+
+                // Execute on window load and layout settle
+                window.addEventListener('load', function() {
+                    scrollSidebarToActive(false);
+                    setTimeout(function() { scrollSidebarToActive(false); }, 60);
+                    setTimeout(function() { scrollSidebarToActive(false); }, 180);
+                });
+
+                // Immediately capture position before navigation
+                const navEl = document.getElementById('sidebarNav');
+                if (navEl) {
+                    navEl.addEventListener('click', function(e) {
+                        const link = e.target.closest('a');
+                        if (link) {
+                            try {
+                                sessionStorage.setItem('aisamrat_sidebar_scroll', String(navEl.scrollTop));
+                                sessionStorage.setItem('aisamrat_clicked_href', link.getAttribute('href') || '');
+                            } catch(e) {}
+                        }
+                    }, true);
+                }
+
+                // Save scroll on beforeunload and pagehide
+                function savePos() {
+                    try {
+                        const nav = document.getElementById('sidebarNav');
+                        if (nav) sessionStorage.setItem('aisamrat_sidebar_scroll', String(nav.scrollTop));
+                    } catch(e) {}
+                }
+                window.addEventListener('beforeunload', savePos);
+                window.addEventListener('pagehide', savePos);
+            })();
+        </script>
+
+        <!-- Mobile Sidebar Backdrop -->
+        <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleSidebarDrawer(false)"></div>
+        {% endif %}
+
+        <!-- Main Content Area -->
+        <div class="main-content-wrapper d-flex flex-column flex-grow-1" style="min-width: 0;">
+            {% if user and request.path != '/login' and request.endpoint != 'login' and request.endpoint != 'page_views.login_page' %}
+            <!-- Frozen Floating Header Dock (Row 1: Floating Glass Navbar Capsule + Row 2: Floating Glass Operations Capsule) -->
+            <div class="sticky-floating-header-dock" id="stickyFloatingHeaderDock">
+                <!-- ROW 1: Clean Top Navbar Floating Capsule (Clock on Left, Controls, Profile & Direct Logout on Right) -->
+                <header class="top-navbar top-navbar-floating-capsule d-flex align-items-center justify-content-between flex-nowrap px-3">
+                    <div class="d-flex align-items-center gap-2 flex-nowrap flex-shrink-0">
+                        <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggleBtn" onclick="toggleSidebarDrawer()" aria-label="Toggle navigation menu" title="Menu">
+                            <i class="bi bi-list fs-5"></i>
+                        </button>
+                        <div class="live-clock-badge">
+                            <span class="live-indicator-dot" title="Live Clock Active"></span>
+                            <span id="liveDate" class="d-none d-sm-inline text-muted me-1">--</span>
+                            <span id="liveClock" class="tabular-nums fw-semibold">--:--:--</span>
+                            <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.65rem;">IST</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Theme, Chat, Notifications, User Identity Dropdown & Direct Logout -->
+                    <div class="d-flex align-items-center gap-2 flex-nowrap flex-shrink-0 ms-auto">
+                        <!-- Theme Toggle Button -->
+                        <button class="btn btn-sm btn-outline-secondary topnav-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                            <i class="bi bi-moon-stars"></i>
+                        </button>
+
+                        <!-- Unified Inbox Chat -->
+                        <a href="/inbox" class="btn btn-sm btn-outline-secondary position-relative topnav-btn" title="Team Chat &amp; Inbox">
+                            <i class="bi bi-chat-dots"></i>
+                        </a>
+
+                        <!-- Notifications Dropdown -->
+                        <div class="dropdown" id="globalNotifDropdown">
+                            <button class="btn btn-sm btn-outline-secondary position-relative topnav-btn" data-bs-toggle="dropdown" id="notifBellBtn" title="Notifications" aria-expanded="false">
+                                <i class="bi bi-bell"></i>
+                                <span id="notifCountBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">0</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end notifications-dropdown-menu shadow-lg border" aria-labelledby="notifBellBtn">
+                                <div class="notifications-dropdown-header d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold small text-headline"><i class="bi bi-bell me-1 text-primary"></i> Notifications</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" class="btn btn-link text-primary p-0 small text-decoration-none fw-semibold" id="btnMarkAllNotifsRead" onclick="markAllNotificationsAsRead(event)" style="font-size: 0.72rem;">
+                                            <i class="bi bi-check2-all me-1"></i>Mark all as read
+                                        </button>
+                                        <a href="/notifications" class="text-decoration-none small text-muted" style="font-size: 0.72rem;">View All</a>
+                                    </div>
+                                </div>
+                                <div class="notifications-dropdown-list" id="quickNotifList">
+                                    <div class="text-muted small text-center py-3">Loading notifications...</div>
+                                </div>
+                                <div class="p-2 border-top bg-light text-center">
+                                    <a href="/notifications" class="btn btn-sm btn-outline-primary w-100 py-1" style="font-size: 0.75rem;">
+                                        View All in Notification Center &rarr;
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Profile Dropdown Capsule -->
+                        <div class="dropdown user-header-dropdown flex-shrink-0" id="userHeaderDropdownWrapper">
+                            <div class="d-flex align-items-center gap-2 px-2 py-1 rounded-pill border bg-white-subtle cursor-pointer user-header-widget shadow-sm"
+                                 id="userHeaderWidget"
+                                 data-bs-toggle="dropdown"
+                                 data-bs-auto-close="true"
+                                 aria-expanded="false"
+                                 role="button"
+                                 tabindex="0"
+                                 title="Account Menu — Profile, Change Password &amp; Sign Out">
+                                <div class="avatar-initial rounded-circle font-mono fw-bold d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.75rem; background: linear-gradient(135deg, #00c2ff 0%, #0056d6 100%); color: #fff;">
+                                    {{ (user.full_name or user.employee_id or 'U')[:1] }}
+                                </div>
+                                <div class="d-none d-md-flex flex-column text-start" style="line-height: 1.15;">
+                                    <span class="user-name-styled fw-semibold text-truncate text-headline" style="font-size: 0.78rem; max-width: 110px;">{{ user.full_name }}</span>
+                                    <span class="text-muted text-truncate font-mono" style="font-size: 0.68rem; max-width: 120px;">{{ user.employee_id }}</span>
+                                </div>
+                                <i class="bi bi-chevron-down text-muted ms-1" style="font-size: 0.65rem;"></i>
+                            </div>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg border py-2 user-header-dropdown-menu" aria-labelledby="userHeaderWidget" style="min-width: 230px; border-radius: 14px; margin-top: 6px;">
+                                <div class="px-3 py-2 border-bottom mb-1">
+                                    <div class="fw-bold text-headline small">{{ user.full_name }}</div>
+                                    <div class="text-muted small font-mono d-flex align-items-center gap-1 mt-1" style="font-size: 0.72rem;">
+                                        <span class="badge bg-primary-subtle text-primary">{{ (user.role or 'employee')|upper }}</span>
+                                        <span>{{ user.employee_id }}</span>
+                                    </div>
+                                    <div class="text-muted small text-truncate mt-1" style="font-size: 0.7rem;">{{ user.email }}</div>
+                                </div>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2 small" href="/profile/{{ user.employee_id }}">
+                                    <i class="bi bi-person-circle text-primary"></i>
+                                    <span>My Profile</span>
+                                </a>
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 small" data-bs-toggle="modal" data-bs-target="#changePasswordModal" onclick="openChangePasswordModal()">
+                                    <i class="bi bi-key-fill text-warning"></i>
+                                    <span>Change Password</span>
+                                </button>
+                                <div class="dropdown-divider my-1"></div>
+                                <a href="/logout" class="dropdown-item d-flex align-items-center gap-2 py-2 small text-danger" id="userHeaderLogoutBtn" onclick="performSecureLogout(event)">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                    <span>Sign Out</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- ROW 2: Separate Floating Operations Capsule Bar (Exact match to User's Images) -->
+                <div class="top-operations-bar" id="topOperationsBarContainer">
+                    <div class="operations-floating-capsule shadow-sm">
+                        <!-- Left: Search Pill + Divider + Quick Action Tile Buttons -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <!-- Capsule Search Pill -->
+                            <div class="capsule-search-box position-relative">
+                                <i class="bi bi-search text-muted me-2" style="font-size: 0.85rem;" onclick="triggerGlobalSearchClick()"></i>
+                                <input type="text" class="border-0 bg-transparent p-0 small flex-grow-1"
+                                       placeholder="{% if user.role == 'hr' %}Search 100 enterprise staff, payroll, leaves...{% elif user.role == 'admin' %}Search platform, audit logs, system accounts...{% elif user.role == 'manager' %}Search projects, deliverables, department...{% elif user.role in ['team_lead', 'tl'] %}Search squad members, tasks, sprints...{% else %}Search my tasks, deliverables, payslips...{% endif %}"
+                                       id="globalSearchInput" oninput="handleGlobalSearch(this.value)" onfocus="handleGlobalSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();handleGlobalSearchEnter(this.value);}" autocomplete="off" style="outline: none;">
+                                <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" id="globalSearchClearBtn" style="display: none;" onclick="clearGlobalSearch()" title="Clear search">
+                                    <i class="bi bi-x-circle-fill" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <!-- Live Search Dropdown -->
+                                <div id="globalSearchResultsDropdown" class="global-search-dropdown shadow-lg d-none">
+                                    <div class="p-2" id="globalSearchListContainer">
+                                        <div class="text-center text-muted small py-2">Type to search 100 enterprise users, routes &amp; projects...</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Vertical Hairline Divider | -->
+                            <div class="capsule-vertical-divider"></div>
+
+                            <!-- Quick Action Square Icon Buttons (Colored Icons, Tile Shaped) -->
+                            <div class="d-flex align-items-center gap-1 gap-sm-2 flex-wrap position-relative" id="shortcutTilesContainer">
+                                {% if user.role == 'hr' %}
+                                <!-- HR Action Tiles -->
+                                <a href="/profiles" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Staff Directory">
+                                    <i class="bi bi-people"></i>
+                                </a>
+                                <a href="/payroll-center" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Payroll Center">
+                                    <i class="bi bi-wallet2"></i>
+                                </a>
+                                <a href="/leaves" class="capsule-tile-btn text-warning" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Leave Administration">
+                                    <i class="bi bi-calendar-check"></i>
+                                </a>
+                                <a href="/settings" class="capsule-tile-btn text-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Shift &amp; Policy Settings">
+                                    <i class="bi bi-sliders"></i>
+                                </a>
+                                <a href="/work-diary" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Daily Work Diary">
+                                    <i class="bi bi-journal-check"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-warning" onclick="openNotepadModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Personal Notepad &amp; Scratchpad">
+                                    <i class="bi bi-journal-text"></i>
+                                </button>
+                                <a href="/mailbox" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Corporate Mailbox">
+                                    <i class="bi bi-envelope-paper"></i>
+                                </a>
+                                <a href="/communication" class="capsule-tile-btn text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Communication Center">
+                                    <i class="bi bi-chat-dots"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-danger" onclick="openFeedbackModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Support &amp; Feedback">
+                                    <i class="bi bi-headset"></i>
+                                </button>
+
+                                {% elif user.role == 'admin' %}
+                                <!-- Admin Action Tiles -->
+                                <a href="/profiles" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="User Directory &amp; RBAC">
+                                    <i class="bi bi-people"></i>
+                                </a>
+                                <a href="/audit-logs" class="capsule-tile-btn text-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Audit Trail">
+                                    <i class="bi bi-shield-shaded"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-warning" onclick="openSystemHealthModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="System Health &amp; Telemetry">
+                                    <i class="bi bi-activity"></i>
+                                </button>
+                                <a href="/settings" class="capsule-tile-btn text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Platform Settings">
+                                    <i class="bi bi-gear"></i>
+                                </a>
+                                <a href="/work-diary" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Daily Work Diary">
+                                    <i class="bi bi-journal-check"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-warning" onclick="openNotepadModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Personal Notepad &amp; Scratchpad">
+                                    <i class="bi bi-journal-text"></i>
+                                </button>
+                                <a href="/mailbox" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Corporate Mailbox">
+                                    <i class="bi bi-envelope-paper"></i>
+                                </a>
+                                <a href="/communication" class="capsule-tile-btn text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Communication Center">
+                                    <i class="bi bi-chat-dots"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-danger" onclick="openFeedbackModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Support &amp; Feedback">
+                                    <i class="bi bi-headset"></i>
+                                </button>
+
+                                {% elif user.role == 'manager' %}
+                                <!-- Manager Action Tiles -->
+                                <a href="/projects" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Projects Portfolio">
+                                    <i class="bi bi-briefcase"></i>
+                                </a>
+                                <a href="/profiles" class="capsule-tile-btn text-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Department Directory">
+                                    <i class="bi bi-people"></i>
+                                </a>
+                                <a href="/leaves" class="capsule-tile-btn text-warning" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Leave Approvals">
+                                    <i class="bi bi-calendar-check"></i>
+                                </a>
+                                <a href="/analytics" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Delivery Analytics">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                </a>
+                                <a href="/work-diary" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Daily Work Diary">
+                                    <i class="bi bi-journal-check"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-warning" onclick="openNotepadModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Personal Notepad &amp; Scratchpad">
+                                    <i class="bi bi-journal-text"></i>
+                                </button>
+                                <a href="/mailbox" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Corporate Mailbox">
+                                    <i class="bi bi-envelope-paper"></i>
+                                </a>
+                                <a href="/communication" class="capsule-tile-btn text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Communication Center">
+                                    <i class="bi bi-chat-dots"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-danger" onclick="openFeedbackModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Support &amp; Feedback">
+                                    <i class="bi bi-headset"></i>
+                                </button>
+
+                                {% elif user.role in ['team_lead', 'tl'] %}
+                                <!-- Team Lead Action Tiles -->
+                                <a href="/attendance" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Squad Attendance">
+                                    <i class="bi bi-people"></i>
+                                </a>
+                                <a href="/leaves" class="capsule-tile-btn text-warning" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Squad Leaves">
+                                    <i class="bi bi-calendar-check"></i>
+                                </a>
+                                <a href="/projects" class="capsule-tile-btn text-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Sprint Tasks &amp; Board">
+                                    <i class="bi bi-kanban"></i>
+                                </a>
+                                <a href="/work-diary" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Daily Work Diary">
+                                    <i class="bi bi-journal-check"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-warning" onclick="openNotepadModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Personal Notepad &amp; Scratchpad">
+                                    <i class="bi bi-journal-text"></i>
+                                </button>
+                                <a href="/mailbox" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Corporate Mailbox">
+                                    <i class="bi bi-envelope-paper"></i>
+                                </a>
+                                <a href="/communication" class="capsule-tile-btn text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Communication Center">
+                                    <i class="bi bi-chat-dots"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-danger" onclick="openFeedbackModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Support &amp; Feedback">
+                                    <i class="bi bi-headset"></i>
+                                </button>
+
+                                {% else %}
+                                <!-- Employee Action Tiles -->
+                                <button type="button" class="capsule-tile-btn text-info" onclick="openApplyLeaveModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Apply Leave &amp; WFH">
+                                    <i class="bi bi-calendar-plus"></i>
+                                </button>
+                                <a href="/work-diary" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Daily Work Diary">
+                                    <i class="bi bi-journal-check"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-warning" onclick="openNotepadModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Personal Notepad &amp; Scratchpad">
+                                    <i class="bi bi-journal-text"></i>
+                                </button>
+                                <a href="/attendance" class="capsule-tile-btn text-warning" data-bs-toggle="tooltip" data-bs-placement="bottom" title="My Attendance">
+                                    <i class="bi bi-calendar-event"></i>
+                                </a>
+                                <a href="/salary" class="capsule-tile-btn text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Salary Slips">
+                                    <i class="bi bi-wallet2"></i>
+                                </a>
+                                <a href="/mailbox" class="capsule-tile-btn text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Corporate Mailbox">
+                                    <i class="bi bi-envelope-paper"></i>
+                                </a>
+                                <a href="/communication" class="capsule-tile-btn text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Communication Center">
+                                    <i class="bi bi-chat-dots"></i>
+                                </a>
+                                <button type="button" class="capsule-tile-btn text-danger" onclick="openFeedbackModal()" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Support &amp; Feedback">
+                                    <i class="bi bi-headset"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Right: Role Authority Badge + Role Actions + Duty Attendance Controls for ALL Roles -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+                            {% if request.path == '/dashboard/employee' %}
+                                {# Universal Navigation Back to Role Management Dashboards when on My Portal #}
+                                {% if user.role == 'hr' %}
+                                <a href="/dashboard/hr" class="btn btn-sm btn-outline-primary rounded-pill px-3" style="font-size: 0.78rem;" title="Return to HR Governance Dashboard">
+                                    <i class="bi bi-arrow-left me-1"></i> HR Desk
+                                </a>
+                                {% elif user.role == 'admin' %}
+                                <a href="/dashboard/admin" class="btn btn-sm btn-outline-success rounded-pill px-3" style="font-size: 0.78rem;" title="Return to Super Admin Console">
+                                    <i class="bi bi-arrow-left me-1"></i> Admin Console
+                                </a>
+                                {% elif user.role == 'manager' %}
+                                <a href="/dashboard/manager" class="btn btn-sm btn-outline-info rounded-pill px-3" style="font-size: 0.78rem;" title="Return to Manager Hub">
+                                    <i class="bi bi-arrow-left me-1"></i> Manager Hub
+                                </a>
+                                {% elif user.role in ['team_lead', 'tl'] %}
+                                <a href="/dashboard/team_lead" class="btn btn-sm btn-outline-primary rounded-pill px-3" style="font-size: 0.78rem;" title="Return to Squad Command">
+                                    <i class="bi bi-arrow-left me-1"></i> Squad Hub
+                                </a>
+                                {% endif %}
+                            {% else %}
+                                {# Role Desks & Shortcuts when not on My Portal #}
+                                {% if user.role == 'hr' %}
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono px-2 px-md-3 py-2 rounded-pill d-none d-lg-inline-flex" style="font-size: 0.72rem;">
+                                    <i class="bi bi-shield-check me-1"></i> HR GOVERNANCE
+                                </span>
+                                <a href="/profiles" class="btn btn-sm btn-primary rounded-pill px-2 px-md-3 shadow-sm d-inline-flex align-items-center gap-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-person-plus"></i> Register Employee
+                                </a>
+                                <a href="/dashboard/employee" class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 nav-my-portal-btn" style="font-size: 0.78rem;" title="Switch to Personal Employee Portal">
+                                    <i class="bi bi-display me-1"></i> My Portal
+                                </a>
+                                {% elif user.role == 'admin' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle font-mono px-2 px-md-3 py-2 rounded-pill d-none d-lg-inline-flex" style="font-size: 0.72rem;">
+                                    <i class="bi bi-shield-check me-1"></i> SUPER ADMIN
+                                </span>
+                                <a href="/profiles" class="btn btn-sm btn-primary rounded-pill px-2 px-md-3 shadow-sm d-inline-flex align-items-center gap-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-person-plus"></i> Provision Account
+                                </a>
+                                <a href="/dashboard/employee" class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 nav-my-portal-btn" style="font-size: 0.78rem;" title="Switch to Personal Employee Portal">
+                                    <i class="bi bi-display me-1"></i> My Portal
+                                </a>
+                                {% elif user.role == 'manager' %}
+                                <span class="badge bg-info-subtle text-info border border-info-subtle font-mono px-2 px-md-3 py-2 rounded-pill d-none d-lg-inline-flex" style="font-size: 0.72rem;">
+                                    <i class="bi bi-briefcase me-1"></i> OPERATIONS
+                                </span>
+                                <a href="/projects" class="btn btn-sm btn-primary rounded-pill px-2 px-md-3 shadow-sm d-inline-flex align-items-center gap-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-plus-circle"></i> New Project
+                                </a>
+                                <a href="/dashboard/employee" class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 nav-my-portal-btn" style="font-size: 0.78rem;" title="Switch to Personal Employee Portal">
+                                    <i class="bi bi-display me-1"></i> My Portal
+                                </a>
+                                {% elif user.role in ['team_lead', 'tl'] %}
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono px-2 px-md-3 py-2 rounded-pill d-none d-lg-inline-flex" style="font-size: 0.72rem;">
+                                    <i class="bi bi-people-fill me-1"></i> TEAM LEAD
+                                </span>
+                                <a href="/dashboard/employee" class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 nav-my-portal-btn" style="font-size: 0.78rem;" title="Switch to Personal Employee Portal">
+                                    <i class="bi bi-display me-1"></i> My Portal
+                                </a>
+                                {% endif %}
+                            {% endif %}
+
+                            <!-- Unified Universal Duty Status & Attendance Punch Controls (All Authenticated Staff) -->
+                            <span id="dutyStatusPill" class="duty-status-pill inactive" title="Personal Shift Duty Telemetry">
+                                <span class="pulse-dot" style="display: none;" id="dutyPulseDot"></span>
+                                <span id="dutyStatusText">Clocked Out</span>
+                            </span>
+                            <button type="button" id="btnBreakControl" class="btn btn-sm btn-outline-warning rounded-pill px-3 d-inline-flex align-items-center gap-1 break-control-btn" onclick="toggleWorkBreak()" style="display: none; font-size: 0.78rem;" title="Record work break">
+                                <i class="bi bi-cup-hot"></i> Take Break
+                            </button>
+                            <div class="punch-switch-container">
+                                <button type="button" id="punchPowerSwitch" class="punch-power-switch state-off" onclick="toggleDutyPunchSwitch()" role="switch" aria-checked="false" title="Click to toggle Shift On / Off">
+                                    <span class="switch-label label-off"><i class="bi bi-power me-1"></i> Clock In</span>
+                                    <span class="switch-label label-on"><i class="bi bi-power me-1"></i> Clock Out</span>
+                                    <span class="switch-knob">
+                                        <i class="bi bi-power"></i>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Unauthenticated Visitor Bar with Direct Login Button (Omitted on auth pages: /login, /activate) -->
+            {% if request.path.rstrip('/') not in ['/login', '/activate', '/auth/login', '/auth/activate', ''] and not user %}
+            <div class="sticky-floating-header-dock" id="stickyFloatingHeaderDock">
+                <header class="top-navbar top-navbar-floating-capsule d-flex align-items-center justify-content-between flex-nowrap px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-headline">AI Samrat HRMS</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-secondary topnav-btn topnav-theme-btn" onclick="toggleTheme()" title="Toggle Theme"><i class="bi bi-moon-stars"></i></button>
+                        <a href="/login" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center gap-1 fw-semibold" style="font-size: 0.78rem;">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </a>
+                    </div>
+                </header>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- Dynamic Body Content -->
+            <main class="{% if user %}p-3 p-md-3{% else %}p-0{% endif %} flex-grow-1 d-flex flex-column">
+                {% if error_message %}
+                <div class="container py-5 my-auto text-center">
+                    <div class="card border-0 shadow-sm p-4 p-md-5 mx-auto rounded-4" style="max-width: 520px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px);">
+                        <div class="mb-3">
+                            <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3rem;"></i>
+                        </div>
+                        <h4 class="fw-bold text-headline mb-2">{{ error_message }}</h4>
+                        <p class="text-muted small mb-4">The requested resource or page is not available. Please navigate to your dashboard or choose an option from the menu.</p>
+                        <div>
+                            <a href="/" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                                <i class="bi bi-house me-1"></i> Return to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if user and request.path != '/login' and request.endpoint != 'login' and request.endpoint != 'page_views.login_page' %}
+                <!-- Global Automated Personal Birthday Celebration Banner (Active on celebrant's birthday) -->
+                <div id="userPersonalBirthdayBanner" class="user-birthday-celebration-banner mb-3 p-3 shadow-sm rounded-4" style="display: none;">
+                    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bday-party-icon rounded-circle d-flex align-items-center justify-content-center shadow-sm">
+                                🎂
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-headline d-flex align-items-center gap-2">
+                                    <span>🎉 Happy Birthday, <span id="bdayCelebrantName">{{ user.full_name or user.name or 'Colleague' }}</span>! 🎈</span>
+                                </h6>
+                                <p class="text-muted small mb-0" id="bdayCelebrantMsg" style="font-size: 0.78rem;">
+                                    The entire team at AI Samrat wishes you a glorious, healthy, and successful year ahead!
+                                </p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-primary-gradient px-3 py-1 fw-bold text-white shadow-sm" onclick="triggerCelebrationConfetti()" title="Launch birthday confetti">
+                                🎊 Launch Celebration
+                            </button>
+                            <a href="/birthdays" class="btn btn-sm btn-outline-secondary px-3 py-1 fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-cake2 me-1 text-warning"></i> View Birthdays
+                            </a>
+                            <button type="button" class="btn-close ms-1" style="font-size: 0.7rem;" onclick="dismissUserBirthdayBannerToday()" title="Dismiss for today"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global 45-Minute Cutoff Intimation Notice Bar (10:00 AM - 6:00 PM Shift | 7:00 PM Hard Cutoff | 45m Prior Notice) -->
+                <div id="globalCutoffIntimationBar" class="cutoff-intimation-banner" style="display: none;">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-3">🔔</span>
+                            <div>
+                                <div class="cutoff-banner-title mb-1">
+                                    <span>Mandatory Checkout Notice: 7:00 PM System Cutoff</span>
+                                    <span class="cutoff-banner-countdown ms-2" id="cutoffCountdownBadge">--m left</span>
+                                </div>
+                                <div class="small" id="cutoffBannerSubtitle" style="color: #9a3412;">
+                                    Office shift completed at 6:00 PM. Hard cutoff is strictly at 7:00 PM. Please save your work diary and clock out.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+                            <button type="button" class="btn btn-sm btn-primary-gradient d-flex align-items-center gap-1" onclick="performCutoffDirectClockOut()">
+                                <i class="bi bi-power"></i> Clock Out Now
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="dismissCutoffNoticeToday()" title="Dismiss notice for today">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Change Password Modal (Two-Step Verified Email OTP) -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header border-bottom py-3">
+                    <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="changePasswordModalLabel">
+                        <i class="bi bi-shield-lock text-primary"></i> Change Account Password
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="changePwInfoNotice" class="alert alert-info py-2 small d-flex align-items-center gap-2 mb-3" style="font-size: 0.8rem;">
+                        <i class="bi bi-shield-check fs-6 text-primary flex-shrink-0"></i>
+                        <span>For account security, an OTP verification code must be sent to your registered company email (<strong id="changePwUserEmailText">{{ (user and user.email) or '' }}</strong>).</span>
+                    </div>
+
+                    <form id="changePasswordForm" onsubmit="event.preventDefault(); submitChangePassword();">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">Current Password</label>
+                            <input type="password" id="currentPasswordInput" class="form-control form-control-sm" required placeholder="Enter current password" autocomplete="current-password">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">New Password</label>
+                            <input type="password" id="newPasswordInput" class="form-control form-control-sm" required placeholder="Min 8 characters (letters, digits, symbol)" autocomplete="new-password">
+                            <div class="text-muted small mt-1" style="font-size: 0.72rem;">Must contain at least 8 characters, an uppercase, lowercase, digit, and special symbol.</div>
+                        </div>
+
+                        {% if generated_otp %}
+                        <div class="alert alert-info text-center">
+                            <strong>Test Mode - Auto-Generated OTP:</strong> <span class="badge bg-primary fs-5">{{ generated_otp }}</span>
+                        </div>
+                        {% endif %}
+                        <div id="changePwGeneratedOtpAlert" class="alert alert-info text-center" style="display: none;">
+                            <strong>Test Mode - Auto-Generated OTP:</strong> <span class="badge bg-primary fs-5" id="changePwGeneratedOtpBadge"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-muted mb-0">Email Verification Code (OTP)</label>
+                                <button type="button" id="btnSendChangePwOtp" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" onclick="sendChangePasswordOtp()">
+                                    <i class="bi bi-send me-1"></i> Send OTP
+                                </button>
+                            </div>
+                            <input type="text" id="changePasswordOtpInput" class="form-control form-control-sm" maxlength="6" placeholder="Enter 6-digit OTP from email" pattern="[0-9]{6}" required autocomplete="one-time-code">
+                            <div id="otpCountdownMsg" class="text-muted small mt-1" style="font-size: 0.72rem; display: none;"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+                            <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" id="btnSubmitChangePassword" class="btn btn-sm btn-primary px-3 shadow-sm d-flex align-items-center gap-1">
+                                <i class="bi bi-check-lg"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unified Sign Out Confirmation Modal (All 4 Roles) -->
+    <div class="modal fade" id="appSignOutModal" tabindex="-1" aria-labelledby="appSignOutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger" style="width: 52px; height: 52px;">
+                            <i class="bi bi-box-arrow-right fs-4"></i>
+                        </span>
+                    </div>
+                    <h6 class="fw-bold mb-1" id="appSignOutModalLabel">Sign Out Confirmation</h6>
+                    <p class="text-muted small mb-4">Are you sure you want to sign out? Your session will end and you will be redirected to the login page.</p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                        <a href="/logout" class="btn btn-sm btn-danger px-3 d-flex align-items-center gap-1 shadow-sm" id="btnConfirmSignOut" onclick="performSecureLogout(event)">
+                            <i class="bi bi-box-arrow-right"></i> Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user %}
+    <!-- =====================================================================
+         FLOATING PROFILE DRAWER (Section 2 - Replaces Permanent Right-Side Column)
+         ===================================================================== -->
+    <div id="profileDrawerBackdrop" class="profile-drawer-backdrop" onclick="closeProfileDrawer()"></div>
+    <div id="profileDrawer" class="profile-drawer" role="dialog" aria-modal="true" aria-labelledby="profileDrawerName">
+        <div class="profile-drawer-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono text-uppercase" style="font-size: 0.7rem;">
+                    {{ user.role.replace('_', ' ') }}
+                </span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" style="font-size: 0.68rem;">
+                    <i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i> Active Session
+                </span>
+            </div>
+            <button type="button" class="btn btn-sm btn-icon-glass" onclick="closeProfileDrawer()" aria-label="Close Profile Drawer">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="profile-drawer-body">
+            <!-- Avatar & Name Section -->
+            <div class="text-center mb-4">
+                <div class="profile-avatar-wrapper position-relative mx-auto mb-3" style="width: 86px; height: 86px;">
+                    <div class="avatar-initial rounded-circle shadow-lg w-100 h-100 d-flex align-items-center justify-content-center font-mono fw-bold" style="font-size: 2.2rem; background: linear-gradient(135deg, #00c2ff 0%, #0056d6 52%, #002b80 100%); color: #ffffff; border: 3px solid #ffffff; box-shadow: 0 12px 28px rgba(0, 86, 214, 0.35) !important;">
+                        {{ (user.full_name or user.employee_id or 'U')[:1] }}
+                    </div>
+                    <span class="position-absolute bottom-0 end-0 p-2 bg-success border border-2 border-white rounded-circle" title="Active"></span>
+                </div>
+                <h5 class="fw-bold mb-1 user-name-styled text-headline" id="profileDrawerName" style="font-size: 1.2rem;">{{ user.full_name }}</h5>
+                <div class="text-muted small mb-1">{{ user.designation or 'Corporate Team Member' }} &bull; {{ user.department or 'Operations' }}</div>
+                <div class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.75rem;">
+                    EMP-ID: {{ user.employee_id }}
+                </div>
+            </div>
+
+            <!-- Profile Info Items -->
+            <div class="d-flex flex-column gap-2 mb-4">
+                <div class="profile-info-row d-flex align-items-center justify-content-between">
+                    <span class="text-muted small"><i class="bi bi-envelope me-2 text-primary"></i> Company Email</span>
+                    <span class="fw-semibold text-dark small font-mono text-truncate" style="max-width: 170px;">{{ user.email }}</span>
+                </div>
+                {% if user.personal_email %}
+                <div class="profile-info-row d-flex align-items-center justify-content-between">
+                    <span class="text-muted small"><i class="bi bi-envelope-at me-2 text-info"></i> Personal Email</span>
+                    <span class="fw-semibold text-dark small font-mono text-truncate" style="max-width: 170px;">{{ user.personal_email }}</span>
+                </div>
+                {% endif %}
+                <div class="profile-info-row d-flex align-items-center justify-content-between">
+                    <span class="text-muted small"><i class="bi bi-shield-check me-2 text-success"></i> Access Role</span>
+                    <span class="badge bg-secondary-subtle text-secondary font-mono">{{ user.role.replace('_', ' ').title() }}</span>
+                </div>
+                <div class="profile-info-row d-flex align-items-center justify-content-between">
+                    <span class="text-muted small"><i class="bi bi-clock-history me-2 text-warning"></i> Standard Shift</span>
+                    <span class="fw-semibold text-dark small font-mono">10:00 AM – 6:00 PM</span>
+                </div>
+            </div>
+
+            <!-- Profile Action Links -->
+            <div class="d-flex flex-column gap-2 mb-4">
+                <a href="/profile/{{ user.employee_id }}" class="btn btn-outline-primary btn-sm rounded-pill py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                    <i class="bi bi-person-lines-fill"></i> View Complete Profile
+                </a>
+                <button type="button" class="btn btn-light btn-sm rounded-pill py-2 border d-flex align-items-center justify-content-center gap-2 fw-semibold text-dark" data-bs-toggle="modal" data-bs-target="#changePasswordModal" onclick="closeProfileDrawer()">
+                    <i class="bi bi-key text-primary"></i> Change Password
+                </button>
+                {% if user.role in ['admin', 'hr'] %}
+                <a href="/settings" class="btn btn-light btn-sm rounded-pill py-2 border d-flex align-items-center justify-content-center gap-2 fw-semibold text-dark">
+                    <i class="bi bi-sliders text-info"></i> Organization Settings
+                </a>
+                {% endif %}
+            </div>
+
+            <hr class="my-3 opacity-25">
+
+            <!-- Sign Out Action -->
+            <div class="pt-1">
+                <a href="/logout" class="btn btn-danger-subtle text-danger btn-sm w-100 rounded-pill py-2 border border-danger-subtle d-flex align-items-center justify-content-center gap-2 fw-semibold" id="drawerLogoutBtn" onclick="closeProfileDrawer(); performSecureLogout(event);">
+                    <i class="bi bi-box-arrow-right"></i> Sign Out of Account
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         SHARED GLOBAL QUICK ACTION MODALS (Accessible from any page / role)
+         ===================================================================== -->
+    <!-- Apply Leave Modal -->
+    <div class="modal fade" id="applyLeaveModal" tabindex="-1" aria-labelledby="applyLeaveModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold" id="applyLeaveModalLabel">
+                        <i class="bi bi-calendar-plus me-2 text-primary"></i> Apply for Leave of Absence
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="applyLeaveForm" onsubmit="submitLeaveApplication(event)">
+                    <div class="modal-body p-4">
+                        <!-- Sequential Approval Chain Stepper -->
+                        <div class="p-3 rounded-3 mb-3 bg-light border">
+                            <div class="text-uppercase text-muted fw-bold small mb-2" style="font-size: 0.65rem; letter-spacing: 0.08em;">
+                                <i class="bi bi-diagram-3 text-primary me-1"></i> Strict Sequential Approval Chain
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between position-relative">
+                                <!-- Step 1 -->
+                                <div class="d-flex flex-column align-items-center text-center" style="width: 22%;">
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold mb-1" style="width: 26px; height: 26px; font-size: 0.72rem;">1</div>
+                                    <span class="fw-semibold text-headline" style="font-size: 0.72rem;">Submit</span>
+                                    <span class="text-muted font-mono" style="font-size: 0.62rem;">Employee</span>
+                                </div>
+                                <div class="text-muted small"><i class="bi bi-arrow-right"></i></div>
+                                <!-- Step 2 -->
+                                <div class="d-flex flex-column align-items-center text-center" style="width: 22%;">
+                                    <div class="rounded-circle bg-warning-subtle text-warning-emphasis border border-warning d-flex align-items-center justify-content-center fw-bold mb-1" style="width: 26px; height: 26px; font-size: 0.72rem;">2</div>
+                                    <span class="fw-semibold text-headline" style="font-size: 0.72rem;">Review</span>
+                                    <span class="text-muted font-mono" style="font-size: 0.62rem;">Team Lead</span>
+                                </div>
+                                <div class="text-muted small"><i class="bi bi-arrow-right"></i></div>
+                                <!-- Step 3 -->
+                                <div class="d-flex flex-column align-items-center text-center" style="width: 22%;">
+                                    <div class="rounded-circle bg-info-subtle text-info-emphasis border border-info d-flex align-items-center justify-content-center fw-bold mb-1" style="width: 26px; height: 26px; font-size: 0.72rem;">3</div>
+                                    <span class="fw-semibold text-headline" style="font-size: 0.72rem;">Authorize</span>
+                                    <span class="text-muted font-mono" style="font-size: 0.62rem;">Manager</span>
+                                </div>
+                                <div class="text-muted small"><i class="bi bi-arrow-right"></i></div>
+                                <!-- Step 4 -->
+                                <div class="d-flex flex-column align-items-center text-center" style="width: 22%;">
+                                    <div class="rounded-circle bg-success-subtle text-success border border-success d-flex align-items-center justify-content-center fw-bold mb-1" style="width: 26px; height: 26px; font-size: 0.72rem;"><i class="bi bi-bell-fill"></i></div>
+                                    <span class="fw-semibold text-success" style="font-size: 0.72rem;">Intimation</span>
+                                    <span class="text-muted font-mono" style="font-size: 0.62rem;">HR Notify</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Leave Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="leaveTypeSelect" required>
+                                <optgroup label="Standard Leave Policies">
+                                    <option value="Casual Leave" selected>Casual Leave (CL)</option>
+                                    <option value="Sick Leave">Sick Leave (SL)</option>
+                                    <option value="Earned Leave">Earned Leave (EL)</option>
+                                    <option value="Comp Off">Comp Off</option>
+                                    <option value="Loss of Pay">Loss of Pay (LOP)</option>
+                                    <option value="Maternity Leave">Maternity Leave</option>
+                                    <option value="Paternity Leave">Paternity Leave</option>
+                                </optgroup>
+                                <optgroup label="Progressive AI Samrat Policies">
+                                    <option value="WFA">Work from Anywhere (WFA) &amp; Flexible Leave</option>
+                                    <option value="MHL">Mental Health Leave</option>
+                                    <option value="WND">Wellness Days</option>
+                                    <option value="PCL">Pet Care Leave</option>
+                                    <option value="NGL">Neutral Gender Leave</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Start Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="leaveStartDate" required onchange="validateLeaveDates()">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">End Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="leaveEndDate" required onchange="validateLeaveDates()">
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="leaveHalfDayCheck" onchange="validateLeaveDates()">
+                            <label class="form-check-label small" for="leaveHalfDayCheck">Half-day Leave (0.5 days)</label>
+                        </div>
+
+                        <div class="p-2 mb-3 bg-light rounded text-muted small" id="leaveDaysCalculation">
+                            Duration: <strong>1 day</strong>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Reason for Leave <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="leaveReason" rows="3" required placeholder="Specify reason for leave request..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 border-top bg-light">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitLeave">
+                            <i class="bi bi-send me-1"></i> Submit Leave Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Work Diary Modal -->
+    <div class="modal fade" id="quickWorkDiaryModal" tabindex="-1" aria-labelledby="quickWorkDiaryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold" id="quickWorkDiaryModalLabel">
+                        <i class="bi bi-journal-check me-2 text-primary"></i> Daily Work Diary &amp; Task Logging
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="quickWorkDiaryForm" onsubmit="submitQuickWorkDiary(event)">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold">Activity Title / Deliverable <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="diaryActivityTitle" required placeholder="e.g. Implemented auth API, bug fixes, client sync">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="diaryCategory" required>
+                                    <option value="Development" selected>Development / Coding</option>
+                                    <option value="Review">Code Review / QA</option>
+                                    <option value="Meeting">Team Meeting / Sync</option>
+                                    <option value="Design">UI/UX &amp; Architecture</option>
+                                    <option value="Support">Operations / Support</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">Hours Spent <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="diaryHours" min="0.5" max="12" step="0.5" value="1.0" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Work Summary &amp; Outcomes <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="diaryDescription" rows="3" required placeholder="Describe what was accomplished, deliverables completed, or pending blockers..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end mb-3">
+                            <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm" id="btnSubmitDiary">
+                                <i class="bi bi-check-lg me-1"></i> Log Activity to Work Diary
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="border-top pt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Today's Logged Activities</h6>
+                            <span class="badge bg-light text-secondary border font-mono">Today</span>
+                        </div>
+                        <div id="quickDiaryEntriesList" class="d-flex flex-column gap-2" style="max-height: 200px; overflow-y: auto;">
+                            <div class="text-muted small text-center py-3">Loading today's logged entries...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light d-flex justify-content-between">
+                    <a href="/work-diary" class="btn btn-outline-primary btn-sm">
+                        Open Full Work Diary History &rarr;
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Personal Notepad & Scratchpad Modal -->
+    <div class="modal fade" id="quickNotepadModal" tabindex="-1" aria-labelledby="quickNotepadModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom py-3 bg-light">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="bi bi-journal-text fs-6"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-headline mb-0" id="quickNotepadModalLabel">Personal Notepad &amp; Scratchpad</h6>
+                            <span class="text-muted font-mono" style="font-size: 0.7rem;" id="notepadSaveStatus">Auto-saved locally</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <textarea class="form-control border-0 p-3 bg-light rounded-3 font-mono" id="quickNotepadText" rows="9" placeholder="Type your quick notes, code snippets, meeting reminders, or thoughts here... (saved automatically to browser storage)" oninput="handleNotepadInput(this.value)" style="resize: vertical; font-size: 0.85rem; line-height: 1.5;"></textarea>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light d-flex justify-content-between align-items-center">
+                    <span class="text-muted small font-mono" style="font-size: 0.72rem;" id="notepadCharCount">0 characters</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="clearNotepadNotes()">
+                            <i class="bi bi-trash me-1"></i> Clear
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="copyNotepadNotes()">
+                            <i class="bi bi-clipboard me-1"></i> Copy
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary-gradient rounded-pill px-3 text-white fw-semibold" data-bs-dismiss="modal">
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Salary Modal -->
+    <div class="modal fade" id="quickSalaryModal" tabindex="-1" aria-labelledby="quickSalaryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold" id="quickSalaryModalLabel">
+                        <i class="bi bi-file-earmark-text me-2 text-info"></i> Salary &amp; Payslip Overview
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="avatar-initial mx-auto mb-3" style="width: 52px; height: 52px; font-size: 1.4rem;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">{{ user.full_name }}</h6>
+                    <div class="text-muted small mb-3">{{ user.designation or 'Corporate Team Member' }} &bull; {{ user.department or 'Operations' }}</div>
+                    <p class="text-muted small">
+                        Monthly payslips and detailed salary breakdown are securely archived under your authenticated profile.
+                    </p>
+                    <div class="p-3 bg-light rounded border text-start small mb-3">
+                        <div class="d-flex justify-content-between py-1 border-bottom">
+                            <span class="text-muted">Account ID</span>
+                            <span class="font-mono fw-semibold">{{ user.employee_id }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom">
+                            <span class="text-muted">Direct Deposit</span>
+                            <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Active</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="text-muted">Compensation Governance</span>
+                            <span class="text-primary fw-semibold">Confidential</span>
+                        </div>
+                    </div>
+                    <a href="/salary" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-arrow-right-circle me-1"></i> View Detailed Payslips &amp; Salary View
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Holidays Modal -->
+    <div class="modal fade" id="quickHolidaysModal" tabindex="-1" aria-labelledby="quickHolidaysModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold" id="quickHolidaysModalLabel">
+                        <i class="bi bi-calendar-event me-2 text-warning"></i> Official Paid Holidays
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Official holidays are declared paid days. Check-in or leave submission is not required.
+                    </div>
+                    <div id="quickHolidaysList" class="d-flex flex-column gap-2">
+                        <div class="text-muted small text-center py-3">Loading holidays...</div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <a href="/holidays" class="btn btn-outline-primary btn-sm me-auto">
+                        Full Holiday Calendar &rarr;
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Support Modal -->
+    <div class="modal fade" id="quickSupportModal" tabindex="-1" aria-labelledby="quickSupportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold" id="quickSupportModalLabel">
+                        <i class="bi bi-shield-exclamation me-2 text-danger"></i> Workplace Support &amp; HR Inquiries
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="quickSupportForm" onsubmit="submitQuickSupport(event)">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info py-2 px-3 small mb-3">
+                            <i class="bi bi-lock me-1"></i> Strictly confidential inquiry routed directly to authorized HR officers.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Subject / Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="supportSubject" required placeholder="e.g. Payroll inquiry, attendance query, workplace assistance">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="supportCategory" required>
+                                <option value="General Support" selected>General Workplace Inquiry</option>
+                                <option value="Payroll Inquiry">Payroll &amp; Compensation Inquiry</option>
+                                <option value="Attendance Dispute">Attendance Query</option>
+                                <option value="Confidential Concern">Confidential Concern / Grievance</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="supportDescription" rows="3" required placeholder="Describe your question or support request in detail..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 border-top bg-light">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm px-4" id="btnSubmitSupport">
+                            <i class="bi bi-send me-1"></i> Submit to HR
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Regularization Request Modal (Biometric Machine / Manual Correction) -->
+    <div class="modal fade" id="attendanceCorrectionModal" tabindex="-1" aria-labelledby="attendanceCorrectionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold" id="attendanceCorrectionModalLabel">
+                        <i class="bi bi-pencil-square me-2 text-primary"></i> Request Attendance Regularization
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="attendanceCorrectionForm" onsubmit="submitAttendanceCorrection(event)">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info py-2 px-3 small mb-3">
+                            <i class="bi bi-info-circle me-1"></i> Your request will be routed directly to your assigned Manager for authorization, with automated HR intimation upon sign-off.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Target Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="corrTargetDate" required>
+                            <div class="form-text small">Select the duty date to regularize. Future dates are not permitted.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Correction Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="corrType" required>
+                                <option value="MISSED_PUNCH_IN">Missed Clock-In Punch (Machine Sync Issue)</option>
+                                <option value="MISSED_PUNCH_OUT">Missed Clock-Out Punch</option>
+                                <option value="LATE_REGULARIZATION">Late Arrival Regularization (Official Reason)</option>
+                                <option value="ON_DUTY">On Duty / Client Offsite Visit</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Expected Clock In</label>
+                                <input type="time" class="form-control" id="corrInTime" value="10:00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Expected Clock Out</label>
+                                <input type="time" class="form-control" id="corrOutTime" value="18:00">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Detailed Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="corrReason" rows="3" required placeholder="Explain why the punch was missed or delayed (e.g. client sync, biometrics failure, offsite travel)..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 border-top bg-light">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitCorrection">
+                            Submit to Manager
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Multi-Pad Sticky Notepad Drawer (Neural-Tech Glassmorphism) -->
+    <div id="globalNotepadBackdrop" class="notepad-backdrop" onclick="closeGlobalNotepadDrawer()"></div>
+    <div id="globalNotepadDrawer" class="notepad-drawer shadow-lg">
+        <div class="notepad-drawer-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-journal-text text-info fs-5"></i>
+                <h6 class="fw-bold mb-0 text-headline">Multi-Pad Notepad</h6>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-primary-gradient py-1 px-2 rounded-pill fw-semibold" style="font-size: 0.72rem;" onclick="createNewNotepadTab()">
+                    <i class="bi bi-plus-lg me-1"></i> New Pad
+                </button>
+                <button type="button" class="btn-close" onclick="closeGlobalNotepadDrawer()"></button>
+            </div>
+        </div>
+
+        <!-- Horizontal scrollable tabs for multiple pads -->
+        <div class="notepad-tabs-scroll" id="notepadTabsContainer">
+            <!-- Dynamically populated pad pills -->
+        </div>
+
+        <!-- Active Notepad Body -->
+        <div class="p-3 d-flex flex-column flex-grow-1 overflow-hidden">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                <input type="text" id="notepadTitleInput" class="form-control form-control-sm fw-bold border-0 bg-transparent px-1 text-headline" placeholder="Pad Title..." style="font-size: 0.95rem;" oninput="onNotepadContentChanged()">
+                <div class="d-flex align-items-center gap-1">
+                    <button type="button" class="btn btn-sm btn-link p-1 text-muted" id="btnPinNotepad" onclick="togglePinCurrentNotepad()" title="Pin this pad to top">
+                        <i class="bi bi-pin-angle" id="btnPinNotepadIcon"></i>
+                    </button>
+                    <!-- Color Chips -->
+                    <div class="d-flex align-items-center gap-1 ms-1">
+                        <span class="notepad-color-chip" style="background:#0066ff;" data-color="#0066ff" onclick="setNotepadColor('#0066ff')" title="Neural Blue"></span>
+                        <span class="notepad-color-chip" style="background:#00e5ff;" data-color="#00e5ff" onclick="setNotepadColor('#00e5ff')" title="Cyber Cyan"></span>
+                        <span class="notepad-color-chip" style="background:#10b981;" data-color="#10b981" onclick="setNotepadColor('#10b981')" title="Emerald"></span>
+                        <span class="notepad-color-chip" style="background:#f59e0b;" data-color="#f59e0b" onclick="setNotepadColor('#f59e0b')" title="Amber"></span>
+                        <span class="notepad-color-chip" style="background:#8b5cf6;" data-color="#8b5cf6" onclick="setNotepadColor('#8b5cf6')" title="Violet"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <textarea id="notepadContentInput" class="form-control flex-grow-1 border-0 bg-transparent px-1 font-mono" placeholder="Write quick notes, todo items, meeting points, or code snippets here..." style="font-size: 0.85rem; resize: none; line-height: 1.5;" oninput="onNotepadContentChanged()"></textarea>
+
+            <!-- Notepad Footer -->
+            <div class="pt-2 mt-2 border-top d-flex align-items-center justify-content-between">
+                <div class="small text-muted font-mono" id="notepadSaveIndicator" style="font-size: 0.72rem;">
+                    <i class="bi bi-check2 text-success me-1"></i>Saved to Cloud
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.72rem;" onclick="deleteCurrentNotepad()" title="Delete active pad">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary-gradient py-0 px-3 fw-semibold" style="font-size: 0.74rem;" onclick="saveCurrentNotepadImmediately()">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Support Ticket & Workplace Feedback Modal (Integrated with Kudos & Support) -->
+    <div class="modal fade" id="reportIssueFeedbackModal" tabindex="-1" aria-labelledby="reportIssueFeedbackModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold text-headline" id="reportIssueFeedbackModalLabel">
+                        <i class="bi bi-headset text-primary me-2"></i> Workplace Support &amp; Feedback Ticket
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="systemFeedbackForm" onsubmit="submitSystemFeedback(event)">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info py-2 small d-flex align-items-center gap-2 mb-3" style="font-size: 0.76rem;">
+                            <i class="bi bi-info-circle fs-6 text-primary flex-shrink-0"></i>
+                            <span>Tickets automatically synchronize with <strong>Kudos &amp; Support Hub</strong> and are routed to the responsible department desk with real-time audit tracking.</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Direct Concern To (Target Authority) <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="feedbackAssignedRole">
+                                <option value="auto" selected>Auto-Route by Concern Category (Recommended)</option>
+                                <option value="admin">System &amp; IT Administrator (Hardware, VPN, Software, Security, Bug)</option>
+                                <option value="hr">Human Resources Desk (Payroll, Benefits, Leaves, Workplace Welfare)</option>
+                                <option value="manager">Department Manager (Projects, Sprints, Approvals, Team Operations)</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-7">
+                                <label class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="feedbackCategory" required>
+                                    <option value="Hardware & Peripherals">Hardware &amp; Peripherals</option>
+                                    <option value="Network & VPN Access">Network &amp; VPN Access</option>
+                                    <option value="Software & Cloud Licenses">Software &amp; Cloud Licenses</option>
+                                    <option value="HR & Benefits Policy">HR &amp; Benefits Policy</option>
+                                    <option value="Payroll & Salary Discrepancy">Payroll &amp; Salary Discrepancy</option>
+                                    <option value="Project & Sprint Operations">Project &amp; Sprint Operations</option>
+                                    <option value="Bug / Technical Error" selected>Bug / Technical Error</option>
+                                    <option value="General Feedback">General Workplace Feedback</option>
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label small fw-semibold">Priority <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="feedbackSeverity" required>
+                                    <option value="Standard" selected>Standard (Within 24h)</option>
+                                    <option value="High">High (Impacting work)</option>
+                                    <option value="Urgent">Urgent (Blocked)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Subject / Ticket Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="feedbackSummary" required placeholder="e.g. VPN token expired or Shift mismatch query">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Detailed Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control form-control-sm" id="feedbackDetails" rows="4" required placeholder="Describe the issue, query, or feedback with relevant details..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 border-top bg-light d-flex justify-content-between">
+                        <a href="/kudos-support" class="btn btn-sm btn-link text-primary text-decoration-none small">
+                            <i class="bi bi-ticket-detailed me-1"></i> View All My Support Tickets
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary-gradient btn-sm rounded-pill px-4 fw-semibold text-white" id="btnSubmitFeedback">
+                                <i class="bi bi-send me-1"></i> Submit Ticket
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration canvas is used for birthday confetti and click-triggered festival effects. -->
+    <canvas id="globalCelebrationCanvas" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 99999; display: none;"></canvas>
+
+    <!-- =========================================================================
+         FLOATING INBUILT CORPORATE MAIL COMPOSER (Triggered from Topbar Wing & Quick Actions)
+         ========================================================================= -->
+    <div id="floatingMailComposer" class="floating-mail-composer d-none">
+        <div class="floating-mail-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <div class="floating-mail-icon-bubble">
+                    <i class="bi bi-envelope-fill text-white" style="font-size: 0.85rem;"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0 text-headline small" id="floatingMailTitle">Inbuilt Corporate Memo</h6>
+                    <span class="text-muted" style="font-size: 0.68rem;" id="floatingMailSubtitle">Official Internal Mailbox</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <a href="/mailbox" class="btn btn-sm btn-link text-primary p-0 me-2 text-decoration-none small" title="Open Full Corporate Mailbox">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Full Mailbox
+                </a>
+                <button type="button" class="btn btn-sm btn-link text-muted p-1" onclick="toggleMinimizeFloatingMail()" title="Minimize / Restore">
+                    <i class="bi bi-dash-lg" id="floatingMailMinIcon"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-link text-muted p-1" onclick="toggleExpandFloatingMail()" title="Expand / Contract">
+                    <i class="bi bi-arrows-angle-expand" id="floatingMailExpIcon"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-link text-muted p-1" onclick="closeFloatingMailComposer()" title="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="floating-mail-body p-3" id="floatingMailBody">
+            <form id="floatingMailForm" onsubmit="sendFloatingCorporateMail(event)">
+                <div class="mb-2">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label small fw-semibold mb-0" style="font-size: 0.75rem;">To (Employee ID or Email) <span class="text-danger">*</span></label>
+                        <span class="badge bg-primary-subtle text-primary font-mono" id="floatingMailRecipientBadge">Official Staff</span>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light"><i class="bi bi-person text-primary"></i></span>
+                        <input type="text" class="form-control font-mono" id="floatingMailRecipientId" placeholder="e.g. AS-1002, TL-1001, HR-1001, or name@example.com" required>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-7">
+                        <label class="form-label small fw-semibold mb-1" style="font-size: 0.75rem;">Subject <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="floatingMailSubject" placeholder="Notice / Memo summary..." required>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label small fw-semibold mb-1" style="font-size: 0.75rem;">Category</label>
+                        <select class="form-select form-select-sm" id="floatingMailCategory">
+                            <option value="OFFICIAL_LETTER" selected>Official Memo</option>
+                            <option value="PROJECT_SPRINT">Sprint / Task</option>
+                            <option value="HR_NOTICE">HR Directive</option>
+                            <option value="POLICY_UPDATE">Policy Notice</option>
+                            <option value="ESCALATION">Escalation</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold mb-1" style="font-size: 0.75rem;">Message Body <span class="text-danger">*</span></label>
+                    <textarea class="form-control form-control-sm" id="floatingMailContent" rows="5" placeholder="Draft official internal communication, sprint update, or corporate notice..." required style="resize: vertical; font-size: 0.8rem;"></textarea>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="floatingMailConfidential">
+                        <label class="form-check-label text-muted small" for="floatingMailConfidential" style="font-size: 0.73rem;">Confidential</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeFloatingMailComposer()">Discard</button>
+                        <button type="submit" class="btn btn-sm btn-primary-gradient text-white px-3 shadow-sm" id="btnSendFloatingMail">
+                            <i class="bi bi-send-fill me-1"></i> Send Memo
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/app.js?v=3.4"></script>
+    <script>
+        let changePwOtpCooldownTimer = null;
+
+        async function sendChangePasswordOtp() {
+            const btn = document.getElementById('btnSendChangePwOtp');
+            const countdownEl = document.getElementById('otpCountdownMsg');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+
+            try {
+                const res = await fetch('/api/auth/change-password/request-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message || 'Verification code sent to registered email.', 'success');
+                    const codeToFill = data.debug_otp || data.dev_otp;
+                    if (codeToFill) {
+                        const alertBox = document.getElementById('changePwGeneratedOtpAlert');
+                        const badge = document.getElementById('changePwGeneratedOtpBadge');
+                        if (alertBox && badge) {
+                            badge.textContent = codeToFill;
+                            alertBox.style.display = 'block';
+                        }
+                        document.getElementById('changePasswordOtpInput').value = codeToFill;
+                        showToast(`[Dev Testing OTP] Auto-filled code: ${codeToFill}`, 'info');
+                    }
+                    // Start 60-second cooldown
+                    let remaining = 60;
+                    countdownEl.style.display = 'block';
+                    countdownEl.textContent = `You can request another code in ${remaining}s`;
+                    btn.innerHTML = `<i class="bi bi-clock me-1"></i> Resend (${remaining}s)`;
+
+                    clearInterval(changePwOtpCooldownTimer);
+                    changePwOtpCooldownTimer = setInterval(() => {
+                        remaining--;
+                        if (remaining <= 0) {
+                            clearInterval(changePwOtpCooldownTimer);
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="bi bi-send me-1"></i> Resend OTP';
+                            countdownEl.style.display = 'none';
+                        } else {
+                            btn.innerHTML = `<i class="bi bi-clock me-1"></i> Resend (${remaining}s)`;
+                            countdownEl.textContent = `You can request another code in ${remaining}s`;
+                        }
+                    }, 1000);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-send me-1"></i> Send OTP';
+                    showToast(data.error || 'Failed to send verification code.', 'error');
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send me-1"></i> Send OTP';
+                showToast('Network error while requesting verification code.', 'error');
+            }
+        }
+
+        async function submitChangePassword() {
+            const curr = document.getElementById('currentPasswordInput').value;
+            const next = document.getElementById('newPasswordInput').value;
+            const otp = document.getElementById('changePasswordOtpInput').value.trim();
+
+            if (!curr || !next) {
+                showToast('Current and new password are required.', 'error');
+                return;
+            }
+            if (!otp) {
+                showToast('Please request and enter the verification code (OTP).', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('btnSubmitChangePassword');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Updating...';
+
+            try {
+                const res = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_password: curr, new_password: next, otp: otp })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message || 'Password changed successfully.', 'success');
+                    const modalEl = document.getElementById('changePasswordModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    document.getElementById('changePasswordForm').reset();
+                    clearInterval(changePwOtpCooldownTimer);
+                    const btn = document.getElementById('btnSendChangePwOtp');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-send me-1"></i> Send OTP';
+                    document.getElementById('otpCountdownMsg').style.display = 'none';
+                } else {
+                    showToast(data.error || 'Failed to change password.', 'error');
+                }
+            } catch (err) {
+                showToast('Network error while changing password.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Update Password';
+            }
+        }
+
+        function toggleSidebarDrawer(force) {
+            const sidebar = document.querySelector('.sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar) return;
+            const isOpen = sidebar.classList.contains('show');
+            const shouldOpen = force !== undefined ? force : !isOpen;
+            if (shouldOpen) {
+                sidebar.classList.add('show');
+                if (backdrop) backdrop.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.remove('show');
+                if (backdrop) backdrop.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 992) {
+                toggleSidebarDrawer(false);
+            }
+        });
+
+        // Secure Logout Implementation with Cache & History Purge
+        async function performSecureLogout(event) {
+            if (event) {
+                try { event.preventDefault(); event.stopPropagation(); } catch (e) {}
+            }
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (e) {}
+
+            try {
+                sessionStorage.clear();
+                localStorage.removeItem('hrm_access_token');
+                const paths = ['/', '/api', '/api/auth'];
+                paths.forEach(p => {
+                    document.cookie = `hrm_access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${p};`;
+                    document.cookie = `session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${p};`;
+                });
+            } catch (e) {}
+
+            window.location.replace('/login?logged_out=1');
+        }
+
+        // Prevent browser back-navigation from restoring authenticated session pages
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+
+        // Floating Profile Drawer Controller (Section 2)
+        function openProfileDrawer() {
+            const drawer = document.getElementById('profileDrawer');
+            const backdrop = document.getElementById('profileDrawerBackdrop');
+            if (drawer) drawer.classList.add('show');
+            if (backdrop) backdrop.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProfileDrawer() {
+            const drawer = document.getElementById('profileDrawer');
+            const backdrop = document.getElementById('profileDrawerBackdrop');
+            if (drawer) drawer.classList.remove('show');
+            if (backdrop) backdrop.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Global Escape Key Listener for Modals and Drawers
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeProfileDrawer();
+                toggleSidebarDrawer(false);
+            }
+        });
+
+        // Global Shared Quick Action Modals Controller
+        let globalApplyLeaveModalInstance = null;
+        let globalQuickWorkDiaryModalInstance = null;
+        let globalQuickSalaryModalInstance = null;
+        let globalQuickHolidaysModalInstance = null;
+        let globalQuickSupportModalInstance = null;
+
+        function openApplyLeaveModal() {
+            const el = document.getElementById('applyLeaveModal');
+            if (!el) return;
+            if (!globalApplyLeaveModalInstance) {
+                globalApplyLeaveModalInstance = new bootstrap.Modal(el);
+            }
+            const form = document.getElementById('applyLeaveForm');
+            if (form) form.reset();
+            const today = new Date().toISOString().split('T')[0];
+            const s = document.getElementById('leaveStartDate');
+            const e = document.getElementById('leaveEndDate');
+            if (s) s.value = today;
+            if (e) e.value = today;
+            const chk = document.getElementById('leaveHalfDayCheck');
+            if (chk) chk.checked = false;
+            validateLeaveDates();
+            globalApplyLeaveModalInstance.show();
+        }
+
+        function validateLeaveDates() {
+            const s = document.getElementById('leaveStartDate');
+            const e = document.getElementById('leaveEndDate');
+            const chk = document.getElementById('leaveHalfDayCheck');
+            const display = document.getElementById('leaveDaysCalculation');
+            if (!s || !e || !display) return;
+            if (!s.value || !e.value) return;
+            const sd = new Date(s.value);
+            const ed = new Date(e.value);
+            if (ed < sd) {
+                display.innerHTML = '<span class="text-danger">End date cannot be prior to start date</span>';
+                return;
+            }
+            const days = Math.round((ed - sd) / (1000 * 60 * 60 * 24)) + 1;
+            const count = (chk && chk.checked) ? 0.5 : days;
+            display.innerHTML = `Duration: <strong>${count} day${count !== 1 ? 's' : ''}</strong>`;
+        }
+
+        async function submitLeaveApplication(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSubmitLeave');
+            if (btn) btn.disabled = true;
+
+            const payload = {
+                leave_type: document.getElementById('leaveTypeSelect')?.value || 'Casual Leave',
+                start_date: document.getElementById('leaveStartDate')?.value,
+                end_date: document.getElementById('leaveEndDate')?.value,
+                is_half_day: document.getElementById('leaveHalfDayCheck')?.checked || false,
+                reason: document.getElementById('leaveReason')?.value || ''
+            };
+
+            try {
+                const res = await fetch('/api/leaves/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to submit leave application');
+
+                showToast('Leave application submitted successfully!', 'success');
+                if (globalApplyLeaveModalInstance) globalApplyLeaveModalInstance.hide();
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function openQuickWorkDiaryModal() {
+            const el = document.getElementById('quickWorkDiaryModal');
+            if (!el) return;
+            if (!globalQuickWorkDiaryModalInstance) {
+                globalQuickWorkDiaryModalInstance = new bootstrap.Modal(el);
+            }
+            const form = document.getElementById('quickWorkDiaryForm');
+            if (form) form.reset();
+            const hrs = document.getElementById('diaryHours');
+            if (hrs) hrs.value = '1.0';
+            await loadTodayDiaryEntries();
+            globalQuickWorkDiaryModalInstance.show();
+        }
+
+        async function loadTodayDiaryEntries() {
+            const list = document.getElementById('quickDiaryEntriesList');
+            if (!list) return;
+            const today = new Date().toISOString().split('T')[0];
+            try {
+                const res = await fetch(`/api/work-diary/daily?date=${today}`);
+                if (!res.ok) throw new Error('Could not load entries');
+                const data = await res.json();
+                const entries = data.entries || [];
+                if (entries.length === 0) {
+                    list.innerHTML = '<div class="text-muted small text-center py-2">No activities logged yet today. Use the form above to add your first task.</div>';
+                    return;
+                }
+                list.innerHTML = entries.map(e => `
+                    <div class="p-2 border rounded bg-card-surface d-flex justify-content-between align-items-center mb-1">
+                        <div class="overflow-hidden me-2">
+                            <div class="fw-semibold small text-headline text-truncate">${escapeHtml(e.activity_title || e.title || 'Work Item')}</div>
+                            <div class="text-muted small" style="font-size: 0.72rem;">${escapeHtml(e.work_description || e.description || '')}</div>
+                        </div>
+                        <div class="text-end flex-shrink-0">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono">${e.time_spent_hours || 1}h</span>
+                            <div class="text-muted" style="font-size: 0.65rem;">${escapeHtml(e.category || 'General')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<div class="text-muted small text-center py-2">Ready to record entries.</div>`;
+            }
+        }
+
+        async function submitQuickWorkDiary(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSubmitDiary');
+            if (btn) btn.disabled = true;
+
+            const payload = {
+                activity_title: document.getElementById('diaryActivityTitle')?.value.trim() || '',
+                category: document.getElementById('diaryCategory')?.value || 'Development',
+                time_spent_hours: parseFloat(document.getElementById('diaryHours')?.value) || 1.0,
+                work_description: document.getElementById('diaryDescription')?.value.trim() || ''
+            };
+
+            try {
+                const res = await fetch('/api/work-diary/entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to log diary entry');
+
+                showToast('Work diary entry recorded successfully!', 'success');
+                const t = document.getElementById('diaryActivityTitle');
+                const d = document.getElementById('diaryDescription');
+                if (t) t.value = '';
+                if (d) d.value = '';
+                await loadTodayDiaryEntries();
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function openQuickSalaryModal() {
+            const el = document.getElementById('quickSalaryModal');
+            if (!el) return;
+            if (!globalQuickSalaryModalInstance) {
+                globalQuickSalaryModalInstance = new bootstrap.Modal(el);
+            }
+            globalQuickSalaryModalInstance.show();
+        }
+
+        async function openQuickHolidaysModal() {
+            const el = document.getElementById('quickHolidaysModal');
+            if (!el) return;
+            if (!globalQuickHolidaysModalInstance) {
+                globalQuickHolidaysModalInstance = new bootstrap.Modal(el);
+            }
+            globalQuickHolidaysModalInstance.show();
+
+            const list = document.getElementById('quickHolidaysList');
+            if (!list) return;
+            try {
+                const res = await fetch('/api/holidays');
+                if (!res.ok) throw new Error('Failed to load holidays');
+                const data = await res.json();
+                const holidays = (data.upcoming && data.upcoming.length > 0) ? data.upcoming : (data.holidays || []);
+
+                if (holidays.length === 0) {
+                    list.innerHTML = '<div class="text-muted small text-center py-3">No upcoming declared holidays.</div>';
+                    return;
+                }
+
+                list.innerHTML = holidays.slice(0, 5).map(h => `
+                    <div class="p-2 border rounded d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <div class="fw-semibold small text-headline">${escapeHtml(h.name)}</div>
+                            <div class="text-muted small font-mono" style="font-size: 0.72rem;">${h.day_name || ''} &bull; ${h.category || 'Gazetted'}</div>
+                        </div>
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono">${h.date}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = `<div class="text-danger small text-center py-3">${e.message}</div>`;
+            }
+        }
+
+        function openQuickSupportModal() {
+            const el = document.getElementById('quickSupportModal');
+            if (!el) return;
+            if (!globalQuickSupportModalInstance) {
+                globalQuickSupportModalInstance = new bootstrap.Modal(el);
+            }
+            const form = document.getElementById('quickSupportForm');
+            if (form) form.reset();
+            globalQuickSupportModalInstance.show();
+        }
+
+        async function submitQuickSupport(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSubmitSupport');
+            if (btn) btn.disabled = true;
+
+            const payload = {
+                title: document.getElementById('supportSubject')?.value || '',
+                category: document.getElementById('supportCategory')?.value || 'General Support',
+                description: document.getElementById('supportDescription')?.value || ''
+            };
+
+            try {
+                const res = await fetch('/api/complaints', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to submit workplace inquiry');
+
+                showToast('Workplace support inquiry submitted to HR!', 'success');
+                if (globalQuickSupportModalInstance) globalQuickSupportModalInstance.hide();
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        let globalAttendanceCorrectionModalInstance = null;
+        function openAttendanceCorrectionModal() {
+            const el = document.getElementById('attendanceCorrectionModal');
+            if (!el) return;
+            if (!globalAttendanceCorrectionModalInstance) {
+                globalAttendanceCorrectionModalInstance = new bootstrap.Modal(el);
+            }
+            const dateInput = document.getElementById('corrTargetDate');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.max = today;
+                if (!dateInput.value) dateInput.value = today;
+            }
+            globalAttendanceCorrectionModalInstance.show();
+        }
+
+        async function submitAttendanceCorrection(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSubmitCorrection');
+            if (btn) btn.disabled = true;
+
+            const payload = {
+                target_date: document.getElementById('corrTargetDate')?.value || '',
+                correction_type: document.getElementById('corrType')?.value || 'MISSED_PUNCH_IN',
+                expected_clock_in: document.getElementById('corrInTime')?.value || '10:00',
+                expected_clock_out: document.getElementById('corrOutTime')?.value || '18:00',
+                reason: document.getElementById('corrReason')?.value || ''
+            };
+
+            try {
+                const res = await fetch('/api/attendance/corrections/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to submit regularization request');
+
+                showToast(data.message || 'Regularization request submitted to Manager for approval.', 'success');
+                if (globalAttendanceCorrectionModalInstance) globalAttendanceCorrectionModalInstance.hide();
+                const form = document.getElementById('attendanceCorrectionForm');
+                if (form) form.reset();
+                if (typeof loadTodayAttendance === 'function') loadTodayAttendance(true);
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, function(m) {
+                return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[m];
+            });
+        }
+
+        // =====================================================================
+        // 1. GLOBAL MULTI-PAD STICKY NOTEPAD CONTROLLER
+        // =====================================================================
+        let globalNotepads = [];
+        let activeNotepadId = null;
+        let notepadSaveDebounceTimer = null;
+        let isNotepadLoading = false;
+
+        function openNotepadModal() {
+            toggleGlobalNotepadDrawer(true);
+        }
+
+        function toggleGlobalNotepadDrawer(force) {
+            const drawer = document.getElementById('globalNotepadDrawer');
+            const backdrop = document.getElementById('globalNotepadBackdrop');
+            if (!drawer) return;
+            const isShowing = drawer.classList.contains('show');
+            const shouldOpen = force !== undefined ? force : !isShowing;
+
+            if (shouldOpen) {
+                drawer.classList.add('show');
+                if (backdrop) backdrop.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                if (!globalNotepads.length) {
+                    loadUserNotepads();
+                }
+            } else {
+                closeGlobalNotepadDrawer();
+            }
+        }
+
+        function closeGlobalNotepadDrawer() {
+            const drawer = document.getElementById('globalNotepadDrawer');
+            const backdrop = document.getElementById('globalNotepadBackdrop');
+            if (drawer) drawer.classList.remove('show');
+            if (backdrop) backdrop.classList.remove('show');
+            document.body.style.overflow = '';
+            if (activeNotepadId && notepadSaveDebounceTimer) {
+                clearTimeout(notepadSaveDebounceTimer);
+                saveCurrentNotepadImmediately();
+            }
+        }
+
+        async function loadUserNotepads() {
+            isNotepadLoading = true;
+            const container = document.getElementById('notepadTabsContainer');
+            if (container) {
+                container.innerHTML = '<span class="text-muted small py-1 px-2">Loading pads...</span>';
+            }
+            try {
+                const res = await fetch('/api/notepads');
+                if (!res.ok) throw new Error('Failed to load notes');
+                const data = await res.json();
+                globalNotepads = data.notes || [];
+                if (globalNotepads.length === 0) {
+                    await createNewNotepadTab(false);
+                    return;
+                }
+                renderNotepadTabs();
+                const pinned = globalNotepads.find(n => n.is_pinned);
+                selectNotepadTab(pinned ? pinned.note_id : globalNotepads[0].note_id);
+            } catch (e) {
+                if (container) {
+                    container.innerHTML = `<span class="text-danger small py-1 px-2">${escapeHtml(e.message)}</span>`;
+                }
+            } finally {
+                isNotepadLoading = false;
+            }
+        }
+
+        function renderNotepadTabs() {
+            const container = document.getElementById('notepadTabsContainer');
+            if (!container) return;
+            if (globalNotepads.length === 0) {
+                container.innerHTML = '<span class="text-muted small py-1 px-2">No pads created yet</span>';
+                return;
+            }
+
+            container.innerHTML = globalNotepads.map(note => {
+                const isActive = note.note_id === activeNotepadId;
+                const color = note.color || '#0066ff';
+                const pinnedIcon = note.is_pinned ? '<i class="bi bi-pin-fill text-warning me-1" style="font-size: 0.65rem;"></i>' : '';
+                const title = escapeHtml(note.title || 'Untitled');
+                return `
+                    <button type="button" 
+                            class="notepad-tab-btn ${isActive ? 'active' : ''}" 
+                            style="${isActive ? '' : `border-left: 3px solid ${color};`}"
+                            onclick="selectNotepadTab('${note.note_id}')" 
+                            title="${title}">
+                        ${pinnedIcon}
+                        <span class="text-truncate" style="max-width: 105px;">${title}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectNotepadTab(noteId) {
+            if (activeNotepadId && activeNotepadId !== noteId) {
+                if (notepadSaveDebounceTimer) {
+                    clearTimeout(notepadSaveDebounceTimer);
+                    saveCurrentNotepadImmediately();
+                }
+            }
+            activeNotepadId = noteId;
+            const note = globalNotepads.find(n => n.note_id === noteId);
+            if (!note) return;
+
+            const titleInput = document.getElementById('notepadTitleInput');
+            const contentInput = document.getElementById('notepadContentInput');
+            const pinIcon = document.getElementById('btnPinNotepadIcon');
+            const saveInd = document.getElementById('notepadSaveIndicator');
+
+            if (titleInput) titleInput.value = note.title || '';
+            if (contentInput) contentInput.value = note.content || '';
+            if (pinIcon) {
+                pinIcon.className = note.is_pinned ? 'bi bi-pin-fill text-warning' : 'bi bi-pin-angle';
+            }
+            if (saveInd) {
+                saveInd.innerHTML = '<i class="bi bi-check2 text-success me-1"></i>Saved to Cloud';
+            }
+
+            document.querySelectorAll('.notepad-color-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.getAttribute('data-color') === (note.color || '#0066ff'));
+            });
+
+            renderNotepadTabs();
+        }
+
+        async function createNewNotepadTab(openDirectly = true) {
+            try {
+                const newTitle = `Pad ${globalNotepads.length + 1}`;
+                const res = await fetch('/api/notepads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: newTitle,
+                        content: '',
+                        color: '#0066ff'
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to create pad');
+                const createdNote = data.note;
+                globalNotepads.unshift(createdNote);
+                renderNotepadTabs();
+                selectNotepadTab(createdNote.note_id);
+                const titleInput = document.getElementById('notepadTitleInput');
+                if (titleInput && openDirectly) titleInput.focus();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        function onNotepadContentChanged() {
+            if (isNotepadLoading || !activeNotepadId) return;
+            const saveInd = document.getElementById('notepadSaveIndicator');
+            if (saveInd) {
+                saveInd.innerHTML = '<span class="spinner-border spinner-border-sm me-1 text-primary"></span>Saving...';
+            }
+            const note = globalNotepads.find(n => n.note_id === activeNotepadId);
+            if (note) {
+                note.title = document.getElementById('notepadTitleInput')?.value || 'Untitled';
+                note.content = document.getElementById('notepadContentInput')?.value || '';
+                renderNotepadTabs();
+            }
+            if (notepadSaveDebounceTimer) clearTimeout(notepadSaveDebounceTimer);
+            notepadSaveDebounceTimer = setTimeout(() => {
+                saveCurrentNotepadImmediately();
+            }, 700);
+        }
+
+        async function saveCurrentNotepadImmediately() {
+            if (!activeNotepadId) return;
+            const note = globalNotepads.find(n => n.note_id === activeNotepadId);
+            if (!note) return;
+
+            const title = document.getElementById('notepadTitleInput')?.value || 'Untitled';
+            const content = document.getElementById('notepadContentInput')?.value || '';
+            const saveInd = document.getElementById('notepadSaveIndicator');
+
+            try {
+                const res = await fetch(`/api/notepads/${activeNotepadId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        content: content,
+                        color: note.color || '#0066ff',
+                        is_pinned: !!note.is_pinned
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.note) {
+                    Object.assign(note, data.note);
+                    if (saveInd) saveInd.innerHTML = '<i class="bi bi-check2 text-success me-1"></i>Saved to Cloud';
+                    renderNotepadTabs();
+                }
+            } catch (e) {
+                if (saveInd) saveInd.innerHTML = '<i class="bi bi-exclamation-triangle text-warning me-1"></i>Offline / Local';
+            }
+        }
+
+        async function togglePinCurrentNotepad() {
+            if (!activeNotepadId) return;
+            const note = globalNotepads.find(n => n.note_id === activeNotepadId);
+            if (!note) return;
+            note.is_pinned = !note.is_pinned;
+            const pinIcon = document.getElementById('btnPinNotepadIcon');
+            if (pinIcon) {
+                pinIcon.className = note.is_pinned ? 'bi bi-pin-fill text-warning' : 'bi bi-pin-angle';
+            }
+            globalNotepads.sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
+            renderNotepadTabs();
+            await saveCurrentNotepadImmediately();
+        }
+
+        async function setNotepadColor(color) {
+            if (!activeNotepadId) return;
+            const note = globalNotepads.find(n => n.note_id === activeNotepadId);
+            if (!note) return;
+            note.color = color;
+            document.querySelectorAll('.notepad-color-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.getAttribute('data-color') === color);
+            });
+            renderNotepadTabs();
+            await saveCurrentNotepadImmediately();
+        }
+
+        async function deleteCurrentNotepad() {
+            if (!activeNotepadId) return;
+            const note = globalNotepads.find(n => n.note_id === activeNotepadId);
+            if (!note) return;
+            if (!confirm(`Are you sure you want to delete "${note.title || 'this pad'}"?`)) return;
+
+            try {
+                const res = await fetch(`/api/notepads/${activeNotepadId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok) throw new Error('Failed to delete pad');
+                globalNotepads = globalNotepads.filter(n => n.note_id !== activeNotepadId);
+                if (globalNotepads.length > 0) {
+                    renderNotepadTabs();
+                    selectNotepadTab(globalNotepads[0].note_id);
+                } else {
+                    activeNotepadId = null;
+                    document.getElementById('notepadTitleInput').value = '';
+                    document.getElementById('notepadContentInput').value = '';
+                    await createNewNotepadTab(false);
+                }
+                showToast('Pad deleted', 'info');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        // =====================================================================
+        // 2. GLOBAL SMART FEEDBACK & TECHNICAL ISSUE MODAL CONTROLLER
+        // =====================================================================
+        function openFeedbackModal() {
+            const el = document.getElementById('reportIssueFeedbackModal');
+            if (!el) return;
+            const form = document.getElementById('systemFeedbackForm');
+            if (form) form.reset();
+            const modal = bootstrap.Modal.getOrCreateInstance(el);
+            modal.show();
+        }
+
+        async function submitSystemFeedback(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSubmitFeedback');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Submitting...';
+            }
+
+            const payload = {
+                category: document.getElementById('feedbackCategory')?.value || 'Bug',
+                severity: document.getElementById('feedbackSeverity')?.value || 'Medium',
+                assigned_role: document.getElementById('feedbackAssignedRole')?.value || 'auto',
+                summary: document.getElementById('feedbackSummary')?.value?.trim() || '',
+                details: document.getElementById('feedbackDetails')?.value?.trim() || '',
+                dashboard_source: window.location.pathname || 'Workspace Dashboard'
+            };
+
+            try {
+                const res = await fetch('/api/feedback/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to submit feedback');
+
+                const msg = data.ticket_id
+                    ? `Support ticket ${data.ticket_id} created and dispatched to ${data.assigned_role_name || 'designated authority'}!`
+                    : (data.message || 'Report submitted successfully!');
+                showToast(msg, 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('reportIssueFeedbackModal'));
+                if (modal) modal.hide();
+                const form = document.getElementById('systemFeedbackForm');
+                if (form) form.reset();
+                if (window.location.pathname.includes('/kudos-support')) {
+                    setTimeout(() => window.location.reload(), 1200);
+                }
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-send me-1"></i> Submit Ticket';
+                }
+            }
+        }
+
+        // =====================================================================
+        // 3. USER PROFILE HOVER & CLICK POPUP CONTROLLER
+        // =====================================================================
+        function setupUserHeaderDropdown() {
+            const wrapper = document.getElementById('userHeaderDropdownWrapper');
+            const widget = document.getElementById('userHeaderWidget');
+            if (!wrapper || !widget) return;
+
+            let hoverTimeout = null;
+            const dropdown = bootstrap.Dropdown.getOrCreateInstance(widget);
+
+            wrapper.addEventListener('mouseenter', () => {
+                clearTimeout(hoverTimeout);
+                dropdown.show();
+            });
+
+            wrapper.addEventListener('mouseleave', () => {
+                hoverTimeout = setTimeout(() => {
+                    dropdown.hide();
+                }, 220);
+            });
+        }
+
+        function openChangePasswordModal() {
+            const el = document.getElementById('changePasswordModal');
+            if (!el) return;
+            const modal = bootstrap.Modal.getOrCreateInstance(el);
+            modal.show();
+        }
+
+        // =====================================================================
+        // 4. FLOATING CORPORATE MAIL COMPOSER CONTROLLER
+        // =====================================================================
+        function openFloatingMailComposer(recipientId = '', recipientName = '', recipientEmail = '', subject = '', category = 'OFFICIAL_LETTER') {
+            const composer = document.getElementById('floatingMailComposer');
+            if (!composer) return;
+            composer.classList.remove('d-none');
+            composer.classList.remove('minimized');
+            composer.style.display = 'block';
+            composer.style.position = 'fixed';
+            composer.style.zIndex = '99999';
+            composer.style.top = '90px';
+
+            const recInput = document.getElementById('floatingMailRecipientId');
+            const subInput = document.getElementById('floatingMailSubject');
+            const catSelect = document.getElementById('floatingMailCategory');
+            const badgeEl = document.getElementById('floatingMailRecipientBadge');
+            const titleEl = document.getElementById('floatingMailTitle');
+
+            if (recInput) recInput.value = recipientId || recipientEmail || '';
+            if (subInput && subject) subInput.value = subject;
+            if (catSelect && category) catSelect.value = category;
+            if (badgeEl) badgeEl.textContent = recipientName ? recipientName : 'Official Staff';
+            if (titleEl) titleEl.textContent = recipientName ? `Memo to ${recipientName}` : 'New Corporate Memo';
+
+            const contentInput = document.getElementById('floatingMailContent');
+            if (contentInput) {
+                setTimeout(() => contentInput.focus(), 120);
+            }
+        }
+
+        function toggleMinimizeFloatingMail() {
+            const composer = document.getElementById('floatingMailComposer');
+            if (!composer) return;
+            composer.classList.toggle('minimized');
+            const icon = document.getElementById('floatingMailMinIcon');
+            if (icon) {
+                icon.className = composer.classList.contains('minimized') ? 'bi bi-window-stack' : 'bi bi-dash-lg';
+            }
+        }
+
+        function toggleExpandFloatingMail() {
+            const composer = document.getElementById('floatingMailComposer');
+            if (!composer) return;
+            composer.classList.toggle('expanded');
+            const icon = document.getElementById('floatingMailExpIcon');
+            if (icon) {
+                icon.className = composer.classList.contains('expanded') ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand';
+            }
+        }
+
+        function closeFloatingMailComposer() {
+            const composer = document.getElementById('floatingMailComposer');
+            if (composer) {
+                composer.classList.add('d-none');
+                composer.classList.remove('expanded');
+                composer.classList.remove('minimized');
+            }
+        }
+
+        async function sendFloatingCorporateMail(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSendFloatingMail');
+            const recipient = document.getElementById('floatingMailRecipientId')?.value?.trim();
+            const subject = document.getElementById('floatingMailSubject')?.value?.trim();
+            const category = document.getElementById('floatingMailCategory')?.value || 'OFFICIAL_LETTER';
+            const content = document.getElementById('floatingMailContent')?.value?.trim();
+            const isConfidential = document.getElementById('floatingMailConfidential')?.checked || false;
+
+            if (!recipient || !subject || !content) {
+                showToast('Recipient, subject, and content are required.', 'error');
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Dispatching...';
+            }
+
+            try {
+                const payload = {
+                    recipient_id: recipient.includes('@') ? '' : recipient,
+                    recipient_email: recipient.includes('@') ? recipient : '',
+                    subject: subject,
+                    category: category,
+                    content: content,
+                    is_confidential: isConfidential
+                };
+
+                const res = await fetch('/api/mailbox/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to dispatch corporate mail.');
+
+                showToast(data.message || 'Corporate memo dispatched successfully via Inbuilt Mailbox!', 'success');
+                document.getElementById('floatingMailForm')?.reset();
+                closeFloatingMailComposer();
+
+                // If currently on /mailbox page, refresh
+                if (typeof loadMailboxRecords === 'function') {
+                    loadMailboxRecords();
+                }
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send Memo';
+                }
+            }
+        }
+
+        // Initialize controllers on DOM ready
+        document.addEventListener('DOMContentLoaded', () => {
+            setupUserHeaderDropdown();
+        });
+
+        // =====================================================================
+        // 5. GLOBAL ENTERPRISE SEARCH CONTROLLER
+        // =====================================================================
+        let globalSearchDebounceTimer = null;
+
+        // Close search dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#globalSearchResultsDropdown') && !e.target.closest('#globalSearchInput')) {
+                const drop = document.getElementById('globalSearchResultsDropdown');
+                if (drop) drop.classList.add('d-none');
+            }
+        });
+
+        let lastSearchResults = null;
+
+        function handleGlobalSearchEnter(query) {
+            const q = (query || '').trim();
+            if (!q) return;
+            if (lastSearchResults) {
+                const { navigation = [], projects = [], staff = [] } = lastSearchResults;
+                if (navigation && navigation.length > 0) {
+                    window.location.href = navigation[0].url;
+                    return;
+                }
+                if (projects && projects.length > 0) {
+                    window.location.href = projects[0].url;
+                    return;
+                }
+                if (staff && staff.length > 0) {
+                    window.location.href = staff[0].url;
+                    return;
+                }
+            }
+            window.location.href = `/profiles?search=${encodeURIComponent(q)}`;
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+                e.preventDefault();
+                const inp = document.getElementById('globalSearchInput');
+                if (inp) {
+                    inp.focus();
+                    inp.select();
+                }
+            }
+        });
+
+        function triggerGlobalSearchClick() {
+            const inp = document.getElementById('globalSearchInput');
+            if (!inp) return;
+            inp.focus();
+            const val = inp.value.trim();
+            if (val) {
+                handleGlobalSearchEnter(val);
+            } else {
+                handleGlobalSearch('');
+            }
+        }
+
+        function handleGlobalSearch(query) {
+            const clearBtn = document.getElementById('globalSearchClearBtn');
+            const drop = document.getElementById('globalSearchResultsDropdown');
+            const container = document.getElementById('globalSearchListContainer');
+            if (!drop || !container) return;
+
+            const q = (query || '').trim();
+            if (clearBtn) clearBtn.style.display = q ? 'inline-block' : 'none';
+
+            clearTimeout(globalSearchDebounceTimer);
+            globalSearchDebounceTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/search/global?q=${encodeURIComponent(q)}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    renderGlobalSearchResults(data.results || {}, q);
+                    drop.classList.remove('d-none');
+                } catch (e) {
+                    console.error('Global search error:', e);
+                }
+            }, 120);
+        }
+
+        function clearGlobalSearch() {
+            const input = document.getElementById('globalSearchInput');
+            const clearBtn = document.getElementById('globalSearchClearBtn');
+            const drop = document.getElementById('globalSearchResultsDropdown');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            if (clearBtn) clearBtn.style.display = 'none';
+            if (drop) drop.classList.add('d-none');
+        }
+
+        function renderGlobalSearchResults(results, query) {
+            lastSearchResults = results;
+            const container = document.getElementById('globalSearchListContainer');
+            if (!container) return;
+
+            const { staff = [], navigation = [], projects = [] } = results;
+            const total = staff.length + navigation.length + projects.length;
+
+            if (total === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted small py-3">
+                        <i class="bi bi-search me-1"></i> No matching staff, routes, or projects found for "${escapeHtml(query)}"
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            // 1. Navigation & Actions
+            if (navigation.length > 0) {
+                html += `<div class="px-2 py-1 text-muted fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.05em;">Workspace &amp; Actions</div>`;
+                navigation.forEach(nav => {
+                    html += `
+                        <a href="${nav.url}" class="search-result-item">
+                            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; font-size: 0.85rem;">
+                                <i class="bi ${nav.icon || 'bi-link-45deg'}"></i>
+                            </div>
+                            <div class="overflow-hidden flex-grow-1">
+                                <div class="fw-semibold text-truncate small">${escapeHtml(nav.title)}</div>
+                                <div class="text-muted text-truncate" style="font-size: 0.68rem;">${escapeHtml(nav.desc)}</div>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted" style="font-size: 0.7rem;"></i>
+                        </a>
+                    `;
+                });
+            }
+
+            // 2. Staff Members
+            if (staff.length > 0) {
+                html += `<div class="px-2 pt-2 pb-1 text-muted fw-bold text-uppercase border-top mt-1" style="font-size: 0.65rem; letter-spacing: 0.05em;">Staff Directory (${staff.length})</div>`;
+                staff.forEach(s => {
+                    html += `
+                        <a href="${s.url}" class="search-result-item">
+                            <div class="avatar-initial rounded-circle font-mono fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; font-size: 0.72rem; background: #0056d6; color: #fff;">
+                                ${(s.full_name || 'U').charAt(0)}
+                            </div>
+                            <div class="overflow-hidden flex-grow-1">
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="fw-semibold text-truncate small">${escapeHtml(s.full_name)}</span>
+                                    <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.62rem;">${escapeHtml(s.employee_id)}</span>
+                                </div>
+                                <div class="text-muted text-truncate" style="font-size: 0.68rem;">${escapeHtml(s.designation || s.department || s.role)}</div>
+                            </div>
+                            <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.65rem;">${escapeHtml(s.role)}</span>
+                        </a>
+                    `;
+                });
+            }
+
+            // 3. Projects
+            if (projects.length > 0) {
+                html += `<div class="px-2 pt-2 pb-1 text-muted fw-bold text-uppercase border-top mt-1" style="font-size: 0.65rem; letter-spacing: 0.05em;">Projects (${projects.length})</div>`;
+                projects.forEach(p => {
+                    html += `
+                        <a href="${p.url}" class="search-result-item">
+                            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; font-size: 0.85rem;">
+                                <i class="bi bi-kanban"></i>
+                            </div>
+                            <div class="overflow-hidden flex-grow-1">
+                                <div class="fw-semibold text-truncate small">${escapeHtml(p.name)}</div>
+                                <div class="text-muted text-truncate font-mono" style="font-size: 0.68rem;">${escapeHtml(p.code)} &bull; ${escapeHtml(p.status)}</div>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted" style="font-size: 0.7rem;"></i>
+                        </a>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+    {% block scripts_extra %}{% endblock %}
+</body>
+</html>

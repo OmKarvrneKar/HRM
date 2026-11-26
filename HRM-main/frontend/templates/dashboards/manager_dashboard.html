@@ -1,0 +1,1587 @@
+{% extends "base.html" %}
+
+{% block title %}Operations & Project Oversight — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Manager Boundary Callout -->
+    <div class="card p-3 mb-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center bg-primary-subtle border border-primary-subtle rounded-3 p-2 text-primary" style="width: 36px; height: 36px;">
+                <i class="bi bi-shield-check fs-6"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="fw-semibold text-headline" style="font-size: 0.845rem;">Operational Governance &amp; Confidentiality Boundary Active</div>
+                <div class="text-muted small" style="font-size: 0.75rem;">
+                    You are in the Operations &amp; Project Management console. Confidential compensation, banking, and private HR grievances are isolated to authorized HR officers.
+                </div>
+            </div>
+            <span class="badge bg-light text-secondary border font-mono d-none d-md-inline" style="font-size: 0.68rem;">MANAGER SCOPE</span>
+        </div>
+    </div>
+
+    <!-- Operational KPI Metrics Row -->
+    <div class="dashboard-metrics-grid mb-3">
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title">Active Projects</span>
+                <i class="bi bi-kanban metric-icon-subtle text-primary"></i>
+            </div>
+            <div class="metric-value text-primary" id="mActiveProjects">--</div>
+            <div class="metric-footer text-muted" id="mTotalProjects">Total in portfolio</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title text-warning">Pending Approvals</span>
+                <i class="bi bi-shield-check metric-icon-subtle text-warning"></i>
+            </div>
+            <div class="metric-value text-warning" id="mPendingProposals">0</div>
+            <div class="metric-footer text-muted"><a href="/projects?tab=approvals" class="text-decoration-none text-muted">Awaiting signoff &rarr;</a></div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title text-success">Avg Milestone</span>
+                <i class="bi bi-speedometer2 metric-icon-subtle text-success"></i>
+            </div>
+            <div class="metric-value text-success" id="mAvgProgress">--%</div>
+            <div class="metric-footer text-muted">Across managed initiatives</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title text-danger">Overdue Tasks</span>
+                <i class="bi bi-exclamation-octagon metric-icon-subtle text-danger"></i>
+            </div>
+            <div class="metric-value text-danger" id="mOverdueTasks">--</div>
+            <div class="metric-footer text-muted">Needing attention</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title text-warning">Pending Leaves</span>
+                <i class="bi bi-calendar-event metric-icon-subtle text-warning"></i>
+            </div>
+            <div class="metric-value text-warning" id="mPendingLeaves">--</div>
+            <div class="metric-footer text-muted">Department requests</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title text-warning">Attendance Corrections</span>
+                <i class="bi bi-pencil-square metric-icon-subtle text-warning"></i>
+            </div>
+            <div class="metric-value text-warning" id="mPendingCorrections">0</div>
+            <div class="metric-footer text-muted">Awaiting your approval</div>
+        </div>
+    </div>
+
+    <!-- Consolidated Tabbed Approval Governance Card -->
+    <div class="card dashboard-card p-3 p-md-4 mb-4 border shadow-sm" id="managerGovernanceConsoleCard">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 border-bottom pb-3">
+            <div>
+                <h6 class="fw-bold mb-1 text-headline d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-check text-warning fs-5"></i> Manager Approval &amp; Authorization Queues
+                </h6>
+                <span class="text-muted small">Single console for Project Proposals, Attendance Regularizations, Remote Work (WFH), and Shift Schedules.</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="governance-tab-btn active" id="btnGovLeaves" onclick="switchManagerGovernanceTab('leaves')">
+                    <i class="bi bi-calendar2-check me-1"></i> Leaves (Final Sign-off) <span class="badge bg-warning text-dark font-mono ms-1" id="mPendingLeavesTabBadge">0 Pending</span>
+                </button>
+                <button type="button" class="governance-tab-btn" id="btnGovOvertime" onclick="switchManagerGovernanceTab('overtime')">
+                    <i class="bi bi-hourglass-split me-1"></i> Overtime (Stage 2) <span class="badge bg-warning text-dark font-mono ms-1" id="mPendingOtBadge">0 Pending</span>
+                </button>
+                <button type="button" class="governance-tab-btn" id="btnGovProjects" onclick="switchManagerGovernanceTab('projects')">
+                    <i class="bi bi-kanban me-1"></i> Projects <span class="badge bg-warning text-dark font-mono ms-1" id="mPendingProposalsBadge">0 Pending</span>
+                </button>
+                <button type="button" class="governance-tab-btn" id="btnGovCorrections" onclick="switchManagerGovernanceTab('corrections')">
+                    <i class="bi bi-pencil-square me-1"></i> Attendance <span class="badge bg-warning text-dark font-mono ms-1" id="mPendingCorrectionsBadge">0 Pending</span>
+                </button>
+                <button type="button" class="governance-tab-btn" id="btnGovWFH" onclick="switchManagerGovernanceTab('wfh')">
+                    <i class="bi bi-house-door me-1"></i> WFH <span class="badge bg-primary text-white font-mono ms-1" id="mPendingWFHBadge">0 Pending</span>
+                </button>
+                <button type="button" class="governance-tab-btn" id="btnGovRosters" onclick="switchManagerGovernanceTab('rosters')">
+                    <i class="bi bi-calendar2-range me-1"></i> Rosters <span class="badge bg-info text-dark font-mono ms-1" id="mPendingRostersBadge">0 Pending</span>
+                </button>
+                <button type="button" class="governance-tab-btn" id="btnGovAssets" onclick="switchManagerGovernanceTab('assets')">
+                    <i class="bi bi-box-seam me-1"></i> Asset Requests <span class="badge bg-danger text-white font-mono ms-1" id="mPendingAssetsBadge">0 Pending</span>
+                </button>
+                <button type="button" class="governance-tab-btn" id="btnGovExpenses" onclick="switchManagerGovernanceTab('expenses')">
+                    <i class="bi bi-receipt me-1"></i> Expense Claims <span class="badge bg-danger text-white font-mono ms-1" id="mPendingExpensesBadge">0 Pending</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel 0: Leave Approvals (Final Sign-off Passed Down from Team Leads) -->
+        <div id="panelGovLeaves" class="governance-panel is-active">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span class="text-muted small">Sequential Leave Chain: Stage 2 final managerial sign-off for leave applications passed down from Team Leads. Full approval automatically triggers HR notification.</span>
+                <a href="/leaves" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Full Leave Console
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Department</th>
+                            <th>Leave Type</th>
+                            <th>Dates &amp; Span</th>
+                            <th>Reason / TL Endorsement</th>
+                            <th class="text-end">Final Manager Sign-off</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingLeavesTableBody">
+                        <tr><td colspan="6" class="text-center text-muted py-3">Loading pending leave requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel: Overtime Sign-off (Stage 2 Manager Department Sign-off) -->
+        <div id="panelGovOvertime" class="governance-panel" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span class="text-muted small">Department Overtime Governance: Authorize team overtime hours reviewed by Team Leads before final HR payroll execution.</span>
+                <span class="badge bg-primary-subtle text-primary font-mono" id="mOtHoursTotalBadge">0h Total</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Squad / Team</th>
+                            <th>Overtime Date</th>
+                            <th>Requested vs Approved</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th class="text-end">Manager Sign-Off</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingOvertimeTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-3">Loading department overtime requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel 1: Project Proposals -->
+        <div id="panelGovProjects" class="governance-panel" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span class="text-muted small">Mandatory manager authorization required before team lead proposals and membership updates become active.</span>
+                <a href="/projects?tab=approvals" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Full Approvals Console
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Project Proposal</th>
+                            <th>Submitted By</th>
+                            <th>Objectives &amp; Deliverables</th>
+                            <th>Proposed Team &amp; Workload</th>
+                            <th>Priority &amp; Timeline</th>
+                            <th class="text-end">Manager Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingApprovalsTableBody">
+                        <tr><td colspan="6" class="text-center text-muted py-3">Loading pending proposals...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel 2: Attendance Regularizations -->
+        <div id="panelGovCorrections" class="governance-panel" style="display: none;">
+            <div class="mb-2 px-1 text-muted small">
+                Employee requests for missed punches and on-duty regularizations awaiting your manager authorization. Approved records immediately update attendance summaries and notify HR.
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Target Date</th>
+                            <th>Correction Type</th>
+                            <th>Requested Hours</th>
+                            <th>Employee Reason</th>
+                            <th class="text-end">Manager Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingCorrectionsTableBody">
+                        <tr><td colspan="6" class="text-center text-muted py-3">Loading pending regularizations...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel 3: Work From Home (WFH) Requests -->
+        <div id="panelGovWFH" class="governance-panel" style="display: none;">
+            <div class="mb-2 px-1 text-muted small">
+                Employee requests for remote work awaiting manager authorization. Approved requests notify both the employee and HR.
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Dates &amp; Duration</th>
+                            <th>Reason</th>
+                            <th class="text-end">Manager Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingWFHTableBody">
+                        <tr><td colspan="4" class="text-center text-muted py-3">Loading pending WFH requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel 4: Shift Rosters -->
+        <div id="panelGovRosters" class="governance-panel" style="display: none;">
+            <div class="mb-2 px-1 text-muted small">
+                Shift rosters proposed by Team Leads. Manager approval publishes schedules and notifies scheduled staff.
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Roster ID</th>
+                            <th>Team</th>
+                            <th>Schedule Period</th>
+                            <th>Proposed By</th>
+                            <th>Total Shifts</th>
+                            <th class="text-end">Manager Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingRostersTableBody">
+                        <tr><td colspan="6" class="text-center text-muted py-3">Loading pending shift rosters...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+        <!-- Panel: Asset Requests -->
+        <div id="panelGovAssets" class="governance-panel" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span class="text-muted small">Hardware/Software asset requests submitted by employees pending IT & Manager review.</span>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="loadManagerPendingAssets()" style="font-size:0.75rem;"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Category</th>
+                            <th>Item Requested</th>
+                            <th>Urgency</th>
+                            <th>Submitted</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingAssetsTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-3">Loading pending asset requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel: Expense Claims -->
+        <div id="panelGovExpenses" class="governance-panel" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span class="text-muted small">Travel & official expense reimbursement claims submitted by employees awaiting manager sign-off.</span>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="loadManagerPendingExpenses()" style="font-size:0.75rem;"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Trip Purpose</th>
+                            <th>Travel Dates</th>
+                            <th>Amount</th>
+                            <th>Submitted</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerPendingExpensesTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-3">Loading pending expense claims...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    <!-- Active Projects Oversight & Team Workload Row -->
+    <div class="row g-3 mb-3">
+        <!-- Managed Projects Portfolio Table -->
+        <div class="col-12 col-lg-8">
+            <div class="card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Managed Projects &amp; Deliverables</h6>
+                        <span class="text-muted small" style="font-size: 0.72rem;">Real-time status, milestone percentage, and workload allocation</span>
+                    </div>
+                    <a href="/projects" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.75rem;">Portfolio View</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                        <thead>
+                            <tr>
+                                <th>Project</th>
+                                <th>Status</th>
+                                <th style="width: 32%;">Progress</th>
+                                <th>Team Size</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="managerProjectsTableBody">
+                            <tr><td colspan="5" class="text-center text-muted py-2">Loading operational projects...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Status Chart & Quick Workload Breakdown -->
+        <div class="col-12 col-lg-4">
+            <div class="card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Status Health</h6>
+                        <span class="text-muted small" style="font-size: 0.72rem;">Initiative health distribution</span>
+                    </div>
+                    <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.65rem;">Portfolio</span>
+                </div>
+                <div style="height: 180px; position: relative;">
+                    <canvas id="managerStatusDoughnut"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Team Workload & Leave Verification Queue Row -->
+    <div class="dashboard-two-col-grid mb-3">
+        <!-- Team Members Availability & Operational Attendance -->
+        <div class="card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Operational Attendance &amp; Availability</h6>
+                    <span class="text-muted small" style="font-size: 0.72rem;">Today's team status</span>
+                </div>
+                <a href="/attendance" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">Full Attendance</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                    <thead>
+                        <tr>
+                            <th>Staff Member</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Working Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerAttendanceTableBody">
+                        <tr><td colspan="4" class="text-center text-muted py-2">Loading operational roster...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Department Leave Approvals Queue -->
+        <div class="card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Department Leave Approvals Queue</h6>
+                    <span class="text-muted small" style="font-size: 0.72rem;">Requests awaiting operational decision</span>
+                </div>
+                <a href="/leaves" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">Review Portal</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Type</th>
+                            <th>Dates</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerLeavesTableBody">
+                        <tr><td colspan="4" class="text-center text-muted py-3">Loading pending leave requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Analytics Overview: Task Stage Distribution & Workflow Bottlenecks -->
+    <div class="card p-3 p-md-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h6 class="fw-bold mb-0 text-dark">Workflow Stages &amp; Bottlenecks</h6>
+                <span class="text-muted small">Deliverable status across operations</span>
+            </div>
+            <span class="badge bg-secondary-subtle text-muted">Tasks</span>
+        </div>
+        <div style="height: 200px; position: relative;">
+            <canvas id="managerTaskStagesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     Manager In-Place Quick Access Modals (Reference 3)
+     ========================================== -->
+
+<!-- 1. Quick Leave Approvals Modal -->
+<div class="modal fade" id="quickManagerLeavesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header py-3 border-bottom bg-light">
+                <h6 class="modal-title fw-bold">
+                    <i class="bi bi-calendar2-check me-2 text-primary"></i> Leave Applications (Stage 2 Manager Approval)
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 px-3 small mb-3">
+                    <i class="bi bi-diagram-3 me-1"></i> <strong>Workflow:</strong> Employee &rarr; Team Lead Review &rarr; <strong>Manager Final Approval</strong> &rarr; HR Notification.
+                </div>
+                <div id="mQuickLeavesListContainer" class="d-flex flex-column gap-2">
+                    <div class="text-muted small text-center py-3">Loading pending leave applications...</div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 border-top bg-light d-flex justify-content-between">
+                <a href="/leaves" class="btn btn-outline-primary btn-sm">Full Leave Review Center &rarr;</a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Quick Project Portfolio Modal -->
+<div class="modal fade" id="quickManagerPortfolioModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header py-3 border-bottom bg-light">
+                <h6 class="modal-title fw-bold">
+                    <i class="bi bi-kanban me-2 text-secondary"></i> Multi-Project Portfolio &amp; Milestones
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-3 text-center">
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded border">
+                            <span class="text-muted small d-block mb-1">Active Deliverables</span>
+                            <h4 class="fw-bold mb-0 text-dark" id="modalMActiveProjects">--</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded border">
+                            <span class="text-muted small d-block mb-1">Portfolio Completion Rate</span>
+                            <h4 class="fw-bold mb-0 text-primary" id="modalMAvgProgress">--</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 bg-light rounded border text-center">
+                    <p class="text-muted small mb-3">Manage project scope proposals, sprint deliverables, and resource allocations across teams.</p>
+                    <a href="/projects" class="btn btn-primary btn-sm px-4">
+                        <i class="bi bi-folder2-open me-1"></i> Open Projects Console
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer py-2 border-top bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Quick Staff Directory Modal -->
+<div class="modal fade" id="quickManagerDirectoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header py-3 border-bottom bg-light">
+                <h6 class="modal-title fw-bold">
+                    <i class="bi bi-people me-2 text-primary"></i> Department Staff &amp; Operational Roster
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 px-3 small mb-3">
+                    <i class="bi bi-shield-check me-1"></i> Displays employees and team leads under operational management scope. Confidential compensation and personal HR records remain isolated to authorized HR officers.
+                </div>
+                <div id="mQuickStaffListContainer" class="d-flex flex-column gap-2" style="max-height: 280px; overflow-y: auto;">
+                    <div class="text-muted small text-center py-3">Loading operational roster...</div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 border-top bg-light d-flex justify-content-between">
+                <a href="/profiles" class="btn btn-outline-primary btn-sm">Open Staff Directory &rarr;</a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+let managerChartInstance = null;
+const mModalInstances = {};
+
+function openManagerModal(modalId) {
+    if (!mModalInstances[modalId]) {
+        mModalInstances[modalId] = new bootstrap.Modal(document.getElementById(modalId));
+    }
+    if (modalId === 'quickManagerLeavesModal') {
+        loadManagerQuickLeaves();
+    } else if (modalId === 'quickManagerPortfolioModal') {
+        const active = document.getElementById('mActiveProjects');
+        const avg = document.getElementById('mAvgProgress');
+        if (active) document.getElementById('modalMActiveProjects').textContent = active.textContent;
+        if (avg) document.getElementById('modalMAvgProgress').textContent = avg.textContent;
+    } else if (modalId === 'quickManagerDirectoryModal') {
+        loadManagerQuickStaff();
+    }
+    mModalInstances[modalId].show();
+}
+
+async function loadManagerQuickLeaves() {
+    const el = document.getElementById('mQuickLeavesListContainer');
+    if (!el) return;
+    try {
+        const res = await fetch('/api/leaves/all?status=Pending');
+        if (!res.ok) throw new Error('Could not fetch leaves');
+        const data = await res.json();
+        const reqs = data.requests || [];
+        if (reqs.length === 0) {
+            el.innerHTML = '<div class="text-muted small text-center py-3"><i class="bi bi-check-circle text-success me-1"></i>No pending leave applications requiring approval.</div>';
+            return;
+        }
+        el.innerHTML = reqs.map(r => `
+            <div class="p-2 border rounded bg-card-surface d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-semibold small text-headline">${escapeHtml(r.employee_name || r.employee_id)} &bull; <span class="badge bg-primary-subtle text-primary">${r.leave_type || 'Leave'}</span></div>
+                    <div class="text-muted small" style="font-size: 0.72rem;">${r.start_date} to ${r.end_date} &bull; ${escapeHtml(r.reason || 'Personal')}</div>
+                </div>
+                <a href="/leaves" class="btn btn-sm btn-primary py-0 px-2" style="font-size: 0.72rem;">Authorize &rarr;</a>
+            </div>
+        `).join('');
+    } catch (e) {
+        el.innerHTML = '<div class="text-muted small text-center py-2">No pending leave requests.</div>';
+    }
+}
+
+async function loadManagerQuickStaff() {
+    const el = document.getElementById('mQuickStaffListContainer');
+    if (!el) return;
+    try {
+        const res = await fetch('/api/users/team-directory');
+        if (!res.ok) throw new Error('Could not fetch directory');
+        const data = await res.json();
+        const users = data.users || [];
+        if (users.length === 0) {
+            el.innerHTML = '<div class="text-muted small text-center py-3">No staff members enrolled in this operational division.</div>';
+            return;
+        }
+        el.innerHTML = users.map(u => `
+            <div class="p-2 border rounded bg-card-surface d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-semibold small text-headline">${escapeHtml(u.full_name || u.employee_id)}</div>
+                    <div class="text-muted small" style="font-size: 0.72rem;">${escapeHtml(u.designation || 'Specialist')} &bull; ${escapeHtml(u.department || 'Operations')}</div>
+                </div>
+                <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.68rem;">${u.employee_id}</span>
+            </div>
+        `).join('');
+    } catch (e) {
+        el.innerHTML = '<div class="text-muted small text-center py-2">Department directory active.</div>';
+    }
+}
+
+function switchManagerGovernanceTab(tabKey) {
+    const tabs = ['leaves', 'overtime', 'projects', 'corrections', 'wfh', 'rosters', 'assets', 'expenses'];
+    tabs.forEach(t => {
+        const btn = document.getElementById(`btnGov${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const panel = document.getElementById(`panelGov${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (btn) {
+            if (t === tabKey) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+        if (panel) {
+            const isActive = t === tabKey;
+            panel.style.display = isActive ? 'block' : 'none';
+            panel.classList.toggle('is-active', isActive);
+        }
+    });
+    if (tabKey === 'overtime') {
+        loadManagerOvertime();
+    } else if (tabKey === 'assets') {
+        loadManagerPendingAssets();
+    } else if (tabKey === 'expenses') {
+        loadManagerPendingExpenses();
+    }
+}
+
+// ----------------------------------------------------
+// Department Manager Sign-Off on Overtime (Tiimi SaaS HRM)
+// ----------------------------------------------------
+async function loadManagerOvertime() {
+    const tbody = document.getElementById('managerPendingOvertimeTableBody');
+    const badge = document.getElementById('mPendingOtBadge');
+    const hoursBadge = document.getElementById('mOtHoursTotalBadge');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/overtime/list');
+        const data = await res.json();
+        const list = data.overtime_requests || [];
+        const pending = list.filter(r => (r.status || '').toLowerCase() === 'pending');
+
+        if (badge) badge.textContent = `${pending.length} Pending`;
+        let totalH = 0;
+        list.forEach(r => totalH += (r.approved_duration_hours || r.duration_hours || 0));
+        if (hoursBadge) hoursBadge.textContent = `${Math.round(totalH)}h Dept Total`;
+
+        if (pending.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-check2-circle text-success fs-4 d-block mb-1"></i>All department overtime requests have received managerial authorization.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = pending.map(item => `
+            <tr class="m-searchable-row">
+                <td>
+                    <div class="fw-bold text-headline">${escapeHtml(item.employee_name || item.employee_id)}</div>
+                    <div class="text-muted font-mono" style="font-size: 0.72rem;">#${escapeHtml(item.employee_id)}</div>
+                </td>
+                <td>
+                    <span class="badge bg-light text-secondary border">${escapeHtml(item.department || 'Engineering')}</span>
+                </td>
+                <td class="fw-semibold small">${escapeHtml(item.overtime_date || '-')}</td>
+                <td class="font-mono small">
+                    <div>${escapeHtml(item.requested_start_time || item.start_time || '07:00 PM')} &ndash; ${escapeHtml(item.requested_end_time || item.end_time || '09:00 PM')}</div>
+                    <span class="badge bg-primary-subtle text-primary font-mono" style="font-size: 0.65rem;">${escapeHtml(item.duration_display || '2h 00m')}</span>
+                </td>
+                <td class="small text-truncate" style="max-width: 200px;" title="${escapeHtml(item.reason || '')}">
+                    ${escapeHtml(item.reason || 'Project deliverable')}
+                </td>
+                <td>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono">Pending</span>
+                </td>
+                <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-success px-3 rounded-pill text-white fw-semibold" onclick="approveManagerOvertime('${item.request_id}')" style="font-size: 0.75rem; background-color: #106346; border-color: #106346;">
+                        <i class="bi bi-check2-circle me-1"></i> Sign-Off
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        console.error('Error loading manager overtime queue:', e);
+    }
+}
+
+async function approveManagerOvertime(requestId) {
+    try {
+        const res = await fetch('/api/overtime/review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                request_id: requestId,
+                action: 'Approved',
+                reviewer_remarks: 'Department manager sign-off authorized for payroll run.'
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to approve');
+
+        showToast('Overtime authorized successfully for payroll disbursement!', 'success');
+        loadManagerOvertime();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+// ----------------------------------------------------
+// Final Manager Sign-Off on Leaves
+// ----------------------------------------------------
+async function loadPendingManagerLeaves() {
+    const tbody = document.getElementById('managerPendingLeavesTableBody');
+    const badge = document.getElementById('mPendingLeavesTabBadge');
+    const kpi = document.getElementById('mPendingLeaves');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/leaves/all?status=Pending');
+        if (!res.ok) throw new Error('Could not fetch leaves');
+        const data = await res.json();
+        const leaves = (data.requests || []).filter(r => r.status === 'Pending' || r.status === 'PENDING_MANAGER' || r.status === 'TL_Approved' || r.status === 'PENDING_TEAM_LEAD');
+
+        if (badge) badge.textContent = `${leaves.length} Pending`;
+        if (kpi) kpi.textContent = leaves.length;
+
+        if (leaves.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-check2-circle text-success fs-4 d-block mb-1"></i>No pending leave applications awaiting final manager sign-off.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = leaves.map(l => {
+            const days = l.days_count || l.total_days || 1;
+            const dates = `${escapeHtml(l.start_date)} &rarr; ${escapeHtml(l.end_date)} (${days} day(s))`;
+            return `
+                <tr class="m-searchable-row">
+                    <td>
+                        <div class="fw-bold text-headline">${escapeHtml(l.employee_name || l.employee_id)}</div>
+                        <div class="text-muted font-mono" style="font-size: 0.72rem;">${escapeHtml(l.employee_id)}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-secondary border">${escapeHtml(l.department || 'Operations')}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">${escapeHtml(l.leave_type || 'Casual Leave')}</span>
+                    </td>
+                    <td class="font-mono small">${dates}</td>
+                    <td class="small" style="max-width: 250px;">
+                        <div class="text-truncate fw-medium">${escapeHtml(l.reason || 'Personal leave')}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-shield-check text-success me-1"></i>TL Endorsed</div>
+                    </td>
+                    <td class="text-end">
+                        <div class="d-flex align-items-center justify-content-end gap-1">
+                            <button type="button" class="btn btn-sm btn-success py-1 px-2" style="font-size: 0.75rem;" onclick="reviewManagerLeave('${l.request_id}', 'Approved')" title="Grant final manager sign-off & intimate HR">
+                                <i class="bi bi-check-lg me-1"></i>Grant Sign-Off
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size: 0.75rem;" onclick="reviewManagerLeave('${l.request_id}', 'Rejected')" title="Reject request">
+                                <i class="bi bi-x-lg me-1"></i>Reject
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Could not load pending leaves.</td></tr>';
+    }
+}
+
+async function reviewManagerLeave(requestId, decision) {
+    let remarks = decision === 'Approved' ? 'Manager final sign-off granted. Intimated to HR.' : '';
+    if (decision === 'Rejected') {
+        const inputReason = prompt('Please specify a rejection reason for the applicant:');
+        if (inputReason === null) return;
+        if (!inputReason.trim()) {
+            showToast('Rejection reason is required.', 'error');
+            return;
+        }
+        remarks = inputReason.trim();
+    }
+
+    try {
+        const res = await fetch(`/api/leaves/verify/${requestId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ decision: decision, remarks: remarks })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to authorize leave request');
+
+        const msg = decision === 'Approved'
+            ? 'Full manager sign-off granted! Notification dispatched to HR.'
+            : 'Leave request rejected and recorded.';
+        showToast(msg, 'success');
+        loadPendingManagerLeaves();
+        loadManagerDashboard();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+function filterManagerWorkspace(query) {
+    const q = (query || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('mSearchClearBtn');
+    if (clearBtn) clearBtn.style.display = q ? 'inline-block' : 'none';
+
+    document.querySelectorAll('.m-searchable-row, #managerPendingLeavesTableBody tr, #managerPendingApprovalsTableBody tr, #managerPendingCorrectionsTableBody tr, #managerPendingWFHTableBody tr, #managerPendingRostersTableBody tr, #managerProjectsTableBody tr, #managerAttendanceTableBody tr, #managerLeavesTableBody tr').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+}
+
+function clearManagerSearch() {
+    const input = document.getElementById('mSearchInput');
+    if (input) {
+        input.value = '';
+        filterManagerWorkspace('');
+        input.focus();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadPendingManagerLeaves();
+    loadManagerDashboard();
+    loadPendingCorrections();
+    loadPendingWFH();
+    loadPendingRosters();
+    loadManagerOvertime();
+    // Load badge counts for assets and expenses
+    (async () => {
+        try {
+            const [ar, ec] = await Promise.all([
+                fetch('/api/assets/requests/pending').then(r => r.json()).catch(() => ({count: 0})),
+                fetch('/api/expenses/claims/pending').then(r => r.json()).catch(() => ({count: 0}))
+            ]);
+            const ab = document.getElementById('mPendingAssetsBadge');
+            const eb = document.getElementById('mPendingExpensesBadge');
+            if (ab) ab.textContent = `${ar.count || 0} Pending`;
+            if (eb) eb.textContent = `${ec.count || 0} Pending`;
+        } catch(e) {}
+    })();
+});
+
+async function loadManagerDashboard() {
+    try {
+        loadPendingCorrections();
+        loadPendingWFH();
+        loadPendingRosters();
+        // 1. Load Projects
+        const prjRes = await fetch('/api/projects');
+        if (prjRes.ok) {
+            const prjData = await prjRes.json();
+            const projects = prjData.projects || [];
+
+            const activePrjs = projects.filter(p => p.status !== 'Completed' && p.status !== 'Archived');
+            document.getElementById('mActiveProjects').textContent = activePrjs.length;
+            document.getElementById('mTotalProjects').textContent = `${projects.length} Total Projects`;
+
+            let totalProg = 0;
+            const statusDist = { 'In Progress': 0, 'Not Started': 0, 'At Risk': 0, 'Completed': 0 };
+
+            projects.forEach(p => {
+                totalProg += (p.progress_percentage || 0);
+                const s = p.status || 'Not Started';
+                statusDist[s] = (statusDist[s] || 0) + 1;
+            });
+
+            const avg = projects.length > 0 ? Math.round(totalProg / projects.length) : 0;
+            document.getElementById('mAvgProgress').textContent = `${avg}%`;
+
+            renderManagerProjectsTable(projects);
+            renderManagerStatusChart(statusDist);
+        }
+
+        // 2. Load Attendance Summary
+        const attRes = await fetch('/api/attendance/hr-manager-monitor');
+        if (attRes.ok) {
+            const attData = await attRes.json();
+            renderManagerAttendanceTable(attData.records || []);
+        }
+
+        // 3. Load Scoped Leave Requests
+        const leaveRes = await fetch('/api/leaves/all?status=Pending');
+        if (leaveRes.ok) {
+            const leaveData = await leaveRes.json();
+            const reqs = leaveData.requests || [];
+            document.getElementById('mPendingLeaves').textContent = reqs.length;
+            renderManagerLeavesTable(reqs);
+        }
+
+        // 4. Load Pending Project Approvals & Proposals
+        try {
+            const appRes = await fetch('/api/projects/pending-approvals');
+            if (appRes.ok) {
+                const appData = await appRes.json();
+                const proposals = appData.proposals || [];
+                const mcr = appData.membership_requests || [];
+                const pendingCount = proposals.filter(p => p.status === 'PENDING_APPROVAL').length + mcr.filter(r => r.status === 'PENDING').length;
+                const pill = document.getElementById('mPendingProposals');
+                if (pill) pill.textContent = pendingCount;
+                renderManagerPendingApprovalsTable(proposals, mcr);
+            }
+        } catch (err) {
+            console.error('Error fetching pending approvals:', err);
+        }
+
+        // 5. Load Operational Analytics Summary
+        try {
+            const anaRes = await fetch('/api/analytics/overview?period=this_month');
+            if (anaRes.ok) {
+                const anaJson = await anaRes.json();
+                const aData = anaJson.data || {};
+                const colors = getChartThemeColors();
+
+                const tasks = aData.task_stage_distribution || { labels: ['Done', 'Progress', 'Pending', 'Overdue'], values: [0, 0, 0, 0] };
+                new Chart(document.getElementById('managerTaskStagesChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: tasks.labels,
+                        datasets: [{ label: 'Tasks', data: tasks.values, backgroundColor: ['#10b981', '#00c2ff', '#f59e0b', '#ef4444'] }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, ticks: { color: colors.textColor, precision: 0 }, grid: { color: colors.gridColor } },
+                            x: { ticks: { color: colors.textColor }, grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        } catch (err) {
+            // safe fallback
+        }
+
+    } catch (e) {
+        console.error('Error loading manager dashboard:', e);
+    }
+}
+
+function renderManagerProjectsTable(projects) {
+    const tbody = document.getElementById('managerProjectsTableBody');
+    if (!projects || projects.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No active projects assigned.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = projects.slice(0, 8).map(p => `
+        <tr>
+            <td>
+                <a href="/projects/${p.project_id}" class="fw-semibold text-dark text-decoration-none hover-primary">
+                    ${p.name}
+                </a>
+                <div class="text-muted font-mono" style="font-size: 0.72rem;">${p.project_id}</div>
+            </td>
+            <td>
+                <span class="badge ${p.status === 'Completed' ? 'bg-success' : p.status === 'In Progress' ? 'bg-primary' : p.status === 'At Risk' ? 'bg-danger' : 'bg-secondary'}" style="font-size: 0.72rem;">
+                    ${p.status}
+                </span>
+            </td>
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 6px;">
+                        <div class="progress-bar ${p.progress_percentage === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${p.progress_percentage || 0}%;"></div>
+                    </div>
+                    <span class="small font-mono fw-bold" style="min-width: 30px;">${p.progress_percentage || 0}%</span>
+                </div>
+            </td>
+            <td>
+                <span class="badge bg-light text-dark border font-mono">${(p.members || []).length} staff</span>
+            </td>
+            <td>
+                <a href="/projects/${p.project_id}" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.72rem;">
+                    Details
+                </a>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderManagerStatusChart(dist) {
+    const ctx = document.getElementById('managerStatusDoughnut').getContext('2d');
+    if (managerChartInstance) managerChartInstance.destroy();
+
+    managerChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(dist),
+            datasets: [{
+                data: Object.values(dist),
+                backgroundColor: ['#0056d6', '#94a3b8', '#ef4444', '#10b981'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+            },
+            cutout: '68%'
+        }
+    });
+}
+
+function renderManagerAttendanceTable(records) {
+    const tbody = document.getElementById('managerAttendanceTableBody');
+    if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No attendance records today.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = records.slice(0, 6).map(r => `
+        <tr>
+            <td class="fw-semibold">${r.full_name || r.employee_id}</td>
+            <td class="text-muted small">${r.department || 'General'}</td>
+            <td>
+                <span class="badge ${r.status === 'PRESENT' ? 'bg-success' : r.status === 'INCOMPLETE' ? 'bg-warning text-dark' : 'bg-secondary'}" style="font-size: 0.7rem;">
+                    ${r.status}
+                </span>
+            </td>
+            <td class="font-mono small">${r.working_hours_formatted || '0h 0m'}</td>
+        </tr>
+    `).join('');
+}
+
+function renderManagerLeavesTable(reqs) {
+    const tbody = document.getElementById('managerLeavesTableBody');
+    if (!reqs || reqs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No pending leaves to review.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = reqs.slice(0, 5).map(r => `
+        <tr>
+            <td class="fw-semibold">${r.employee_name || r.employee_id}</td>
+            <td><span class="badge bg-light text-secondary border">${r.leave_type || 'Leave'}</span></td>
+            <td class="small font-mono">${r.start_date} ${r.end_date && r.end_date !== r.start_date ? 'to ' + r.end_date : ''}</td>
+            <td>
+                <a href="/leaves" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.72rem;">
+                    Review
+                </a>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderManagerPendingApprovalsTable(proposals, mcr) {
+    const tbody = document.getElementById('managerPendingApprovalsTableBody');
+    if (!tbody) return;
+
+    const pending = (proposals || []).filter(p => p.status === 'PENDING_APPROVAL');
+    const badge = document.getElementById('mPendingProposalsBadge');
+    if (badge) badge.textContent = `${pending.length} Pending`;
+
+    if (pending.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3"><i class="bi bi-check2-circle text-success me-1"></i>All submitted proposals have been reviewed. No pending approvals in queue.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = pending.map(p => {
+        const lead = p.project_lead || p.created_by || '--';
+        const timelineStr = (p.start_date && p.due_date) ? `${p.start_date} &rarr; ${p.due_date}` : (p.due_date ? `Due ${p.due_date}` : 'Flexible');
+        const prioBadge = p.priority === 'Critical' ? 'bg-danger-subtle text-danger border border-danger-subtle' : (p.priority === 'High' ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-info-subtle text-info border border-info-subtle');
+
+        const membersList = p.selected_member_details || [];
+        const memberCount = membersList.length || (p.selected_members || []).length;
+        const memberSnippets = membersList.slice(0, 3).map(m => `
+            <span class="badge bg-light text-secondary border font-mono" title="${escapeHtml(m.designation || 'Engineer')} - ${escapeHtml(m.availability || 'Available')}">
+                ${escapeHtml(m.full_name || m.employee_id)} (${escapeHtml(m.availability || 'Available')})
+            </span>
+        `).join(' ');
+
+        return `
+            <tr>
+                <td>
+                    <div class="fw-bold text-headline">${escapeHtml(p.title)}</div>
+                    <div class="text-muted font-mono" style="font-size: 0.72rem;">${p.project_id}</div>
+                </td>
+                <td>
+                    <div class="fw-semibold text-headline small">${escapeHtml(lead)}</div>
+                    <span class="text-muted small" style="font-size: 0.7rem;">Team Lead</span>
+                </td>
+                <td style="max-width: 260px;">
+                    <div class="small fw-semibold text-truncate">Obj: ${escapeHtml(p.objectives || '--')}</div>
+                    <div class="text-muted small text-truncate" style="font-size: 0.72rem;">Deliv: ${escapeHtml(p.deliverables || '--')}</div>
+                </td>
+                <td>
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <span class="badge bg-primary-subtle text-primary border font-mono">${memberCount} Members</span>
+                        ${memberSnippets}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge ${prioBadge} font-mono" style="font-size: 0.7rem;">${p.priority || 'Medium'}</span>
+                    <div class="text-muted small font-mono" style="font-size: 0.7rem;">${timelineStr}</div>
+                </td>
+                <td class="text-end">
+                    <div class="d-flex align-items-center justify-content-end gap-1">
+                        <a href="/projects?tab=approvals" class="btn btn-sm btn-outline-secondary py-0" title="Full Details">
+                            Details
+                        </a>
+                        <button class="btn btn-sm btn-success py-0" onclick="quickApproveProject('${p.project_id}', '${escapeJs(p.title)}')" title="Approve & Activate">
+                            <i class="bi bi-check-lg"></i> Approve
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning py-0" onclick="quickRequestChangesProject('${p.project_id}')" title="Request Changes">
+                            <i class="bi bi-arrow-repeat"></i> Changes
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger py-0" onclick="quickRejectProject('${p.project_id}')" title="Reject">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function quickApproveProject(projectId, title) {
+    if (!confirm(`Approve and activate project proposal "${title}" (${projectId})?\n\nThis will automatically create the private project group chat and activate assigned members.`)) return;
+    try {
+        const res = await fetch(`/api/projects/${projectId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ review_notes: 'Approved via Manager Dashboard' })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('Project approved and activated successfully!', 'success');
+            loadManagerDashboard();
+        } else {
+            showToast(data.error || 'Failed to approve project.', 'error');
+        }
+    } catch (e) {
+        showToast('Error approving project.', 'error');
+    }
+}
+
+async function quickRequestChangesProject(projectId) {
+    const comments = prompt('Enter revision feedback / required changes for the Team Lead:');
+    if (!comments || !comments.trim()) return;
+    try {
+        const res = await fetch(`/api/projects/${projectId}/request-changes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comments: comments.trim() })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('Change request sent to Team Lead.', 'warning');
+            loadManagerDashboard();
+        } else {
+            showToast(data.error || 'Failed to request changes.', 'error');
+        }
+    } catch (e) {
+        showToast('Error requesting changes.', 'error');
+    }
+}
+
+async function quickRejectProject(projectId) {
+    const reason = prompt('Enter required rejection reason:');
+    if (!reason || !reason.trim()) return;
+    try {
+        const res = await fetch(`/api/projects/${projectId}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rejection_reason: reason.trim() })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('Project proposal rejected.', 'info');
+            loadManagerDashboard();
+        } else {
+            showToast(data.error || 'Failed to reject proposal.', 'error');
+        }
+    } catch (e) {
+        showToast('Error rejecting proposal.', 'error');
+    }
+}
+
+function escapeJs(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, " ");
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+async function loadPendingCorrections() {
+    const tbody = document.getElementById('managerPendingCorrectionsTableBody');
+    const badge = document.getElementById('mPendingCorrectionsBadge');
+    const kpi = document.getElementById('mPendingCorrections');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/attendance/corrections/pending');
+        if (!res.ok) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Unable to load pending regularizations.</td></tr>';
+            return;
+        }
+        const data = await res.json();
+        const pending = data.pending_corrections || [];
+
+        if (badge) badge.textContent = `${pending.length} Pending`;
+        if (kpi) kpi.textContent = pending.length;
+
+        if (pending.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3"><i class="bi bi-check2-circle text-success me-1"></i>No pending attendance regularizations in queue.</td></tr>';
+            return;
+        }
+
+        const typeLabels = {
+            'MISSED_PUNCH_IN': 'Missed Clock In',
+            'MISSED_PUNCH_OUT': 'Missed Clock Out',
+            'LATE_REGULARIZATION': 'Late Regularization',
+            'ON_DUTY': 'On Duty / Client Visit'
+        };
+
+        tbody.innerHTML = pending.map(r => {
+            const typeText = typeLabels[r.correction_type] || r.correction_type;
+            const hours = (r.requested_in_time || '--') + ' to ' + (r.requested_out_time || '--');
+            const empName = r.employee_name || r.employee_id;
+            const dept = r.department || '--';
+
+            return `
+                <tr>
+                    <td>
+                        <div class="fw-bold text-headline">${escapeHtml(empName)}</div>
+                        <div class="text-muted font-mono" style="font-size: 0.72rem;">${r.employee_id} &bull; ${escapeHtml(dept)}</div>
+                    </td>
+                    <td class="font-mono fw-bold">${escapeHtml(r.target_date || '--')}</td>
+                    <td><span class="badge bg-light text-dark border font-mono">${escapeHtml(typeText)}</span></td>
+                    <td class="font-mono small">${escapeHtml(hours)}</td>
+                    <td class="small" style="max-width: 280px;">${escapeHtml(r.reason || '')}</td>
+                    <td class="text-end">
+                        <div class="d-flex align-items-center justify-content-end gap-1">
+                            <button type="button" class="btn btn-sm btn-success py-1 px-2" onclick="reviewCorrection('${r.request_id}', 'APPROVED')" title="Approve & Regularize">
+                                <i class="bi bi-check-lg me-1"></i>Approve
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="reviewCorrection('${r.request_id}', 'REJECTED')" title="Reject Request">
+                                <i class="bi bi-x-lg me-1"></i>Reject
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">Error loading pending regularizations.</td></tr>';
+    }
+}
+
+async function reviewCorrection(requestId, decision) {
+    let remarks = '';
+    if (decision === 'REJECTED') {
+        remarks = prompt('Enter rejection reason for the employee:');
+        if (!remarks || !remarks.trim()) return;
+    } else {
+        const customRemarks = prompt('Enter optional approval remarks (leave blank to proceed):', 'Approved');
+        if (customRemarks === null) return;
+        remarks = customRemarks.trim() || 'Approved';
+    }
+
+    try {
+        const res = await fetch(`/api/attendance/corrections/${requestId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ decision: decision, remarks: remarks })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast(`Attendance regularization ${decision.toLowerCase()} successfully!`, 'success');
+            loadPendingCorrections();
+            loadManagerDashboard();
+        } else {
+            showToast(data.error || 'Failed to review request.', 'error');
+        }
+    } catch (e) {
+        showToast('Network error while reviewing request.', 'error');
+    }
+}
+
+async function loadPendingWFH() {
+    const tbody = document.getElementById('managerPendingWFHTableBody');
+    const badge = document.getElementById('mPendingWFHBadge');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/wfh/pending');
+        if (!res.ok) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Unable to load pending WFH requests.</td></tr>';
+            return;
+        }
+        const data = await res.json();
+        const pending = data.requests || [];
+
+        if (badge) badge.textContent = `${pending.length} Pending`;
+
+        if (pending.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><i class="bi bi-check2-circle text-success me-1"></i>No pending WFH requests in queue.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = pending.map(r => {
+            const empName = r.employee_name || r.employee_id;
+            const dept = r.department || '--';
+            const dates = `${r.start_date} &rarr; ${r.end_date} (${r.days_count} day(s))`;
+
+            return `
+                <tr>
+                    <td>
+                        <div class="fw-bold text-headline">${escapeHtml(empName)}</div>
+                        <div class="text-muted font-mono" style="font-size: 0.72rem;">${r.employee_id} &bull; ${escapeHtml(dept)}</div>
+                    </td>
+                    <td class="font-mono small">${dates}</td>
+                    <td class="small" style="max-width: 280px;">${escapeHtml(r.reason || '')}</td>
+                    <td class="text-end">
+                        <div class="d-flex align-items-center justify-content-end gap-1">
+                            <button type="button" class="btn btn-sm btn-success py-1 px-2" onclick="reviewWFH('${r.request_id}', 'Approved')" title="Approve WFH">
+                                <i class="bi bi-check-lg me-1"></i>Approve
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="reviewWFH('${r.request_id}', 'Rejected')" title="Reject WFH">
+                                <i class="bi bi-x-lg me-1"></i>Reject
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Error loading pending WFH requests.</td></tr>';
+    }
+}
+
+async function reviewWFH(requestId, decision) {
+    let remarks = '';
+    if (decision === 'Rejected') {
+        remarks = prompt('Enter rejection reason for the employee:');
+        if (!remarks || !remarks.trim()) return;
+    } else {
+        const customRemarks = prompt('Enter optional approval remarks (leave blank to proceed):', 'Approved');
+        if (customRemarks === null) return;
+        remarks = customRemarks.trim() || 'Approved';
+    }
+
+    try {
+        const res = await fetch(`/api/wfh/${requestId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ decision: decision, remarks: remarks })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast(`WFH request ${decision.toLowerCase()} successfully!`, 'success');
+            loadPendingWFH();
+        } else {
+            showToast(data.error || 'Failed to review WFH request.', 'error');
+        }
+    } catch (e) {
+        showToast('Network error while reviewing WFH request.', 'error');
+    }
+}
+
+async function loadPendingRosters() {
+    const tbody = document.getElementById('managerPendingRostersTableBody');
+    const badge = document.getElementById('mPendingRostersBadge');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/roster/pending');
+        if (!res.ok) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Unable to load pending rosters.</td></tr>';
+            return;
+        }
+        const data = await res.json();
+        const rosters = data.rosters || [];
+
+        if (badge) badge.textContent = `${rosters.length} Pending`;
+
+        if (rosters.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3"><i class="bi bi-check2-circle text-success me-1"></i>No pending shift rosters in queue.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rosters.map(r => {
+            const period = `${r.week_start_date} &rarr; ${r.week_end_date}`;
+            const shiftsCount = (r.shifts || []).length;
+            const proposer = r.proposed_by_name || r.proposed_by_id;
+
+            return `
+                <tr>
+                    <td class="font-mono fw-bold">${r.roster_id}</td>
+                    <td><span class="badge bg-light text-dark border font-mono">${escapeHtml(r.team_name || r.team_id)}</span></td>
+                    <td class="font-mono small">${period}</td>
+                    <td class="small">${escapeHtml(proposer)}</td>
+                    <td class="font-mono">${shiftsCount} shifts</td>
+                    <td class="text-end">
+                        <div class="d-flex align-items-center justify-content-end gap-1">
+                            <button type="button" class="btn btn-sm btn-success py-1 px-2" onclick="reviewRoster('${r.roster_id}', 'Approved')" title="Approve & Publish Roster">
+                                <i class="bi bi-check-lg me-1"></i>Publish
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="reviewRoster('${r.roster_id}', 'Rejected')" title="Reject Roster">
+                                <i class="bi bi-x-lg me-1"></i>Reject
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="deleteRoster('${r.roster_id}')" title="Delete Roster">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">Error loading pending rosters.</td></tr>';
+    }
+}
+
+async function reviewRoster(rosterId, decision) {
+    let remarks = '';
+    if (decision === 'Rejected') {
+        remarks = prompt('Enter rejection reason for the Team Lead:');
+        if (!remarks || !remarks.trim()) return;
+    } else {
+        const customRemarks = prompt('Enter optional approval remarks (leave blank to proceed):', 'Approved');
+        if (customRemarks === null) return;
+        remarks = customRemarks.trim() || 'Approved & Published';
+    }
+
+    try {
+        const res = await fetch(`/api/roster/${rosterId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ decision: decision, remarks: remarks })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast(`Shift roster ${decision.toLowerCase()} successfully!`, 'success');
+            loadPendingRosters();
+        } else {
+            showToast(data.error || 'Failed to review shift roster.', 'error');
+        }
+    } catch (e) {
+        showToast('Network error while reviewing shift roster.', 'error');
+    }
+}
+    async function deleteRoster(rosterId) {
+        if (!confirm(`Are you sure you want to delete shift roster ${rosterId}?`)) return;
+        try {
+            const res = await fetch(`/api/roster/${rosterId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Shift roster schedule deleted.', 'success');
+                loadPendingRosters();
+            } else {
+                showToast(data.error || 'Failed to delete shift roster.', 'error');
+            }
+        } catch (e) {
+            showToast('Network error while deleting shift roster.', 'error');
+        }
+    }
+
+async function loadManagerPendingAssets() {
+    const tbody = document.getElementById('managerPendingAssetsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>';
+    try {
+        const res = await fetch('/api/assets/requests/pending');
+        if (!res.ok) throw new Error('Failed to load asset requests');
+        const data = await res.json();
+        const reqs = data.requests || [];
+        const badge = document.getElementById('mPendingAssetsBadge');
+        if (badge) badge.textContent = `${reqs.length} Pending`;
+        if (!reqs.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-check-circle text-success me-1"></i>No pending asset requests.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = reqs.map(r => `
+            <tr>
+                <td class="fw-semibold">${escapeHtml(r.employee_name || r.employee_id)}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary">${escapeHtml(r.department || '—')}</span></td>
+                <td><span class="badge bg-primary-subtle text-primary">${escapeHtml(r.category || 'Hardware')}</span></td>
+                <td>${escapeHtml(r.item_name || '—')}<br><small class="text-muted">${escapeHtml((r.justification || '').substring(0,60))}...</small></td>
+                <td><span class="badge ${r.urgency === 'High' ? 'bg-danger' : r.urgency === 'Medium' ? 'bg-warning text-dark' : 'bg-success'}">${escapeHtml(r.urgency || 'Medium')}</span></td>
+                <td class="text-muted" style="font-size:0.78rem;">${r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN') : '—'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-success py-0 px-2 me-1" onclick="reviewAssetRequest('${r.request_id}', 'Approved')" style="font-size:0.75rem;">
+                        <i class="bi bi-check2"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="reviewAssetRequest('${r.request_id}', 'Rejected')" style="font-size:0.75rem;">
+                        <i class="bi bi-x"></i> Reject
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">${err.message}</td></tr>`;
+    }
+}
+
+async function reviewAssetRequest(requestId, decision) {
+    const remarks = decision === 'Rejected' ? (prompt('Reason for rejection (optional):') || '') : '';
+    try {
+        const res = await fetch(`/api/assets/requests/${requestId}/review`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({decision, remarks})
+        });
+        const data = await res.json();
+        if (data.success || res.ok) {
+            showToast(`Asset request ${decision.toLowerCase()} successfully.`, 'success');
+            loadManagerPendingAssets();
+        } else {
+            showToast(data.error || 'Review failed.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error. Please try again.', 'danger');
+    }
+}
+
+async function loadManagerPendingExpenses() {
+    const tbody = document.getElementById('managerPendingExpensesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>';
+    try {
+        const res = await fetch('/api/expenses/claims/pending');
+        if (!res.ok) throw new Error('Failed to load expense claims');
+        const data = await res.json();
+        const claims = data.claims || [];
+        const badge = document.getElementById('mPendingExpensesBadge');
+        if (badge) badge.textContent = `${claims.length} Pending`;
+        if (!claims.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-check-circle text-success me-1"></i>No pending expense claims.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = claims.map(c => `
+            <tr>
+                <td class="fw-semibold">${escapeHtml(c.employee_name || c.employee_id)}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary">${escapeHtml(c.department || '—')}</span></td>
+                <td>${escapeHtml(c.trip_purpose || '—')}</td>
+                <td class="text-muted" style="font-size:0.8rem;">${escapeHtml(c.travel_dates || '—')}</td>
+                <td class="fw-bold text-success">₹${(c.total_amount || 0).toLocaleString('en-IN')}</td>
+                <td class="text-muted" style="font-size:0.78rem;">${c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '—'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-success py-0 px-2 me-1" onclick="reviewExpenseClaim('${c.claim_id}', 'Approved')" style="font-size:0.75rem;">
+                        <i class="bi bi-check2"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="reviewExpenseClaim('${c.claim_id}', 'Rejected')" style="font-size:0.75rem;">
+                        <i class="bi bi-x"></i> Reject
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">${err.message}</td></tr>`;
+    }
+}
+
+async function reviewExpenseClaim(claimId, decision) {
+    const remarks = decision === 'Rejected' ? (prompt('Reason for rejection (optional):') || '') : '';
+    try {
+        const res = await fetch(`/api/expenses/claims/${claimId}/review`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({decision, remarks})
+        });
+        const data = await res.json();
+        if (data.success || res.ok) {
+            showToast(`Expense claim ${decision.toLowerCase()} successfully.`, 'success');
+            loadManagerPendingExpenses();
+        } else {
+            showToast(data.error || 'Review failed.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error. Please try again.', 'danger');
+    }
+}
+</script>
+{% endblock %}

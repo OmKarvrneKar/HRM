@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Official Mailbox &amp; Regulatory Notices — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 h-100 d-flex flex-column" style="min-height: auto;">
+    <!-- Header Card -->
+    <div class="page-header-card mb-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="bi bi-envelope-paper-fill me-2 text-primary"></i> Official Mailbox &amp; Notices</h4>
+                <div class="page-header-meta">
+                    <span class="page-header-meta-item"><i class="bi bi-shield-check text-success me-1"></i>Authorized Documents</span>
+                    <span class="page-header-meta-item"><i class="bi bi-file-earmark-text text-primary me-1"></i>Statutory Payslips</span>
+                    <span class="page-header-meta-item"><i class="bi bi-megaphone text-warning me-1"></i>Executive Circulars</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" onclick="openFloatingMailComposer('', '', '', '', 'OFFICIAL_LETTER')" title="Compose Inbuilt Corporate Mail">
+                    <i class="bi bi-envelope-plus"></i> Compose Inbuilt Mail
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadMailbox('all')">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Split Pane Card (Compact Responsive Height - No Long Blank Pages) -->
+    <div class="card shadow-sm border flex-grow-1 overflow-hidden" style="min-height: 380px; max-height: calc(100vh - 170px);">
+        <div class="row g-0 h-100 flex-grow-1">
+            <!-- Left Pane: Mail Folders & Filter -->
+            <div class="col-12 col-md-3 border-end d-flex flex-column bg-light" style="max-height: calc(100vh - 170px);">
+                <div class="p-3 border-bottom bg-white">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control bg-light border-start-0" id="mailboxSearchInput" placeholder="Search notices, ref..." oninput="onSearchMail(this.value)">
+                    </div>
+                </div>
+
+                <!-- Folders List -->
+                <div class="list-group list-group-flush py-2 flex-grow-1 overflow-auto">
+                    <button type="button" class="list-group-item list-group-item-action border-0 d-flex justify-content-between align-items-center active px-3 py-2" id="folderBtn-all" onclick="selectMailFolder('all')">
+                        <span><i class="bi bi-inbox-fill me-2 text-primary"></i> All Official Mail</span>
+                        <span class="badge bg-primary rounded-pill font-mono" id="cntAll">3</span>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action border-0 d-flex justify-content-between align-items-center px-3 py-2" id="folderBtn-letters" onclick="selectMailFolder('letters')">
+                        <span><i class="bi bi-file-earmark-person text-success me-2"></i> Letters &amp; Contracts</span>
+                        <span class="badge bg-secondary rounded-pill font-mono" id="cntLetters">1</span>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action border-0 d-flex justify-content-between align-items-center px-3 py-2" id="folderBtn-payslips" onclick="selectMailFolder('payslips')">
+                        <span><i class="bi bi-cash-stack text-info me-2"></i> Statutory &amp; Payslips</span>
+                        <span class="badge bg-secondary rounded-pill font-mono" id="cntPayslips">1</span>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action border-0 d-flex justify-content-between align-items-center px-3 py-2" id="folderBtn-memos" onclick="selectMailFolder('memos')">
+                        <span><i class="bi bi-megaphone text-warning me-2"></i> Administrative Memos</span>
+                        <span class="badge bg-secondary rounded-pill font-mono" id="cntMemos">1</span>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action border-0 d-flex justify-content-between align-items-center px-3 py-2" id="folderBtn-alerts" onclick="selectMailFolder('alerts')">
+                        <span><i class="bi bi-bell text-danger me-2"></i> Approval Alerts</span>
+                        <span class="badge bg-secondary rounded-pill font-mono" id="cntAlerts">0</span>
+                    </button>
+                </div>
+
+                <div class="p-3 border-top bg-white text-muted small">
+                    <i class="bi bi-lock-fill text-success me-1"></i> Strictly separated from project team chat.
+                </div>
+            </div>
+
+            <!-- Middle/Right Pane: Mail List and Letter Preview -->
+            <div class="col-12 col-md-9 d-flex flex-column bg-white" style="min-height: 380px; max-height: calc(100vh - 170px);">
+                <div class="row g-0 h-100 flex-grow-1">
+                    <!-- Mail Items Column -->
+                    <div class="col-12 col-lg-5 border-end overflow-auto" id="mailListColumn" style="max-height: calc(100vh - 170px);">
+                        <div class="p-2 border-bottom d-flex justify-content-between align-items-center bg-light">
+                            <span class="small fw-semibold text-muted text-uppercase" id="currentFolderTitle">All Official Mail</span>
+                            <span class="badge bg-light text-dark border font-mono small" id="mailListCountBadge">3 Records</span>
+                        </div>
+                        <div class="list-group list-group-flush" id="mailListItemsContainer">
+                            <div class="text-center py-4 text-muted small">
+                                <div class="spinner-border spinner-border-sm text-primary mb-1"></div>
+                                <div>Loading official correspondence...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Letter Detailed View Column -->
+                    <div class="col-12 col-lg-7 d-flex flex-column p-3 overflow-auto" id="mailDetailColumn" style="max-height: calc(100vh - 170px); background: #fafbfd;">
+                        <div id="mailDetailEmptyState" class="m-auto text-center py-4 text-muted">
+                            <i class="bi bi-envelope-open fs-2 opacity-50 mb-2 d-block text-primary"></i>
+                            <h6 class="fw-bold mb-1" style="font-size: 0.9rem;">Select an official document to preview</h6>
+                            <p class="small text-muted mb-0">Authorized company records render on official AI Samrat letterhead.</p>
+                        </div>
+
+                        <!-- Rendered Letter Template -->
+                        <div id="mailDetailView" style="display: none;" class="card border shadow-sm p-4 bg-white position-relative">
+                            <!-- Official Header Stamp -->
+                            <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <img src="/static/img/ai_samrat_official_logo.png" alt="Logo" style="height: 32px;" onerror="this.style.display='none'">
+                                        <h5 class="fw-bold text-primary mb-0">AI SAMRAT TECHNOLOGIES</h5>
+                                    </div>
+                                    <small class="text-muted d-block font-mono" id="docRefNo">REF: AIS/HR/OFF/2026</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle mb-1 d-inline-block" id="docCategoryBadge">Official Letter</span>
+                                    <div class="small text-muted font-mono" id="docDate">2026-11-07</div>
+                                </div>
+                            </div>
+
+                            <!-- Subject & Meta -->
+                            <div class="mb-3">
+                                <h5 class="fw-bold text-headline mb-2" id="docSubject">Official Notice Subject</h5>
+                                <div class="small text-muted d-flex gap-3 flex-wrap">
+                                    <span>From: <strong class="text-dark" id="docSender">HR Directorate</strong> (<span id="docSenderTitle">Head of HR</span>)</span>
+                                    <span>Recipient: <strong class="text-dark" id="docRecipient">Deepak S J</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- Body Content -->
+                            <div class="p-3 bg-light rounded-3 border mb-3 font-mono small text-dark" id="docContent" style="white-space: pre-wrap; line-height: 1.6;">
+                                Content body...
+                            </div>
+
+                            <!-- Attachment Banner if applicable -->
+                            <div id="docAttachmentBanner" class="p-2 border rounded bg-white mb-3 d-flex justify-content-between align-items-center" style="display: none;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                                    <div>
+                                        <span class="small fw-semibold d-block text-dark" id="docAttachmentName">Document.pdf</span>
+                                        <small class="text-muted font-mono">Digitally Signed &bull; 2.4 MB</small>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="showToast('Digital record verified under central registry. Secure download initiated.', 'info')">
+                                    <i class="bi bi-download me-1"></i> Download
+                                </button>
+                            </div>
+
+                            <!-- Signatory Footer -->
+                            <div class="border-top pt-3 d-flex justify-content-between align-items-end mt-4">
+                                <div>
+                                    <small class="text-muted d-block font-mono">DIGITAL SIGNATURE VERIFIED</small>
+                                    <span class="badge bg-dark font-mono text-white mt-1"><i class="bi bi-shield-lock-fill me-1"></i> Central Governance Docket</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="font-signature text-primary fw-bold fs-5" style="font-family: cursive;">AI Samrat Exec Authority</div>
+                                    <small class="text-muted d-block">Authorized Signatory</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Compose Official Notice (For HR/Admin/Managers) -->
+<div class="modal fade" id="composeOfficialNoticeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header py-3 border-bottom bg-light">
+                <h6 class="modal-title fw-bold text-headline">
+                    <i class="bi bi-send-plus text-primary me-2"></i> Dispatch Official Notice / Memo
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="composeNoticeForm" onsubmit="submitOfficialNotice(event)">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Target Recipient Group</label>
+                            <select class="form-select form-select-sm" id="noticeRecipientGroup" required onchange="toggleRecipientInput(this.value)">
+                                <option value="ALL_EMPLOYEES">All Company Employees (Global Circular)</option>
+                                <option value="EMPLOYEE">Individual Employee (Direct Letter)</option>
+                                <option value="TEAM_LEAD">All Team Leads</option>
+                                <option value="MANAGER">All Managers</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="individualRecipientCol" style="display: none;">
+                            <label class="form-label small fw-semibold">Employee ID</label>
+                            <input type="text" class="form-control form-control-sm font-mono text-uppercase" id="noticeRecipientId" placeholder="e.g. EMP-1005">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Official Category</label>
+                            <select class="form-select form-select-sm" id="noticeCategory" required>
+                                <option value="ADMIN_MEMO">Administrative Memo / Circular</option>
+                                <option value="OFFICIAL_LETTER">Official Letter / Contract Revision</option>
+                                <option value="PAYSLIP_STATUTORY">Statutory Advice / Tax Notice</option>
+                                <option value="COMPLIANCE_ALERT">Compliance Directive</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Subject Title</label>
+                            <input type="text" class="form-control form-control-sm" id="noticeSubject" required placeholder="e.g. Directive regarding Year-End Financial &amp; Statutory Compliance">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Official Document Body</label>
+                            <textarea class="form-control form-control-sm font-mono" id="noticeContent" rows="6" required placeholder="Enter the official communication text..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 bg-light">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-4 fw-semibold" id="btnDispatchNotice">
+                        <i class="bi bi-send me-1"></i> Dispatch Official Notice
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentMailboxFolder = 'all';
+let mailboxItems = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadMailbox('all');
+});
+
+function toggleRecipientInput(val) {
+    const col = document.getElementById('individualRecipientCol');
+    col.style.display = (val === 'EMPLOYEE') ? 'block' : 'none';
+}
+
+function selectMailFolder(folder) {
+    currentMailboxFolder = folder;
+    document.querySelectorAll('[id^="folderBtn-"]').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById('folderBtn-' + folder);
+    if (activeBtn) activeBtn.classList.add('active');
+    
+    const titles = {
+        'all': 'All Official Mail',
+        'letters': 'Letters & Contracts',
+        'payslips': 'Statutory & Payslips',
+        'memos': 'Administrative Memos',
+        'alerts': 'Approval Alerts'
+    };
+    document.getElementById('currentFolderTitle').textContent = titles[folder] || 'Official Mail';
+    loadMailbox(folder);
+}
+
+async function loadMailbox(folder = 'all') {
+    const container = document.getElementById('mailListItemsContainer');
+    try {
+        const res = await fetch(`/api/mailbox?folder=${encodeURIComponent(folder)}`);
+        const data = await res.json();
+        mailboxItems = data.items || [];
+
+        // Update badge counts
+        if (data.counts) {
+            document.getElementById('cntAll').textContent = data.counts.all || 0;
+            document.getElementById('cntLetters').textContent = data.counts.letters || 0;
+            document.getElementById('cntPayslips').textContent = data.counts.payslips || 0;
+            document.getElementById('cntMemos').textContent = data.counts.memos || 0;
+            document.getElementById('cntAlerts').textContent = data.counts.alerts || 0;
+        }
+        document.getElementById('mailListCountBadge').textContent = `${mailboxItems.length} Records`;
+
+        renderMailList(mailboxItems);
+        if (mailboxItems.length > 0) {
+            renderMailDetail(mailboxItems[0]);
+        } else {
+            document.getElementById('mailDetailEmptyState').style.display = 'block';
+            document.getElementById('mailDetailView').style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Failed to load mailbox:', err);
+        container.innerHTML = '<div class="p-3 text-center text-danger small">Error connecting to official mailbox service.</div>';
+    }
+}
+
+function renderMailList(items) {
+    const container = document.getElementById('mailListItemsContainer');
+    if (!items || items.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-muted small"><i class="bi bi-inbox me-1"></i> No records found in this folder.</div>';
+        return;
+    }
+
+    container.innerHTML = items.map((m, idx) => `
+        <button type="button" class="list-group-item list-group-item-action border-0 border-bottom p-3 text-start mail-item-row" onclick="viewMailItem('${m.mail_id}')" id="mailRow-${m.mail_id}">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small fw-bold text-primary text-truncate">${m.sender_name}</span>
+                <span class="text-muted font-mono" style="font-size: 0.7rem;">${m.date || ''}</span>
+            </div>
+            <div class="small fw-semibold text-headline text-truncate mb-1">${m.subject}</div>
+            <div class="text-muted small text-truncate" style="font-size: 0.75rem;">${m.preview || ''}</div>
+            <div class="d-flex align-items-center gap-1 mt-2">
+                <span class="badge bg-light text-dark border font-mono" style="font-size: 0.65rem;">${m.ref_no || 'OFFICIAL'}</span>
+                ${m.is_confidential ? '<span class="badge bg-danger-subtle text-danger font-mono" style="font-size: 0.65rem;">Confidential</span>' : ''}
+            </div>
+        </button>
+    `).join('');
+}
+
+function viewMailItem(mailId) {
+    const item = mailboxItems.find(m => m.mail_id === mailId);
+    if (item) renderMailDetail(item);
+}
+
+function renderMailDetail(item) {
+    document.querySelectorAll('.mail-item-row').forEach(el => el.classList.remove('bg-light'));
+    const activeRow = document.getElementById('mailRow-' + item.mail_id);
+    if (activeRow) activeRow.classList.add('bg-light');
+
+    document.getElementById('mailDetailEmptyState').style.display = 'none';
+    const detailView = document.getElementById('mailDetailView');
+    detailView.style.display = 'block';
+
+    document.getElementById('docRefNo').textContent = `REF: ${item.ref_no || item.mail_id}`;
+    document.getElementById('docCategoryBadge').textContent = item.category || 'Official Record';
+    document.getElementById('docDate').textContent = item.date || '';
+    document.getElementById('docSubject').textContent = item.subject;
+    document.getElementById('docSender').textContent = item.sender_name;
+    document.getElementById('docSenderTitle').textContent = item.sender_title || 'Authorized Officer';
+    document.getElementById('docRecipient').textContent = item.recipient_name || 'All Company Personnel';
+    document.getElementById('docContent').textContent = item.content;
+
+    const attBanner = document.getElementById('docAttachmentBanner');
+    if (item.has_attachment && item.attachment_name) {
+        attBanner.style.display = 'flex';
+        document.getElementById('docAttachmentName').textContent = item.attachment_name;
+    } else {
+        attBanner.style.display = 'none';
+    }
+}
+
+function onSearchMail(q) {
+    if (!q || !q.trim()) {
+        renderMailList(mailboxItems);
+        return;
+    }
+    const query = q.toLowerCase().trim();
+    const filtered = mailboxItems.filter(m => 
+        (m.subject && m.subject.toLowerCase().includes(query)) ||
+        (m.sender_name && m.sender_name.toLowerCase().includes(query)) ||
+        (m.ref_no && m.ref_no.toLowerCase().includes(query))
+    );
+    renderMailList(filtered);
+}
+
+async function submitOfficialNotice(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnDispatchNotice');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Dispatching...';
+
+    const payload = {
+        recipient_group: document.getElementById('noticeRecipientGroup').value,
+        recipient_id: document.getElementById('noticeRecipientId').value,
+        category: document.getElementById('noticeCategory').value,
+        subject: document.getElementById('noticeSubject').value,
+        content: document.getElementById('noticeContent').value
+    };
+
+    try {
+        const res = await fetch('/api/mailbox/dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to dispatch notice');
+
+        bootstrap.Modal.getInstance(document.getElementById('composeOfficialNoticeModal')).hide();
+        document.getElementById('composeNoticeForm').reset();
+        await loadMailbox(currentMailboxFolder);
+        showToast('Official notice successfully published and dispatched to authorized ledger!', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-1"></i> Dispatch Official Notice';
+    }
+}
+</script>
+{% endblock %}
+

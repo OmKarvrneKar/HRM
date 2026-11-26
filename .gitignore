@@ -1,0 +1,52 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Environment Variables & Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+HRM-main/.env
+HRM-main/.env.*
+!HRM-main/.env.example
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Scratch & Temporary Testing Scripts
+scratch/
+HRM-main/scratch/
+
+# Logs & Temporary Files
+logs/
+*.log
+
+# Local Database Persistent Storage
+data/
+HRM-main/data/
+
+# Large Binary Media
+*.mp4
+*.mkv
+*.avi
+
+# Frontend Build & Node Modules
+node_modules/
+frontend-react/node_modules/
+frontend-react/dist/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

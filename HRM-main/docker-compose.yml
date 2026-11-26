@@ -1,0 +1,33 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: hrm_mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: office_hrm
+    volumes:
+      - mongo_data:/data/db
+
+  web:
+    build: .
+    container_name: hrm_web_app
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/
+      - DATABASE_NAME=office_hrm
+      - DEFAULT_TIMEZONE=Asia/Kolkata
+      - OFFICE_START_TIME=10:00
+      - OFFICE_END_TIME=18:00
+      - LATE_GRACE_MINUTES=0
+      - SECRET_KEY=prod_super_secret_key_change_me_2026
+      - JWT_SECRET_KEY=prod_super_jwt_secret_key_change_me_2026
+      - FLASK_ENV=production
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:

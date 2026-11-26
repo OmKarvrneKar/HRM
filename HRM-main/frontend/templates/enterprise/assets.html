@@ -1,0 +1,859 @@
+{% extends "base.html" %}
+
+{% block title %}Assets &amp; Software Licenses — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3 p-3 bg-white border rounded-4 shadow-sm">
+        <div>
+            <h4 class="fw-bold mb-1 text-primary d-flex align-items-center">
+                <i class="bi bi-laptop me-2"></i> Assets &amp; Software Licenses
+            </h4>
+            <p class="text-muted small mb-0">Track official hardware allocations, developer tool subscriptions, and submit procurement requisitions.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            {% if user and user.role in ['hr', 'hr_manager', 'admin'] %}
+            <button class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-semibold" onclick="openAllocateSeatLockerModal()">
+                <i class="bi bi-geo-alt me-1"></i> Allocate Seat &amp; Locker
+            </button>
+            {% endif %}
+            {% if user and user.role in ['hr', 'hr_manager', 'admin'] %}
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold" onclick="openAllocateAssetModal()">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Allocate Hardware / Tool
+            </button>
+            {% endif %}
+            <button class="btn btn-sm btn-primary-gradient px-3 py-1 rounded-pill fw-semibold text-white" data-bs-toggle="modal" data-bs-target="#requestAssetModal">
+                <i class="bi bi-plus-circle me-1"></i> Request Hardware / Tool
+            </button>
+        </div>
+    </div>
+
+    <!-- Personal Workstation & Locker Allocation Hero Card -->
+    <div class="card border rounded-4 shadow-sm p-4 mb-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h6 class="fw-bold text-headline mb-0">
+                    <i class="bi bi-geo-alt-fill me-2 text-primary"></i> My Workplace Allocation &bull; Desk &amp; Personal Locker
+                </h6>
+                <span class="text-muted small">Verified physical seating zone, assigned workstation desk, and personal storage locker credentials</span>
+            </div>
+            {% if seating and seating.is_verified %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle font-mono px-3 py-1">
+                <i class="bi bi-check2-circle me-1"></i> Verified Allocation
+            </span>
+            {% elif seating %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono px-3 py-1">
+                <i class="bi bi-hourglass-split me-1"></i> Pending Verification
+            </span>
+            {% else %}
+            <span class="badge bg-light text-secondary border font-mono px-3 py-1">
+                Not Assigned
+            </span>
+            {% endif %}
+        </div>
+
+        {% if seating %}
+        <div class="row g-3">
+            <!-- Workstation Desk Card -->
+            <div class="col-12 col-md-6">
+                <div class="p-3 rounded-3 border bg-light h-100 position-relative overflow-hidden">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small fw-semibold text-uppercase font-mono">Assigned Workstation Desk</span>
+                        <span class="badge bg-primary fs-6 font-mono fw-bold px-3 py-1">{{ seating.desk_number or '—' }}</span>
+                    </div>
+                    <div class="fw-bold text-headline fs-6 mb-1">{{ seating.floor or '—' }}</div>
+                    <div class="text-secondary small mb-2"><i class="bi bi-compass me-1 text-primary"></i>{{ seating.bay or '—' }}</div>
+                    {% if seating.amenities %}
+                    <div class="pt-2 border-top text-muted small" style="font-size: 0.76rem;">
+                        <i class="bi bi-pc me-1 text-primary"></i><strong>Amenities:</strong> {{ seating.amenities }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Personal Locker Card -->
+            <div class="col-12 col-md-6">
+                <div class="p-3 rounded-3 border bg-light h-100 position-relative overflow-hidden">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small fw-semibold text-uppercase font-mono">Personal Storage Locker</span>
+                        <span class="badge bg-warning-subtle text-warning-emphasis fs-6 font-mono fw-bold px-3 py-1 border border-warning-subtle">{{ seating.locker_number or '—' }}</span>
+                    </div>
+                    <div class="fw-bold text-headline fs-6 mb-1">{{ seating.locker_location or '—' }}</div>
+                    <div class="text-secondary small mb-2"><i class="bi bi-shield-lock me-1 text-warning"></i>Access Protocol: <strong>{{ seating.key_type or '—' }}</strong></div>
+                    {% if seating.allocated_date %}
+                    <div class="pt-2 border-top text-muted small d-flex justify-content-between flex-wrap gap-1" style="font-size: 0.76rem;">
+                        <span><i class="bi bi-calendar-check me-1 text-success"></i>Issued: {{ seating.allocated_date }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted border rounded-3 bg-light">
+            <i class="bi bi-geo-alt text-muted fs-3 d-block mb-1"></i>
+            No verified desk or personal locker has been assigned to your account yet.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Assigned Hardware Section -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-7">
+            <div class="card border rounded-4 shadow-sm p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold text-headline mb-0"><i class="bi bi-pc-display me-2 text-primary"></i> My Assigned Hardware</h6>
+                        <span class="text-muted small">Company-provisioned computing workstations and peripherals</span>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono">{{ hardware|length }} Items</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr style="font-size: 0.78rem;">
+                                <th>ASSET TAG</th>
+                                <th>TYPE &amp; MODEL</th>
+                                <th>SERIAL NO</th>
+                                <th>ISSUED ON</th>
+                                <th class="text-end">STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 0.835rem;">
+                            {% if hardware %}
+                            {% for hw in hardware %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark border font-mono fw-bold">{{ hw.asset_tag }}</span></td>
+                                <td>
+                                    <div class="fw-semibold text-headline">{{ hw.model }}</div>
+                                    <span class="text-muted small">{{ hw.type }}</span>
+                                </td>
+                                <td><span class="font-mono text-muted">{{ hw.serial }}</span></td>
+                                <td><span class="font-mono">{{ hw.assigned_date or 'Active' }}</span></td>
+                                <td class="text-end"><span class="badge bg-success-subtle text-success border border-success-subtle font-mono">Assigned</span></td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-laptop text-muted fs-3 d-block mb-1"></i>
+                                    No hardware assets currently assigned.
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Software Licenses & Tool Subscriptions -->
+        <div class="col-12 col-lg-5">
+            <div class="card border rounded-4 shadow-sm p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold text-headline mb-0"><i class="bi bi-key-fill me-2 text-warning"></i> My Developer Subscriptions</h6>
+                        <span class="text-muted small">Active enterprise seat licenses and cloud access</span>
+                    </div>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle font-mono">{{ software|length }} Active</span>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    {% if software %}
+                    {% for sw in software %}
+                    <div class="p-3 border rounded-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">{{ sw.software_name }}</h6>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" style="font-size: 0.65rem;">Active</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center text-muted small" style="font-size: 0.78rem;">
+                            <span>{{ sw.edition or 'Enterprise Seat' }}</span>
+                            <span class="font-mono text-secondary">Expires: {{ sw.expiry_date or 'Active' }}</span>
+                        </div>
+                        {% if sw.seat_key %}
+                        <div class="mt-2 pt-2 border-top font-mono text-truncate text-secondary" style="font-size: 0.72rem;">
+                            <i class="bi bi-shield-lock me-1"></i>Key: {{ sw.seat_key }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-key text-muted fs-3 d-block mb-1"></i>
+                        No active software licenses assigned.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Procurement Requisitions Tracking -->
+    <div class="card border rounded-4 shadow-sm p-4 mb-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h6 class="fw-bold text-headline mb-0"><i class="bi bi-hourglass-split me-2 text-info"></i> Asset Procurement Requisitions</h6>
+                <span class="text-muted small">Tracking status of requested workstations, accessories, and tools</span>
+            </div>
+            <span class="badge bg-light text-secondary border font-mono">{{ requests|length }} Requests</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr style="font-size: 0.78rem;">
+                        <th>REQ ID</th>
+                        <th>ITEM REQUESTED</th>
+                        <th>CATEGORY</th>
+                        <th>BUSINESS JUSTIFICATION</th>
+                        <th>URGENCY</th>
+                        <th>STATUS</th>
+                        <th class="text-end">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size: 0.835rem;">
+                    {% if requests %}
+                    {% for r in requests %}
+                    <tr id="req-row-{{ r.request_id }}">
+                        <td><span class="badge bg-light text-dark border font-mono fw-bold">{{ r.request_id }}</span></td>
+                        <td class="fw-semibold text-headline">{{ r.item_name }}</td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">{{ r.category }}</span></td>
+                        <td><span class="text-muted text-truncate d-inline-block" style="max-width: 260px;">{{ r.justification }}</span></td>
+                        <td>
+                            {% if r.urgency in ['High', 'Critical'] %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono">{{ r.urgency }}</span>
+                            {% else %}
+                            <span class="badge bg-info-subtle text-info border border-info-subtle font-mono">{{ r.urgency }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.status == 'Approved' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle font-mono">Approved</span>
+                            {% elif r.status == 'Rejected' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono">Rejected</span>
+                            {% else %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle font-mono">Pending Review</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if r.status == 'Pending Review' %}
+                                {% if user and user.role in ['hr', 'manager', 'admin', 'organization'] %}
+                                <button class="btn btn-sm btn-success py-0 px-2 me-1" title="Approve Request" onclick="reviewAssetReq('{{ r.request_id }}', 'Approved')">
+                                    <i class="bi bi-check-lg"></i> Approve
+                                </button>
+                                <button class="btn btn-sm btn-danger py-0 px-2 me-1" title="Reject Request" onclick="reviewAssetReq('{{ r.request_id }}', 'Rejected')">
+                                    <i class="bi bi-x-lg"></i> Reject
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2" title="Cancel Request" onclick="cancelAssetReq('{{ r.request_id }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            {% elif user and user.role in ['hr', 'admin', 'organization'] %}
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete Record" onclick="cancelAssetReq('{{ r.request_id }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-3 text-muted">No procurement requisitions submitted yet.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if user and user.role in ['hr', 'manager', 'admin', 'organization'] and inventory %}
+    <!-- Global Enterprise Inventory Control (HR & Admin) -->
+    <div class="card border rounded-4 shadow-sm p-4 mb-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h6 class="fw-bold text-headline mb-0"><i class="bi bi-box-seam me-2 text-primary"></i> Global Enterprise Inventory &amp; Facility Allocations</h6>
+                <span class="text-muted small">Administrative oversight across hardware workstations, software licenses, and floor seating &amp; locker assignments</span>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                {% set seats_list = all_seating if all_seating is defined and all_seating else (inventory.seating_allocations if inventory and inventory.seating_allocations else []) %}
+                <span class="badge bg-primary px-3 py-2">Assigned: {{ inventory.hardware_assigned }}</span>
+                <span class="badge bg-success px-3 py-2">In Stock: {{ inventory.hardware_in_stock }}</span>
+                <span class="badge bg-info px-3 py-2">Licenses: {{ inventory.total_software_licenses }}</span>
+                <span class="badge text-white px-3 py-2" style="background:#7c3aed;">Workstations &amp; Lockers: {{ seats_list|length }}</span>
+            </div>
+        </div>
+
+        <!-- Inventory Sub-Tabs -->
+        <ul class="nav nav-tabs mb-3" id="invTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active fw-semibold" id="tabHw" data-bs-toggle="tab" data-bs-target="#paneHw" type="button">Hardware Stock ({{ inventory.hardware|length }})</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tabSw" data-bs-toggle="tab" data-bs-target="#paneSw" type="button">Software Licenses ({{ inventory.software|length }})</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tabSeat" data-bs-toggle="tab" data-bs-target="#paneSeat" type="button">
+                    <i class="bi bi-geo-alt text-primary me-1"></i> Seating &amp; Personal Lockers ({{ seats_list|length }})
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="invTabsContent">
+            <!-- Hardware Stock Pane -->
+            <div class="tab-pane fade show active" id="paneHw">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr style="font-size: 0.78rem;">
+                                <th>ASSET TAG</th>
+                                <th>TYPE</th>
+                                <th>MODEL</th>
+                                <th>SERIAL</th>
+                                <th>STATUS</th>
+                                <th>ASSIGNED TO</th>
+                                <th class="text-end">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 0.835rem;">
+                            {% for hw in inventory.hardware %}
+                            <tr id="hw-inv-{{ hw.asset_tag }}">
+                                <td><span class="badge bg-light text-dark border font-mono fw-bold">{{ hw.asset_tag }}</span></td>
+                                <td>{{ hw.type }}</td>
+                                <td class="fw-semibold">{{ hw.model }}</td>
+                                <td class="font-mono text-muted">{{ hw.serial }}</td>
+                                <td>
+                                    {% if hw.status == 'Assigned' %}
+                                    <span class="badge bg-primary-subtle text-primary border font-mono">Assigned</span>
+                                    {% else %}
+                                    <span class="badge bg-success-subtle text-success border font-mono">In Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ hw.assigned_name or '—' }} ({{ hw.assigned_to or 'Unassigned' }})</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-2" title="Decommission Asset" onclick="deleteInventoryItem('hardware', '{{ hw.asset_tag }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Software Licenses Pane -->
+            <div class="tab-pane fade" id="paneSw">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr style="font-size: 0.78rem;">
+                                <th>LICENSE ID</th>
+                                <th>SOFTWARE NAME</th>
+                                <th>EDITION</th>
+                                <th>STATUS</th>
+                                <th>ASSIGNED TO</th>
+                                <th>EXPIRY</th>
+                                <th class="text-end">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 0.835rem;">
+                            {% for sw in inventory.software %}
+                            <tr id="sw-inv-{{ sw.license_id }}">
+                                <td><span class="badge bg-light text-dark border font-mono fw-bold">{{ sw.license_id }}</span></td>
+                                <td class="fw-semibold">{{ sw.software_name }}</td>
+                                <td>{{ sw.edition }}</td>
+                                <td><span class="badge bg-success-subtle text-success border font-mono">{{ sw.status }}</span></td>
+                                <td>{{ sw.assigned_to or 'Unassigned' }}</td>
+                                <td class="font-mono text-muted">{{ sw.expiry_date }}</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete License" onclick="deleteInventoryItem('software', '{{ sw.license_id }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Office Seating & Personal Lockers Pane -->
+            <div class="tab-pane fade" id="paneSeat">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="input-group input-group-sm" style="max-width: 320px;">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="seatingSearchInput" placeholder="Filter seating by employee, desk, floor, locker..." onkeyup="filterSeatingTable(this.value)">
+                    </div>
+                    <button class="btn btn-sm btn-outline-success" onclick="openAllocateSeatLockerModal()">
+                        <i class="bi bi-plus-circle me-1"></i> Allocate / Reassign Seat &amp; Locker
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="seatingAllocationsTable">
+                        <thead class="table-light">
+                            <tr style="font-size: 0.78rem;">
+                                <th>EMPLOYEE</th>
+                                <th>DEPARTMENT &amp; TEAM</th>
+                                <th>FLOOR &amp; SEATING ZONE</th>
+                                <th>WORKSTATION DESK</th>
+                                <th>PERSONAL LOCKER</th>
+                                <th>ACCESS KEY TYPE</th>
+                                <th>STATUS</th>
+                                <th class="text-end">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 0.835rem;">
+                            {% set seats_to_show = all_seating if all_seating is defined and all_seating else (inventory.seating_allocations if inventory and inventory.seating_allocations else []) %}
+                            {% if seats_to_show %}
+                            {% for s in seats_to_show %}
+                            <tr class="seating-data-row" id="seat-row-{{ s.employee_id }}">
+                                <td>
+                                    <div class="fw-semibold text-headline">{{ s.employee_name or s.employee_id }}</div>
+                                    <span class="font-mono text-muted small" style="font-size: 0.72rem;">{{ s.employee_id }}</span>
+                                </td>
+                                <td>
+                                    <div>{{ s.department or '—' }}</div>
+                                    <span class="text-muted small font-mono" style="font-size: 0.72rem;">{{ s.team_id or '—' }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-medium text-dark">{{ s.floor or '—' }}</div>
+                                    <span class="text-muted small" style="font-size: 0.72rem;">{{ s.bay or '—' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary fs-7 font-mono fw-bold px-2 py-1">{{ s.desk_number or '—' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono fw-bold px-2 py-1">{{ s.locker_number or '—' }}</span>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">{{ s.locker_location or '—' }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.7rem;">{{ s.key_type or '—' }}</span>
+                                </td>
+                                <td>
+                                    {% if s.is_verified %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle font-mono">Verified</span>
+                                    {% else %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-mono">Pending Verification</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <button class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" title="Reallocate Seat or Locker" onclick="prefillSeatLockerModal('{{ s.employee_id }}', '{{ s.employee_name or '' }}', '{{ s.department or '' }}', '{{ s.desk_number or '' }}', '{{ s.locker_number or '' }}', '{{ s.floor or '' }}', '{{ s.bay or '' }}', '{{ s.locker_location or '' }}')">
+                                        <i class="bi bi-pencil-square me-1"></i> Edit
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    No verified desk or locker allocations recorded yet. Administrators can enter verified physical assignments once an official floor registry is confirmed.
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Request Asset -->
+<div class="modal fade" id="requestAssetModal" tabindex="-1" aria-labelledby="requestAssetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom">
+                <h6 class="modal-title fw-bold" id="requestAssetModalLabel"><i class="bi bi-laptop text-primary me-2"></i>Procurement Requisition</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assetRequisitionForm" onsubmit="submitAssetRequest(event)">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Asset Category *</label>
+                        <select class="form-select form-select-sm" id="reqCategory" required>
+                            <option value="Hardware / Workstation">Hardware / Computing Workstation</option>
+                            <option value="Monitors & Displays">Monitors &amp; External Displays</option>
+                            <option value="Peripherals & Accessories">Peripherals (Keyboard, Mouse, Headset)</option>
+                            <option value="Software & Cloud Seat">Software License / Cloud Tool</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Item Specification / Name *</label>
+                        <input type="text" class="form-control form-control-sm" id="reqItemName" placeholder="e.g. 27-inch 4K USB-C Monitor or JetBrains All Pack" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Urgency *</label>
+                        <select class="form-select form-select-sm" id="reqUrgency" required>
+                            <option value="Standard">Standard (Within 5-7 business days)</option>
+                            <option value="High">High (Required for upcoming sprint/project)</option>
+                            <option value="Critical">Critical (Blocked deliverable)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Business Justification *</label>
+                        <textarea class="form-control form-control-sm" id="reqJustification" rows="3" placeholder="Explain the project need and technical rationale for this asset..." required></textarea>
+                    </div>
+
+                    <div id="assetReqAlert" class="alert alert-danger py-2 small" style="display: none;"></div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary-gradient rounded-pill px-4 fw-semibold text-white">Submit Requisition</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Allocate Asset to Employee (HR/Admin) -->
+<div class="modal fade" id="allocateAssetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom">
+                <h6 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-right text-primary me-2"></i>Direct Asset Allocation</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="submitAllocateAsset(event)">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Employee ID *</label>
+                        <input type="text" class="form-control form-control-sm" id="allocEmpId" placeholder="e.g. AS-1002" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Category *</label>
+                        <select class="form-select form-select-sm" id="allocCategory" onchange="toggleAllocFields()">
+                            <option value="Hardware" selected>Hardware (Laptop / Monitor / Peripheral)</option>
+                            <option value="Software">Software License</option>
+                        </select>
+                    </div>
+                    <div id="allocHwFields">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Hardware Type</label>
+                                <select class="form-select form-select-sm" id="allocHwType">
+                                    <option value="Laptop" selected>Laptop</option>
+                                    <option value="Monitor">Monitor</option>
+                                    <option value="Peripherals">Peripherals</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Model Name</label>
+                                <input type="text" class="form-control form-control-sm" id="allocHwModel" placeholder="e.g. Apple MacBook Pro M3">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="allocSwFields" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Software Name</label>
+                            <input type="text" class="form-control form-control-sm" id="allocSwName" placeholder="e.g. Figma Enterprise">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" id="btnAllocSubmit">Allocate Asset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Allocate Seat & Locker -->
+<div class="modal fade" id="allocateSeatLockerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header border-bottom py-3 bg-light">
+                <h6 class="modal-title fw-bold text-headline d-flex align-items-center gap-2">
+                    <i class="bi bi-geo-alt-fill text-success"></i> Allocate Workstation Desk &amp; Personal Locker
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="submitAllocateSeatLocker(event)">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Employee ID / Code *</label>
+                            <input type="text" class="form-control form-control-sm font-mono" id="seatEmpId" placeholder="e.g. EMP-1005 or AS-1001" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Employee Full Name</label>
+                            <input type="text" class="form-control form-control-sm" id="seatEmpName" placeholder="Staff member's full name">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Department</label>
+                            <input type="text" class="form-control form-control-sm" id="seatDept" placeholder="Optional department">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Office Floor *</label>
+                            <input type="text" class="form-control form-control-sm" id="seatFloor" placeholder="Enter verified floor" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Seating Zone / Bay</label>
+                            <input type="text" class="form-control form-control-sm" id="seatBay" placeholder="Optional zone / bay">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Workstation Desk Number *</label>
+                            <input type="text" class="form-control form-control-sm font-mono fw-bold" id="seatDeskNumber" placeholder="Enter verified desk code" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Personal Locker Number</label>
+                            <input type="text" class="form-control form-control-sm font-mono fw-bold" id="seatLockerNumber" placeholder="Optional verified locker">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Locker Bay Physical Location</label>
+                            <input type="text" class="form-control form-control-sm" id="seatLockerLocation" placeholder="Optional locker location">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Lock Access Protocol</label>
+                            <input type="text" class="form-control form-control-sm" id="seatKeyType" placeholder="Optional access protocol">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Amenities / Equipment Mounts</label>
+                            <input type="text" class="form-control form-control-sm" id="seatAmenities" placeholder="Optional verified equipment">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Physical Verification Notes *</label>
+                            <input type="text" class="form-control form-control-sm" id="seatVerificationNotes" placeholder="Record administrator sign-off / floor registry verification notes (min 5 chars)" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold" id="btnSeatAllocSubmit">
+                        <i class="bi bi-check-lg me-1"></i> Save Seat &amp; Locker Allocation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+async function submitAssetRequest(e) {
+    e.preventDefault();
+    const alertBox = document.getElementById('assetReqAlert');
+    alertBox.style.display = 'none';
+
+    const payload = {
+        category: document.getElementById('reqCategory').value,
+        item_name: document.getElementById('reqItemName').value,
+        urgency: document.getElementById('reqUrgency').value,
+        justification: document.getElementById('reqJustification').value
+    };
+
+    try {
+        const res = await fetch('/api/assets/request', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alertBox.textContent = data.error || 'Failed to submit asset request.';
+            alertBox.style.display = 'block';
+            return;
+        }
+        showToast('Asset requisition submitted successfully.', 'success');
+        setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+        alertBox.textContent = 'Network communication error.';
+        alertBox.style.display = 'block';
+    }
+}
+
+async function reviewAssetReq(reqId, decision) {
+    const remarks = prompt(`Enter remarks for ${decision.toLowerCase()} request ${reqId} (optional):`) || '';
+    try {
+        const res = await fetch(`/api/assets/requests/${reqId}/review`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ decision, remarks })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast(`Asset request ${decision.toLowerCase()} successfully.`, 'success');
+            setTimeout(() => window.location.reload(), 500);
+        } else {
+            showToast(data.error || 'Failed to review request.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error while reviewing asset request.', 'danger');
+    }
+}
+
+async function cancelAssetReq(reqId) {
+    if (!confirm(`Cancel procurement requisition ${reqId}?`)) return;
+    try {
+        const res = await fetch(`/api/assets/requests/${reqId}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Requisition deleted / cancelled.', 'success');
+            const row = document.getElementById(`req-row-${reqId}`);
+            if (row) row.remove();
+        } else {
+            showToast(data.error || 'Failed to cancel requisition.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error while cancelling requisition.', 'danger');
+    }
+}
+
+function openAllocateAssetModal() {
+    const modal = new bootstrap.Modal(document.getElementById('allocateAssetModal'));
+    modal.show();
+}
+
+function toggleAllocFields() {
+    const cat = document.getElementById('allocCategory').value;
+    document.getElementById('allocHwFields').style.display = cat === 'Hardware' ? 'block' : 'none';
+    document.getElementById('allocSwFields').style.display = cat === 'Software' ? 'block' : 'none';
+}
+
+async function submitAllocateAsset(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnAllocSubmit');
+    btn.disabled = true;
+    const cat = document.getElementById('allocCategory').value;
+    const empId = document.getElementById('allocEmpId').value.trim();
+
+    let assetData = { category: cat };
+    if (cat === 'Hardware') {
+        assetData.type = document.getElementById('allocHwType').value;
+        assetData.model = document.getElementById('allocHwModel').value.trim() || 'Workstation';
+    } else {
+        assetData.software_name = document.getElementById('allocSwName').value.trim() || 'Software Tool';
+    }
+
+    try {
+        const res = await fetch('/api/assets/allocate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employee_id: empId, ...assetData })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Asset allocated successfully.', 'success');
+            setTimeout(() => window.location.reload(), 500);
+        } else {
+            showToast(data.error || 'Failed to allocate asset.', 'danger');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        showToast('Network error while allocating asset.', 'danger');
+        btn.disabled = false;
+    }
+}
+
+async function deleteInventoryItem(type, itemId) {
+    if (!confirm(`Are you sure you want to decommission/delete ${type} item '${itemId}'?`)) return;
+    try {
+        const res = await fetch(`/api/assets/inventory/${type}/${itemId}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast(`${itemId} removed from active inventory.`, 'success');
+            const row = document.getElementById(`${type === 'hardware' ? 'hw' : 'sw'}-inv-${itemId}`);
+            if (row) row.remove();
+        } else {
+            showToast(data.error || 'Failed to remove asset.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error while deleting inventory asset.', 'danger');
+    }
+}
+
+// ----------------------------------------------------
+// Seating & Personal Locker Allocation Controls
+// ----------------------------------------------------
+let seatLockerModalInstance = null;
+
+function openAllocateSeatLockerModal() {
+    if (!seatLockerModalInstance) {
+        seatLockerModalInstance = new bootstrap.Modal(document.getElementById('allocateSeatLockerModal'));
+    }
+    seatLockerModalInstance.show();
+}
+
+function prefillSeatLockerModal(empId, name, dept, desk, locker, floor, bay, loc) {
+    document.getElementById('seatEmpId').value = empId || '';
+    document.getElementById('seatEmpName').value = name || '';
+    document.getElementById('seatDept').value = dept || '';
+    document.getElementById('seatDeskNumber').value = desk || '';
+    document.getElementById('seatLockerNumber').value = locker || '';
+    document.getElementById('seatFloor').value = floor || '';
+    document.getElementById('seatBay').value = bay || '';
+    document.getElementById('seatLockerLocation').value = loc || '';
+
+    openAllocateSeatLockerModal();
+}
+
+async function submitAllocateSeatLocker(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSeatAllocSubmit');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+    const payload = {
+        employee_id: document.getElementById('seatEmpId').value.trim(),
+        employee_name: document.getElementById('seatEmpName').value.trim(),
+        department: document.getElementById('seatDept').value.trim(),
+        floor: document.getElementById('seatFloor').value.trim(),
+        bay: document.getElementById('seatBay').value.trim(),
+        desk_number: document.getElementById('seatDeskNumber').value.trim(),
+        locker_number: document.getElementById('seatLockerNumber').value.trim(),
+        locker_location: document.getElementById('seatLockerLocation').value.trim(),
+        key_type: document.getElementById('seatKeyType').value.trim(),
+        amenities: document.getElementById('seatAmenities').value.trim(),
+        is_verified: true,
+        verification_source: 'administrator_direct_entry',
+        verification_notes: document.getElementById('seatVerificationNotes').value.trim()
+    };
+
+    try {
+        const res = await fetch('/api/assets/seating-lockers/allocate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast(data.message || 'Seat and locker allocated successfully!', 'success');
+            if (seatLockerModalInstance) seatLockerModalInstance.hide();
+            setTimeout(() => window.location.reload(), 500);
+        } else {
+            showToast(data.error || 'Failed to allocate seat & locker.', 'danger');
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    } catch (err) {
+        showToast('Network error while allocating seat & locker.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+function filterSeatingTable(query) {
+    const q = (query || '').toLowerCase().trim();
+    document.querySelectorAll('#seatingAllocationsTable tbody tr.seating-data-row').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

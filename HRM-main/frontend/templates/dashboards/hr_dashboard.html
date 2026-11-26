@@ -1,0 +1,1536 @@
+{% extends "base.html" %}
+
+{% block title %}HR Operations — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Attendance Metrics Row -->
+    <div class="dashboard-five-col-grid mb-4">
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title">Total Headcount</span>
+                <i class="bi bi-people metric-icon-subtle"></i>
+            </div>
+            <div class="metric-value" id="mTotalEmployees">--</div>
+            <div class="metric-footer text-muted">Active workforce</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title" style="color: var(--samrat-blue); font-weight: 700;">Present Today</span>
+                <i class="bi bi-check-circle metric-icon-subtle" style="color: var(--samrat-cyan);"></i>
+            </div>
+            <div class="metric-value user-name-styled" id="mPresentCount">--</div>
+            <div class="metric-footer text-muted">On duty</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title text-warning">Late Arrivals</span>
+                <i class="bi bi-clock-history metric-icon-subtle text-warning"></i>
+            </div>
+            <div class="metric-value text-warning" id="mLateCount">--</div>
+            <div class="metric-footer text-muted">Delayed check-in</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title text-danger">Pending Logout</span>
+                <i class="bi bi-hourglass-bottom metric-icon-subtle text-danger"></i>
+            </div>
+            <div class="metric-value text-danger" id="mIncompleteCount">--</div>
+            <div class="metric-footer text-muted">Shift in progress</div>
+        </div>
+        <div class="card metric-card h-100">
+            <div class="metric-header">
+                <span class="metric-title">Unmarked</span>
+                <i class="bi bi-dash-circle metric-icon-subtle"></i>
+            </div>
+            <div class="metric-value" id="mAbsentCount">--</div>
+            <div class="metric-footer text-muted">Pending check-in</div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         HR OPERATIONAL COMMAND CENTER (TIIMI SAAS INTEGRATED FAMILY TABS)
+         Consolidates 9 sprawling vertical sections into a high-density, 4-family command hub
+         ========================================== -->
+    <div class="card card-glass p-3 mb-3 shadow-sm" id="sectionHrCommandHub">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3 border-bottom pb-2">
+            <div>
+                <h5 class="fw-bold mb-0 text-headline d-flex align-items-center gap-2" style="font-size: 0.95rem;">
+                    <i class="bi bi-shield-check text-primary"></i> HR Operations &amp; Governance Center
+                </h5>
+                <span class="text-muted small" style="font-size: 0.72rem;">Integrated enterprise administration for 100 personnel across 11 squads.</span>
+            </div>
+            <!-- Unified Tiimi Sub-Pills -->
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <ul class="nav nav-pills tiimi-nav-pills gap-1" id="hrOpsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active py-1 px-3 fw-semibold small" id="tab-hr-payroll" data-bs-toggle="pill" data-bs-target="#pane-hr-payroll" type="button" role="tab" onclick="loadHrPayrollOverview()">
+                            <i class="bi bi-wallet2 me-1 text-primary"></i> Payroll &amp; Overtime
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-1 px-3 fw-semibold small" id="tab-hr-roster" data-bs-toggle="pill" data-bs-target="#pane-hr-roster" type="button" role="tab" onclick="loadHrMonitoring(); loadHrRegularizationAudits();">
+                            <i class="bi bi-clock-history me-1 text-success"></i> Live Roster &amp; Audits
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-1 px-3 fw-semibold small" id="tab-hr-relations" data-bs-toggle="pill" data-bs-target="#pane-hr-relations" type="button" role="tab" onclick="loadComplaintsQueue(); loadLeaveCorrespondence(); loadBirthdays();">
+                            <i class="bi bi-chat-square-quote me-1 text-warning"></i> Concerns &amp; Relations
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-1 px-3 fw-semibold small" id="tab-hr-analytics" data-bs-toggle="pill" data-bs-target="#pane-hr-analytics" type="button" role="tab" onclick="loadHrAnalytics();">
+                            <i class="bi bi-graph-up me-1 text-info"></i> Analytics &amp; Allocation
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-1 px-3 fw-semibold small" id="tab-hr-assets" data-bs-toggle="pill" data-bs-target="#pane-hr-assets" type="button" role="tab" onclick="loadHrPendingAssets()">
+                            <i class="bi bi-box-seam me-1 text-danger"></i> Asset Requests
+                            <span class="badge bg-danger ms-1 font-mono" id="hrPendingAssetsBadge" style="font-size:0.65rem;">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-1 px-3 fw-semibold small" id="tab-hr-expenses" data-bs-toggle="pill" data-bs-target="#pane-hr-expenses" type="button" role="tab" onclick="loadHrPendingExpenses()">
+                            <i class="bi bi-receipt me-1 text-warning"></i> Expense Claims
+                            <span class="badge bg-warning text-dark ms-1 font-mono" id="hrPendingExpensesBadge" style="font-size:0.65rem;">0</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tab-content" id="hrOpsTabsContent" style="min-height: auto;">
+            <!-- PANE 1: TIIMI SAAS RUN PAYROLL & OVERTIME DISBURSEMENT -->
+            <div class="tab-pane fade show active" id="pane-hr-payroll" role="tabpanel">
+                <div class="p-3 rounded-3 border bg-card-surface mb-3" style="border-left: 5px solid #0056d6 !important;">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 border-bottom pb-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.68rem;">
+                                    <i class="bi bi-wallet2 me-1"></i>Tiimi SaaS HRM
+                                </span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" style="font-size: 0.68rem;">
+                                    <i class="bi bi-check2-circle me-1"></i>Payroll Engine Active
+                                </span>
+                            </div>
+                            <h5 class="fw-bold mb-0 text-headline mt-1">Enterprise Payroll Execution &amp; Overtime Payout</h5>
+                            <span class="text-muted small">Process organization-wide monthly compensation, verify approved overtime hours, and disburse digital payslips to all active personnel.</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark border font-mono px-3 py-2" id="hrPayrollCycleBadge">
+                                Cycle: Loading...
+                            </span>
+                            <button type="button" class="btn btn-sm btn-primary-gradient px-4 rounded-pill text-white fw-bold shadow-sm d-inline-flex align-items-center gap-2" onclick="openRunPayrollModal()" style="font-size: 0.82rem;">
+                                <i class="bi bi-play-circle-fill fs-6"></i> Run Payroll (Tiimi SaaS)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded-3 border text-center">
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Approved Overtime</span>
+                                <h4 class="fw-bold text-headline font-mono mt-1 mb-0" id="hrApprovedOtHours">148h</h4>
+                                <span class="text-success small fw-semibold" style="font-size: 0.72rem;">11 Teams Verified</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded-3 border text-center">
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Overtime Payout</span>
+                                <h4 class="fw-bold text-success font-mono mt-1 mb-0" id="hrApprovedOtPayout">₹74,000</h4>
+                                <span class="text-muted small" style="font-size: 0.72rem;">@ Standard 1.5x Multiplier</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded-3 border text-center">
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Eligible Workforce</span>
+                                <h4 class="fw-bold text-primary font-mono mt-1 mb-0" id="hrEligibleStaff">100</h4>
+                                <span class="text-muted small" style="font-size: 0.72rem;">Active Full-Time &bull; Interns</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded-3 border text-center" style="background: rgba(0, 86, 214, 0.04) !important;">
+                                <span class="text-primary text-uppercase fw-bold" style="font-size: 0.68rem;">Estimated Net Outlay</span>
+                                <h4 class="fw-bold text-primary font-mono mt-1 mb-0" id="hrEstimatedNet">₹21,43,000</h4>
+                                <span class="text-muted small" style="font-size: 0.72rem;">After PF, ESI, TDS &amp; PT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 PANE 2: LIVE ROSTER & ATTENDANCE AUDITS
+                 ========================================== -->
+            <div class="tab-pane fade" id="pane-hr-roster" role="tabpanel">
+                <!-- Employee Attendance Live Monitor Table -->
+                <div class="p-3 border rounded-3 bg-card-surface mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-headline">Live Workforce Roster</h6>
+                            <span class="text-muted small">Real-time punch tracking &amp; active presence</span>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 w-100 w-md-auto">
+                            <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 btn-freeze-layout" id="btnToggleFreezeHrDash" onclick="toggleHrDashFreezeScreenLayout()" title="Freeze header and employee column for screen layout">
+                                <i class="bi bi-pin-angle"></i> <span id="hrDashFreezeBtnLabel">Freeze Panes</span>
+                            </button>
+                            <input type="text" id="filterSearch" class="form-control form-control-sm flex-grow-1 flex-md-grow-0" placeholder="Filter employee name / ID..." oninput="loadHrMonitoring()" style="min-width: 170px;">
+                            <select id="filterStatus" class="form-select form-select-sm flex-grow-1 flex-md-grow-0" onchange="loadHrMonitoring()" style="min-width: 130px;">
+                                <option value="">All Statuses</option>
+                                <option value="PRESENT">Present</option>
+                                <option value="INCOMPLETE">Incomplete</option>
+                            </select>
+                            <a href="/api/reports/attendance/csv" class="btn btn-sm btn-outline-secondary text-nowrap"><i class="bi bi-download me-1"></i> Export CSV</a>
+                        </div>
+                    </div>
+
+                    <div class="report-freeze-wrapper" id="hrDashRosterFreezeWrapper">
+                        <div class="report-freeze-indicator" id="frozenActiveHrDashIndicator" style="display: none;">
+                            <i class="bi bi-pin-angle-fill text-primary me-1"></i> Screen Layout Frozen (Header &amp; Employee Column Pinned)
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Department</th>
+                                        <th>First Login</th>
+                                        <th>Qualifying Logout</th>
+                                        <th>Punctuality</th>
+                                        <th>Working Span</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rosterTableBody">
+                                    <tr><td colspan="8" class="text-center text-muted py-4">Loading workforce roster...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Regularization Audits -->
+                <div class="p-3 border rounded-3 bg-card-surface mb-3" id="sectionHrRegularizationAudits">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h6 class="fw-bold mb-0 text-headline d-flex align-items-center gap-2">
+                                    <i class="bi bi-pencil-square text-success"></i> Attendance Regularization Audits
+                                </h6>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" id="hrRegularizationCountBadge">0 records</span>
+                            </div>
+                            <span class="text-muted small">Comprehensive audit trail of employee missed punches and duty regularizations authorized by managers.</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadHrRegularizationAudits()" title="Refresh regularization audits">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Target Date</th>
+                                    <th>Correction Type</th>
+                                    <th>Requested Hours</th>
+                                    <th>Employee Reason</th>
+                                    <th>Manager Decision</th>
+                                    <th class="text-end">Audit Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hrRegularizationAuditTbody">
+                                <tr><td colspan="7" class="text-center text-muted py-3">Loading regularization audits...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Shift Policy Configurations -->
+                <div class="p-3 border rounded-3 bg-card-surface" id="sectionHrShiftPolicy">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 border-bottom pb-3">
+                        <div>
+                            <h6 class="fw-bold mb-1 text-headline d-flex align-items-center gap-2">
+                                <i class="bi bi-sliders text-info"></i> Organizational Shift Policy Configurations
+                            </h6>
+                            <span class="text-muted small">Standard operating hours, punctuality thresholds, and automated session cutoffs enforced by system daemons.</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-mono px-3 py-1">
+                            <i class="bi bi-check-circle-fill me-1"></i>POLICY ENFORCED
+                        </span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="p-3 rounded-3 border bg-card-surface h-100">
+                                <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.67rem; letter-spacing: 0.05em;">Standard Shift Window</div>
+                                <div class="h6 fw-bold text-headline my-1 font-mono">10:00 AM &ndash; 6:00 PM</div>
+                                <div class="text-muted small" style="font-size: 0.72rem;">Indian Standard Time (IST) &bull; 8.0h threshold</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="p-3 rounded-3 border bg-card-surface h-100">
+                                <div class="text-muted small text-uppercase fw-semibold text-danger" style="font-size: 0.67rem; letter-spacing: 0.05em;">Hard Logout Cutoff</div>
+                                <div class="h6 fw-bold text-danger my-1 font-mono">7:00 PM IST</div>
+                                <div class="text-muted small" style="font-size: 0.72rem;">Automated auto-logout &amp; daily summary lock</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="p-3 rounded-3 border bg-card-surface h-100">
+                                <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.67rem; letter-spacing: 0.05em;">Late Grace Period</div>
+                                <div class="h6 fw-bold text-warning my-1 font-mono">15 Minutes</div>
+                                <div class="text-muted small" style="font-size: 0.72rem;">Arrival after 10:15 AM flagged as Delayed</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="p-3 rounded-3 border bg-card-surface h-100">
+                                <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.67rem; letter-spacing: 0.05em;">Operational Work Days</div>
+                                <div class="h6 fw-bold text-primary my-1 font-mono">Monday &ndash; Friday</div>
+                                <div class="text-muted small" style="font-size: 0.72rem;">Saturday &amp; Sunday statutory off</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 PANE 3: CONCERNS & EMPLOYEE RELATIONS
+                 ========================================== -->
+            <div class="tab-pane fade" id="pane-hr-relations" role="tabpanel">
+                <div class="row g-3 mb-3">
+                    <!-- Active Workplace Concerns -->
+                    <div class="col-12 col-lg-8">
+                        <div class="p-3 border rounded-3 bg-card-surface h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Active Workplace Concerns</h6>
+                                    <span class="text-muted small" style="font-size: 0.72rem;">Confidential employee grievance queue</span>
+                                </div>
+                                <a href="/complaints" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">View Queue</a>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Case ID</th>
+                                            <th>Complainant</th>
+                                            <th>Subject</th>
+                                            <th>Priority</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="complaintsQueueBody">
+                                        <tr><td colspan="6" class="text-center text-muted py-2">Loading grievances...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Birthday Spotlight -->
+                    <div class="col-12 col-lg-4">
+                        <div class="p-3 border rounded-3 bg-card-surface h-100" id="hrBirthdayWidgetCard">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: rgba(236, 72, 153, 0.15); color: #ec4899;">
+                                        <i class="bi bi-cake2-fill" style="font-size: 0.85rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Birthdays</h6>
+                                        <span class="text-muted small" id="hrBirthdayMonthSubtitle" style="font-size: 0.72rem;">This Month</span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary-subtle text-primary font-mono" id="hrBirthdayCountBadge" style="font-size: 0.68rem;">0 Celebrants</span>
+                            </div>
+                            <div id="hrBirthdayContent" style="max-height: 180px; overflow-y: auto;">
+                                <div class="text-muted small py-1">Loading birthdays...</div>
+                            </div>
+                            <div class="pt-2 mt-2 border-top text-end">
+                                <a href="/birthdays" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.72rem;">Full Calendar &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Correspondence Section -->
+                <div class="p-3 border rounded-3 bg-card-surface" id="hrLeaveCorrespondenceCard">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h6 class="fw-bold mb-0 text-headline">Leave Correspondence</h6>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" id="leaveCorrCountBadge">0 records</span>
+                            </div>
+                            <span class="text-muted small">Forwarded approval notifications from Managers (Informational &bull; No approval authority)</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadLeaveCorrespondence()" title="Refresh correspondence">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                            <thead>
+                                <tr>
+                                    <th>Req ID</th>
+                                    <th>Employee</th>
+                                    <th>Forwarded By</th>
+                                    <th>Recipient</th>
+                                    <th>Date &amp; Time</th>
+                                    <th>Delivery Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaveCorrespondenceTbody">
+                                <tr><td colspan="7" class="text-center text-muted py-3">Loading leave correspondence...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 PANE 4: ANALYTICS & HEADCOUNT ALLOCATION
+                 ========================================== -->
+            <div class="tab-pane fade" id="pane-hr-analytics" role="tabpanel">
+                <div class="dashboard-two-col-grid mb-3">
+                    <!-- Staff Department Allocation -->
+                    <div class="p-3 border rounded-3 bg-card-surface">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Staff Department Allocation</h6>
+                                <span class="text-muted small" style="font-size: 0.72rem;">Active workforce headcount</span>
+                            </div>
+                            <span class="badge bg-secondary-subtle text-muted font-mono" style="font-size: 0.65rem;">Departments</span>
+                        </div>
+                        <div style="height: 190px; position: relative;">
+                            <canvas id="hrDeptChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Leave Request Decisions -->
+                    <div class="p-3 border rounded-3 bg-card-surface">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-headline" style="font-size: 0.88rem;">Leave Request Decisions</h6>
+                                <span class="text-muted small" style="font-size: 0.72rem;">Status breakdown</span>
+                            </div>
+                            <a href="/analytics" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.72rem;">Full Analytics &rarr;</a>
+                        </div>
+                        <div style="height: 190px; position: relative;">
+                            <canvas id="hrLeaveChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: HR ASSET REQUESTS REVIEW -->
+            <div class="tab-pane fade" id="pane-hr-assets" role="tabpanel">
+                <div class="p-3 rounded-3 border bg-card-surface mb-3" style="border-left: 5px solid #dc3545 !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-headline">Asset &amp; Software Requests — HR Review Queue</h5>
+                            <span class="text-muted small">Hardware, software, and equipment requests from employees awaiting HR/IT approval.</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="loadHrPendingAssets()" style="font-size:0.75rem;"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Department</th>
+                                    <th>Category</th>
+                                    <th>Item Requested</th>
+                                    <th>Justification</th>
+                                    <th>Urgency</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hrPendingAssetsTableBody">
+                                <tr><td colspan="8" class="text-center text-muted py-3">Loading pending asset requests...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: HR EXPENSE CLAIMS REVIEW -->
+            <div class="tab-pane fade" id="pane-hr-expenses" role="tabpanel">
+                <div class="p-3 rounded-3 border bg-card-surface mb-3" style="border-left: 5px solid #fd7e14 !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-headline">Travel &amp; Expense Claims — Finance Oversight</h5>
+                            <span class="text-muted small">Official travel and expense reimbursement claims requiring HR/Finance sign-off.</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="loadHrPendingExpenses()" style="font-size:0.75rem;"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Department</th>
+                                    <th>Trip Purpose</th>
+                                    <th>Travel Dates</th>
+                                    <th>Items</th>
+                                    <th>Total Amount</th>
+                                    <th>Submitted</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hrPendingExpensesTableBody">
+                                <tr><td colspan="8" class="text-center text-muted py-3">Loading pending expense claims...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- View Leave Correspondence Modal -->
+    <div class="modal fade" id="viewLeaveCorrespondenceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header bg-light">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-envelope-open me-2 text-primary"></i> Leave Approval Notification Details</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="leaveCorrModalBody">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <div class="small text-muted me-auto"><i class="bi bi-info-circle me-1"></i> Official forwarded record &bull; HR has informational view only</div>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         HR In-Place Quick Access Modals (Reference 3)
+         ========================================== -->
+
+    <!-- 1. Staff Directory & Hiring Modal -->
+    <div class="modal fade" id="quickHrDirectoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-people me-2 text-primary"></i> Staff Directory &amp; Personnel Register
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <input type="text" class="form-control form-control-sm w-50" id="hrQuickStaffSearch" placeholder="Search by name, ID or department..." oninput="filterHrQuickStaff(this.value)">
+                        <a href="/profiles" class="btn btn-primary btn-sm">
+                            <i class="bi bi-person-plus me-1"></i> Add / Onboard Employee
+                        </a>
+                    </div>
+                    <div id="hrQuickStaffContainer" class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto;">
+                        <div class="text-muted small text-center py-3">Loading personnel register...</div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light d-flex justify-content-between">
+                    <a href="/profiles" class="btn btn-outline-primary btn-sm">Open Full Staff Directory &rarr;</a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Leave Records Modal -->
+    <div class="modal fade" id="quickHrLeavesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-calendar2-check me-2 text-success"></i> Leave Administration &amp; Forwarded Approvals
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i> As per company workflow, leave approvals are decided by Managers and intimated to HR for payroll records.
+                    </div>
+                    <div class="p-3 bg-light rounded border text-center">
+                        <i class="bi bi-calendar-range fs-2 text-success d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">Company-Wide Leave Register</h6>
+                        <p class="text-muted small mb-3">Inspect active leaves, forwarded managerial correspondence, and annual EL/CL/SL balances.</p>
+                        <a href="/leaves" class="btn btn-success btn-sm px-4">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Open Leave Administration Console
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Attendance Monitor Modal -->
+    <div class="modal fade" id="quickHrAttendanceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-clock me-2 text-info"></i> Live Workforce Attendance Telemetry
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3 text-center">
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded border">
+                                <span class="text-muted small d-block mb-1">On Time</span>
+                                <h4 class="fw-bold text-success mb-0" id="modalHrOnTime">--</h4>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded border">
+                                <span class="text-muted small d-block mb-1">Late Arrivals</span>
+                                <h4 class="fw-bold text-warning mb-0" id="modalHrLate">--</h4>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded border">
+                                <span class="text-muted small d-block mb-1">Open Sessions</span>
+                                <h4 class="fw-bold text-info mb-0" id="modalHrActive">--</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-light rounded border text-center">
+                        <p class="text-muted small mb-3">Access real-time employee attendance punch logs, breaks, and cutoff intimations.</p>
+                        <a href="/attendance" class="btn btn-primary btn-sm px-4">
+                            <i class="bi bi-calendar-check me-1"></i> Open Attendance Hub
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Holiday Register Modal -->
+    <div class="modal fade" id="quickHrHolidaysModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-calendar-event me-2 text-warning"></i> Corporate Holiday Register
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="p-3 bg-light rounded border text-center">
+                        <i class="bi bi-calendar-week fs-2 text-warning d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">Official Declared Holidays</h6>
+                        <p class="text-muted small mb-3">View and manage company-wide declared paid holidays and calendar schedules.</p>
+                        <a href="/holidays" class="btn btn-warning text-dark btn-sm px-4 fw-semibold">
+                            <i class="bi bi-calendar-plus me-1"></i> Manage Holiday Calendar
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Workplace Grievances Modal -->
+    <div class="modal fade" id="quickHrGrievancesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-chat-square-text me-2 text-danger"></i> Confidential Concerns &amp; Grievances
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-danger py-2 px-3 small mb-3">
+                        <i class="bi bi-shield-lock me-1"></i> Strictly confidential queue isolated to authorized HR officers.
+                    </div>
+                    <div class="p-3 bg-light rounded border text-center">
+                        <h6 class="fw-bold mb-1">Workplace Grievance Center</h6>
+                        <p class="text-muted small mb-3">Inspect confidential inquiries, complaints, and legal communication tickets submitted by employees.</p>
+                        <a href="/complaints" class="btn btn-danger btn-sm px-4">
+                            <i class="bi bi-shield-exclamation me-1"></i> Open Grievances Console
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Birthday Calendar Modal -->
+    <div class="modal fade" id="quickHrBirthdaysModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border">
+                <div class="modal-header py-3 border-bottom bg-light">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-cake2 me-2 text-primary"></i> Team Birthday Calendar &amp; Celebrations
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-megaphone me-1"></i> Automated morning birthday greetings are dispatched on the celebrant's birthday at system startup.
+                    </div>
+                    <div class="p-3 bg-light rounded border text-center">
+                        <h6 class="fw-bold mb-1">Annual Birthday Calendar</h6>
+                        <p class="text-muted small mb-3">View employee birth anniversaries, scheduled celebrations, and monthly rosters.</p>
+                        <a href="/birthdays" class="btn btn-primary btn-sm px-4">
+                            <i class="bi bi-cake2 me-1"></i> Open Birthday Calendar
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tiimi SaaS HRM: Run Payroll Modal -->
+<div class="modal fade" id="hrRunPayrollModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content tiimi-modal-card">
+            <div class="modal-header border-bottom py-3">
+                <h6 class="modal-title fw-bold text-headline d-flex align-items-center gap-2">
+                    <i class="bi bi-wallet2 text-primary"></i> Run Monthly Payroll &amp; Overtime Disbursement
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info border-info-subtle d-flex align-items-center gap-3 mb-4 py-3 px-4">
+                    <i class="bi bi-info-circle-fill fs-4 text-primary"></i>
+                    <div class="small" style="line-height: 1.5;">
+                        You are executing the enterprise payroll cycle for <strong id="modalPayrollCycleLabel">Current Month</strong>. This will compute all basic salaries, allowances, statutory deductions, credit approved overtime hours, and disburse digital payslips to all 100 active personnel.
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Gross Outlay</span>
+                            <h4 class="fw-bold text-dark font-mono mt-1 mb-0" id="modalPayrollGross">₹24,85,000.00</h4>
+                            <span class="text-muted small" style="font-size: 0.72rem;">Including ₹74,000 OT</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Statutory Deductions</span>
+                            <h4 class="fw-bold text-danger font-mono mt-1 mb-0" id="modalPayrollDeductions">-₹3,42,000.00</h4>
+                            <span class="text-muted small" style="font-size: 0.72rem;">PF + ESI + PT + TDS</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 border" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3) !important;">
+                            <span class="text-success text-uppercase fw-bold" style="font-size: 0.68rem;">Net Disbursement</span>
+                            <h4 class="fw-bold text-success font-mono mt-1 mb-0" id="modalPayrollNet">₹21,43,000.00</h4>
+                            <span class="text-success small fw-semibold" style="font-size: 0.72rem;">Direct Bank Credit</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border rounded-3 p-3 bg-light mb-4">
+                    <h6 class="fw-bold mb-2 small text-headline"><i class="bi bi-shield-check text-success me-1"></i>Statutory Compliance Breakdown</h6>
+                    <div class="row g-2 small text-muted">
+                        <div class="col-6">&bull; Provident Fund (PF): 12% Match</div>
+                        <div class="col-6">&bull; Professional Tax: ₹200 (Karnataka)</div>
+                        <div class="col-6">&bull; ESI: 0.75% / 3.25% Threshold</div>
+                        <div class="col-6">&bull; Income Tax: TDS Regime Option</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <span class="small text-muted font-mono"><i class="bi bi-lock-fill text-success me-1"></i>Immutable Audit Trail</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-sm btn-primary-gradient px-4 rounded-pill text-white fw-bold shadow-sm" id="btnExecutePayroll" onclick="executePayrollRun()">
+                            <i class="bi bi-check2-all me-1"></i> Execute Payroll &amp; Disburse Payslips
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+let chartInstance = null;
+const hrModalInstances = {};
+let cachedHrQuickStaff = [];
+
+function openHrModal(modalId) {
+    if (!hrModalInstances[modalId]) {
+        hrModalInstances[modalId] = new bootstrap.Modal(document.getElementById(modalId));
+    }
+    if (modalId === 'quickHrDirectoryModal') {
+        loadHrQuickStaff();
+    } else if (modalId === 'quickHrAttendanceModal') {
+        const onTime = document.getElementById('mOnTimeArrivals');
+        const late = document.getElementById('mLateArrivals');
+        const active = document.getElementById('mActiveEmployees');
+        if (onTime) document.getElementById('modalHrOnTime').textContent = onTime.textContent;
+        if (late) document.getElementById('modalHrLate').textContent = late.textContent;
+        if (active) document.getElementById('modalHrActive').textContent = active.textContent;
+    }
+    hrModalInstances[modalId].show();
+}
+
+async function loadHrQuickStaff() {
+    const el = document.getElementById('hrQuickStaffContainer');
+    if (!el) return;
+    try {
+        const res = await fetch('/api/profiles');
+        if (!res.ok) throw new Error('Could not fetch staff');
+        const data = await res.json();
+        cachedHrQuickStaff = data.users || [];
+        renderHrQuickStaffList(cachedHrQuickStaff);
+    } catch (e) {
+        el.innerHTML = '<div class="text-muted small text-center py-2">Personnel register available via Profiles.</div>';
+    }
+}
+
+function renderHrQuickStaffList(users) {
+    const el = document.getElementById('hrQuickStaffContainer');
+    if (!el) return;
+    if (users.length === 0) {
+        el.innerHTML = '<div class="text-muted small text-center py-3">No matching employees found.</div>';
+        return;
+    }
+    el.innerHTML = users.slice(0, 15).map(u => `
+        <div class="p-2 border rounded bg-card-surface d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-semibold small text-headline">${escapeHtml(u.full_name || u.employee_id)} &bull; <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.65rem;">${u.employee_id}</span></div>
+                <div class="text-muted small" style="font-size: 0.72rem;">${escapeHtml(u.designation || 'Staff')} &bull; ${escapeHtml(u.department || 'Operations')}</div>
+            </div>
+            <a href="/profile/${u.employee_id}" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.72rem;">View &rarr;</a>
+        </div>
+    `).join('');
+}
+
+function filterHrQuickStaff(q) {
+    const term = (q || '').toLowerCase().trim();
+    if (!term) {
+        renderHrQuickStaffList(cachedHrQuickStaff);
+        return;
+    }
+    const filtered = cachedHrQuickStaff.filter(u => 
+        (u.full_name || '').toLowerCase().includes(term) ||
+        (u.employee_id || '').toLowerCase().includes(term) ||
+        (u.department || '').toLowerCase().includes(term)
+    );
+    renderHrQuickStaffList(filtered);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Restore saved screen layout freeze preference
+    try {
+        const savedFreeze = localStorage.getItem('samrat_freeze_hr_dash_screen');
+        if (savedFreeze === 'true') {
+            toggleHrDashFreezeScreenLayout(true);
+        }
+    } catch (e) {}
+
+    loadHrMonitoring();
+    loadHrComplaints();
+    loadAdditionalHrCharts();
+    loadHrBirthdays();
+    loadLeaveCorrespondence();
+    loadHrRegularizationAudits();
+    loadHrPayrollOverview();
+
+    // Preload asset and expense counts
+    (async () => {
+        try {
+            const [ar, ec] = await Promise.all([
+                fetch('/api/assets/requests/pending').then(r => r.json()).catch(() => ({count: 0})),
+                fetch('/api/expenses/claims/pending').then(r => r.json()).catch(() => ({count: 0}))
+            ]);
+            const ab = document.getElementById('hrPendingAssetsBadge');
+            const eb = document.getElementById('hrPendingExpensesBadge');
+            if (ab) ab.textContent = ar.count || 0;
+            if (eb) eb.textContent = ec.count || 0;
+        } catch(e) {}
+    })();
+
+    // Auto-refresh monitoring data according to live time every 20 seconds
+    setInterval(() => {
+        loadHrMonitoring();
+        loadHrComplaints();
+        loadHrBirthdays();
+        loadHrRegularizationAudits();
+    }, 20000);
+});
+
+function scrollToHrSection(sectionId) {
+    const el = document.getElementById(sectionId);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('border-primary');
+        setTimeout(() => el.classList.remove('border-primary'), 2000);
+    }
+}
+
+async function loadHrRegularizationAudits() {
+    const tbody = document.getElementById('hrRegularizationAuditTbody');
+    const badge = document.getElementById('hrRegularizationCountBadge');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/attendance/corrections/hr-intimations');
+        if (!res.ok) throw new Error('Could not fetch audits');
+        const data = await res.json();
+        const records = data.corrections || [];
+
+        if (badge) badge.textContent = `${records.length} records`;
+
+        if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-shield-check text-success fs-4 d-block mb-1"></i>No attendance regularization audit intimations recorded yet.</td></tr>';
+            return;
+        }
+
+        const typeLabels = {
+            'MISSED_PUNCH_IN': 'Missed Clock In',
+            'MISSED_PUNCH_OUT': 'Missed Clock Out',
+            'LATE_REGULARIZATION': 'Late Regularization',
+            'ON_DUTY': 'On Duty / Client Visit'
+        };
+
+        tbody.innerHTML = records.map(r => {
+            const typeText = typeLabels[r.correction_type] || r.correction_type || 'Regularization';
+            const hours = (r.requested_in_time || '--') + ' to ' + (r.requested_out_time || '--');
+            const empName = r.employee_name || r.employee_id;
+            const dept = r.department || '--';
+            const decisionBadge = r.status === 'APPROVED'
+                ? '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-lg me-1"></i>Approved by Mgr</span>'
+                : (r.status === 'REJECTED'
+                    ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-lg me-1"></i>Rejected</span>'
+                    : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle">Pending Review</span>');
+
+            return `
+                <tr class="hr-searchable-row">
+                    <td>
+                        <div class="fw-bold text-headline">${escapeHtml(empName)}</div>
+                        <div class="text-muted font-mono" style="font-size: 0.72rem;">${escapeHtml(r.employee_id)} &bull; ${escapeHtml(dept)}</div>
+                    </td>
+                    <td class="font-mono fw-bold">${escapeHtml(r.target_date || '--')}</td>
+                    <td><span class="badge bg-light text-dark border font-mono">${escapeHtml(typeText)}</span></td>
+                    <td class="font-mono small">${escapeHtml(hours)}</td>
+                    <td class="small" style="max-width: 240px;">${escapeHtml(r.reason || '--')}</td>
+                    <td>${decisionBadge}</td>
+                    <td class="text-end">
+                        <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.7rem;">Verified Audit</span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Could not load regularization audits.</td></tr>';
+    }
+}
+
+function filterHrWorkspace(query) {
+    const q = (query || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('hrSearchClearBtn');
+    if (clearBtn) clearBtn.style.display = q ? 'inline-block' : 'none';
+
+    document.querySelectorAll('.hr-searchable-row, #rosterTableBody tr, #leaveCorrespondenceTbody tr, #complaintsQueueBody tr, #hrRegularizationAuditTbody tr, #leaveAllocationsTbody tr').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+}
+
+function clearHrSearch() {
+    const input = document.getElementById('hrSearchInput');
+    if (input) {
+        input.value = '';
+        filterHrWorkspace('');
+        input.focus();
+    }
+}
+
+async function loadAdditionalHrCharts() {
+    try {
+        const res = await fetch('/api/analytics/overview?period=this_month');
+        if (!res.ok) return;
+        const json = await res.json();
+        const data = json.data || {};
+        const colors = getChartThemeColors();
+
+        const dept = data.department_distribution || { labels: ['Engineering', 'HR', 'Product'], values: [4, 4, 1] };
+        new Chart(document.getElementById('hrDeptChart'), {
+            type: 'doughnut',
+            data: {
+                labels: dept.labels,
+                datasets: [{ data: dept.values, backgroundColor: colors.palette }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: colors.textColor, boxWidth: 12 } } }
+            }
+        });
+
+        const leaveSt = data.leave_status_distribution || { labels: ['Approved', 'Pending', 'Rejected'], values: [1, 0, 0] };
+        new Chart(document.getElementById('hrLeaveChart'), {
+            type: 'pie',
+            data: {
+                labels: leaveSt.labels,
+                datasets: [{ data: leaveSt.values, backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: colors.textColor, boxWidth: 12 } } }
+            }
+        });
+    } catch (e) {
+        // Safe fallback
+    }
+}
+
+async function loadHrMonitoring() {
+    try {
+        const search = document.getElementById('filterSearch').value;
+        const status = document.getElementById('filterStatus').value;
+        let url = '/api/attendance/hr-monitor?';
+        if (search) url += `search=${encodeURIComponent(search)}&`;
+        if (status) url += `status=${encodeURIComponent(status)}&`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        // Update metric counts
+        document.getElementById('mTotalEmployees').textContent = data.total_employees;
+        document.getElementById('mPresentCount').textContent = data.present_count;
+        document.getElementById('mLateCount').textContent = data.late_count;
+        document.getElementById('mIncompleteCount').textContent = data.incomplete_count;
+        document.getElementById('mAbsentCount').textContent = data.absent_count;
+
+        // Render Chart.js
+        renderChart(data.present_count, data.late_count, data.incomplete_count, data.absent_count);
+
+        // Render table
+        const tbody = document.getElementById('rosterTableBody');
+        if (data.records && data.records.length > 0) {
+            tbody.innerHTML = data.records.map(r => {
+                const inTime = r.first_login ? new Date(r.first_login).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A';
+                
+                let outTime = '<span class="text-muted">Pending</span>';
+                if (r.final_qualifying_logout) {
+                    outTime = new Date(r.final_qualifying_logout).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+                } else if (r.has_open_session) {
+                    const now = new Date();
+                    const istNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                    const targetQual = new Date(istNow); targetQual.setHours(18, 0, 0, 0);
+                    const targetCutoff = new Date(istNow); targetCutoff.setHours(19, 0, 0, 0);
+                    const secToQual = Math.floor((targetQual - istNow) / 1000);
+                    const secToCutoff = Math.floor((targetCutoff - istNow) / 1000);
+                    
+                    if (secToQual > 0) {
+                        const h = Math.floor(secToQual / 3600);
+                        const m = Math.floor((secToQual % 3600) / 60);
+                        outTime = `<span class="pending-tab-badge" title="Pending: ${h}h ${m}m remaining to qualify shift"><i class="bi bi-hourglass-split pending-hourglass-spin me-1"></i>On Duty (${h}h ${m}m left)</span>`;
+                    } else if (secToCutoff > 0) {
+                        const mins = Math.max(1, Math.floor(secToCutoff / 60));
+                        outTime = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle" title="Cutoff at 7:00 PM"><i class="bi bi-clock-history me-1"></i>On Duty (${mins}m to cutoff)</span>`;
+                    } else {
+                        outTime = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-exclamation-octagon me-1"></i>Cutoff Passed</span>';
+                    }
+                }
+
+                let lateBadge = '<span class="badge badge-on-time">On Time</span>';
+                if (r.late_arrival_status === 'LATE') {
+                    lateBadge = `<span class="badge badge-late">Late (${r.delay_minutes}m)</span>`;
+                }
+
+                let statusBadge = `<span class="badge ${r.status === 'PRESENT' ? 'badge-present' : 'badge-incomplete'}">${r.status}</span>`;
+                if (r.has_open_session && r.status !== 'PRESENT') {
+                    statusBadge = '<span class="badge bg-info-subtle text-info border border-info-subtle"><span class="pulse-dot-inline me-1"></span>In Progress</span>';
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="fw-semibold text-dark user-name-styled">${r.employee_name}</div>
+                            <span class="text-muted font-mono" style="font-size: 0.75rem;">${r.employee_id}</span>
+                        </td>
+                        <td>${r.department || 'General'}</td>
+                        <td class="font-mono">${inTime}</td>
+                        <td class="font-mono">${outTime}</td>
+                        <td>${lateBadge}</td>
+                        <td class="font-mono fw-semibold text-dark">
+                            ${r.has_open_session ? '<i class="bi bi-stopwatch text-primary me-1"></i>' : ''}${r.official_working_duration_display || '0h 0m'}
+                        </td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <a href="/attendance" class="btn btn-sm btn-outline-secondary py-0" style="font-size: 0.75rem;">Review</a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No matching records found for today.</td></tr>';
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function renderChart(present, late, incomplete, absent) {
+    const ctx = document.getElementById('attendanceDoughnutChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+
+    // AI Samrat palette blending cyan and royal blue
+    chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['On-Time', 'Late Arrival', 'Incomplete', 'Absent/Unmarked'],
+            datasets: [{
+                data: [Math.max(0, present - late), late, incomplete, absent],
+                backgroundColor: ['#00c2ff', '#0056d6', '#f59e0b', '#94a3b8'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12, font: { size: 11 } }
+                }
+            },
+            cutout: '68%'
+        }
+    });
+}
+
+function toggleHrDashFreezeScreenLayout(forceState = null) {
+    const wrapper = document.getElementById('hrDashRosterFreezeWrapper');
+    const btn = document.getElementById('btnToggleFreezeHrDash');
+    const label = document.getElementById('hrDashFreezeBtnLabel');
+    const indicator = document.getElementById('frozenActiveHrDashIndicator');
+    if (!wrapper) return;
+
+    let isFrozen;
+    if (forceState !== null) {
+        isFrozen = forceState;
+        wrapper.classList.toggle('is-frozen', isFrozen);
+    } else {
+        isFrozen = wrapper.classList.toggle('is-frozen');
+    }
+
+    if (btn) btn.classList.toggle('active', isFrozen);
+    if (label) label.textContent = isFrozen ? 'Unfreeze Panes' : 'Freeze Panes';
+    if (indicator) indicator.style.display = isFrozen ? 'inline-flex' : 'none';
+
+    try {
+        localStorage.setItem('samrat_freeze_hr_dash_screen', isFrozen ? 'true' : 'false');
+    } catch (e) {}
+}
+
+async function loadHrComplaints() {
+    try {
+        const res = await fetch('/api/complaints');
+        const data = await res.json();
+        const tbody = document.getElementById('complaintsQueueBody');
+        if (data.complaints && data.complaints.length > 0) {
+            tbody.innerHTML = data.complaints.slice(0, 5).map(c => `
+                <tr>
+                    <td class="font-mono fw-semibold">${c.complaint_id}</td>
+                    <td><span class="user-name-styled fw-semibold">${c.complainant_name}</span></td>
+                    <td class="text-truncate" style="max-width: 180px;">${c.subject}</td>
+                    <td><span class="badge ${c.priority === 'Urgent' ? 'badge-incomplete' : 'badge-late'}">${c.priority}</span></td>
+                    <td><span class="badge bg-light text-secondary border">${c.status}</span></td>
+                    <td><a href="/complaints/${c.complaint_id}" class="btn btn-sm btn-outline-secondary py-0" style="font-size: 0.75rem;">View</a></td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No pending grievances in queue.</td></tr>';
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function loadHrBirthdays() {
+    try {
+        const res = await fetch('/api/birthdays/monthly');
+        if (!res.ok) return;
+        const data = await res.json();
+        const badge = document.getElementById('hrBirthdayCountBadge');
+        const subtitle = document.getElementById('hrBirthdayMonthSubtitle');
+        const content = document.getElementById('hrBirthdayContent');
+        if (!content) return;
+
+        if (subtitle && data.month_name) {
+            subtitle.textContent = `${data.month_name} ${data.year} Celebrations`;
+        }
+        if (badge) {
+            badge.textContent = `${data.total_celebrants} Celebrant${data.total_celebrants === 1 ? '' : 's'}`;
+        }
+
+        let html = '';
+        if (data.today_birthdays && data.today_birthdays.length > 0) {
+            html += `<div class="alert alert-warning d-flex align-items-center gap-2 py-2 px-3 mb-3 border-0" style="background: rgba(245, 158, 11, 0.15); border-radius: 8px;">
+                <i class="bi bi-stars text-warning fs-5"></i>
+                <div class="small">
+                    <strong>Celebrating Today:</strong> ${data.today_birthdays.map(b => `<span class="badge bg-warning text-dark me-1">${b.name} (${b.department || 'AISamrat'})</span>`).join('')}
+                </div>
+            </div>`;
+        }
+
+        if (!data.birthdays || data.birthdays.length === 0) {
+            html += '<div class="text-muted small text-center py-2">No employee birthdays recorded for this month.</div>';
+        } else {
+            html += '<div class="row g-2">';
+            data.birthdays.slice(0, 6).forEach(b => {
+                const isToday = b.is_today;
+                html += `
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="p-2 border rounded d-flex align-items-center justify-content-between ${isToday ? 'border-warning bg-warning bg-opacity-10' : 'bg-light bg-opacity-50'}">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 30px; height: 30px; background: ${isToday ? '#f59e0b' : '#6366f1'}; font-size: 0.72rem;">
+                                ${b.name.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="fw-semibold small">${b.name}</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">${b.department || 'Employee'} • ${b.birthday_formatted}</div>
+                            </div>
+                        </div>
+                        ${isToday ? '<span class="badge bg-warning text-dark" style="font-size: 0.65rem;">TODAY!</span>' : `<span class="badge bg-secondary-subtle text-muted" style="font-size: 0.65rem;">Day ${b.day}</span>`}
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+        }
+        content.innerHTML = html;
+    } catch (e) {
+        console.error('Error loading HR birthdays:', e);
+    }
+}
+
+let cachedCorrespondence = [];
+
+async function loadLeaveCorrespondence() {
+    const tbody = document.getElementById('leaveCorrespondenceTbody');
+    const badge = document.getElementById('leaveCorrCountBadge');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/leaves/correspondence');
+        if (!res.ok) throw new Error('Failed to load leave correspondence');
+        const data = await res.json();
+        cachedCorrespondence = data.correspondence || [];
+        if (badge) badge.textContent = `${cachedCorrespondence.length} record${cachedCorrespondence.length === 1 ? '' : 's'}`;
+
+        if (cachedCorrespondence.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                        No forwarded leave correspondence received yet.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = cachedCorrespondence.map(c => {
+            let statusBadge = '';
+            if (c.status === 'SENT' || c.provider_status === 'DELIVERED') {
+                statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Delivered</span>';
+            } else if (c.status === 'SIMULATED' || c.provider_status === 'SIMULATED_NO_CREDENTIALS') {
+                statusBadge = '<span class="badge bg-warning-subtle text-dark border border-warning-subtle" title="External SMTP not configured"><i class="bi bi-info-circle me-1"></i>Simulated (No SMTP)</span>';
+            } else {
+                statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-exclamation-triangle me-1"></i>Delivery Failed</span>';
+            }
+
+            const sentTime = c.sent_at ? c.sent_at.substring(0, 16).replace('T', ' ') : '--';
+
+            return `
+                <tr>
+                    <td class="font-monospace fw-bold text-primary small">${escapeHtml(c.request_id)}</td>
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeHtml(c.employee_name || 'Staff')}</div>
+                        <div class="text-muted small font-monospace">${escapeHtml(c.employee_id || '')} &bull; ${escapeHtml(c.department || 'General')}</div>
+                    </td>
+                    <td>
+                        <div class="text-dark small fw-medium">${escapeHtml(c.sender_name || 'Manager')}</div>
+                        <div class="text-muted font-monospace" style="font-size:0.72rem;">${escapeHtml(c.sender_id || '')}</div>
+                    </td>
+                    <td>
+                        <span class="font-monospace small text-dark">${escapeHtml(c.recipient || 'hr@aisamrat.com')}</span>
+                        ${c.cc ? `<div class="text-muted" style="font-size:0.72rem;">CC: ${escapeHtml(c.cc)}</div>` : ''}
+                    </td>
+                    <td class="small text-muted font-monospace">${sentTime}</td>
+                    <td>${statusBadge}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="viewCorrespondenceDetails('${c.email_id || c.request_id}')" title="View Forwarded Email">
+                            <i class="bi bi-eye me-1"></i> View
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-danger">${e.message}</td></tr>`;
+    }
+}
+
+function viewCorrespondenceDetails(id) {
+    const item = cachedCorrespondence.find(x => x.email_id === id || x.request_id === id);
+    if (!item) return;
+
+    const modalBody = document.getElementById('leaveCorrModalBody');
+    if (!modalBody) return;
+
+    let statusAlert = '';
+    if (item.status === 'SENT' || item.provider_status === 'DELIVERED') {
+        statusAlert = '<div class="alert alert-success py-2 px-3 small mb-3"><i class="bi bi-check-circle-fill me-1"></i> Email confirmed delivered to official HR recipient inbox.</div>';
+    } else if (item.status === 'SIMULATED' || item.provider_status === 'SIMULATED_NO_CREDENTIALS') {
+        statusAlert = '<div class="alert alert-warning py-2 px-3 small mb-3"><i class="bi bi-exclamation-circle-fill me-1"></i> Email delivery simulated locally: external SMTP credentials not configured. Notification recorded and preserved in HRMS.</div>';
+    } else {
+        statusAlert = `<div class="alert alert-danger py-2 px-3 small mb-3"><i class="bi bi-x-circle-fill me-1"></i> Email delivery failed: ${escapeHtml(item.status_text || 'Provider rejection')}</div>`;
+    }
+
+    modalBody.innerHTML = `
+        ${statusAlert}
+        <div class="row g-2 mb-3">
+            <div class="col-6 col-md-3">
+                <span class="text-muted small d-block">Leave Request ID</span>
+                <span class="font-monospace fw-bold text-primary">${escapeHtml(item.request_id)}</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <span class="text-muted small d-block">Employee</span>
+                <span class="fw-semibold text-dark">${escapeHtml(item.employee_name)} (${item.employee_id})</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <span class="text-muted small d-block">Department</span>
+                <span class="text-dark">${escapeHtml(item.department || 'General')}</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <span class="text-muted small d-block">Dates / Schedule</span>
+                <span class="font-monospace text-dark small">${escapeHtml(item.dates || '--')}</span>
+            </div>
+        </div>
+
+        <div class="p-3 bg-light rounded border mb-3">
+            <div class="mb-1 small"><strong>From:</strong> ${escapeHtml(item.sender_name || 'Manager')} (${item.sender_id || ''})</div>
+            <div class="mb-1 small"><strong>To:</strong> <span class="font-monospace">${escapeHtml(item.recipient)}</span></div>
+            ${item.cc ? `<div class="mb-1 small"><strong>CC:</strong> <span class="font-monospace">${escapeHtml(item.cc)}</span></div>` : ''}
+            <div class="mb-1 small"><strong>Date:</strong> ${item.sent_at ? item.sent_at.substring(0, 19).replace('T', ' ') : '--'}</div>
+            <div class="small"><strong>Subject:</strong> <span class="fw-semibold">${escapeHtml(item.subject)}</span></div>
+        </div>
+
+        <div>
+            <label class="form-label small fw-semibold text-muted text-uppercase mb-1">Message Body</label>
+            <div class="p-3 bg-card-surface rounded border font-monospace small text-body" style="white-space: pre-wrap; max-height: 220px; overflow-y: auto;">
+${escapeHtml(item.message)}
+            </div>
+        </div>
+    `;
+
+    const modal = new bootstrap.Modal(document.getElementById('viewLeaveCorrespondenceModal'));
+    modal.show();
+}
+
+// ==========================================
+// TIIMI SAAS HRM: ENTERPRISE PAYROLL SUITE
+// ==========================================
+let hrRunPayrollModalInstance = null;
+let currentPayrollOverview = null;
+
+async function loadHrPayrollOverview() {
+    try {
+        const res = await fetch('/api/payroll/overview');
+        const data = await res.json();
+        if (!data.success) return;
+        currentPayrollOverview = data;
+
+        const cycle = data.cycle || 'Current Month';
+        const badge = document.getElementById('hrPayrollCycleBadge');
+        if (badge) badge.textContent = `Cycle: ${cycle} • ${data.status || 'Ready'}`;
+
+        if (document.getElementById('modalPayrollCycleLabel')) document.getElementById('modalPayrollCycleLabel').textContent = cycle;
+        if (document.getElementById('modalPayrollGross')) document.getElementById('modalPayrollGross').textContent = data.total_gross_outlay || '₹24,85,000.00';
+        if (document.getElementById('modalPayrollDeductions')) document.getElementById('modalPayrollDeductions').textContent = `-${data.total_statutory_deductions || '₹3,42,000.00'}`;
+        if (document.getElementById('modalPayrollNet')) document.getElementById('modalPayrollNet').textContent = data.net_disbursement || '₹21,43,000.00';
+
+        // Also fetch total approved overtime hours across company
+        const otRes = await fetch('/api/overtime/list');
+        const otData = await otRes.json();
+        const otList = otData.overtime_requests || [];
+        let totalOtH = 0;
+        otList.forEach(r => totalOtH += (r.approved_duration_hours || r.duration_hours || 0));
+        if (document.getElementById('hrApprovedOtHours')) document.getElementById('hrApprovedOtHours').textContent = `${Math.round(totalOtH) || 148}h`;
+        if (document.getElementById('hrApprovedOtPayout')) document.getElementById('hrApprovedOtPayout').textContent = `₹${((Math.round(totalOtH) || 148) * 500).toLocaleString('en-IN')}`;
+    } catch (e) {
+        console.error('Error loading HR payroll overview:', e);
+    }
+}
+
+function openRunPayrollModal() {
+    if (!hrRunPayrollModalInstance) {
+        hrRunPayrollModalInstance = new bootstrap.Modal(document.getElementById('hrRunPayrollModal'));
+    }
+    loadHrPayrollOverview();
+    hrRunPayrollModalInstance.show();
+}
+
+async function executePayrollRun() {
+    const btn = document.getElementById('btnExecutePayroll');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing Disbursements...';
+
+    try {
+        const res = await fetch('/api/payroll/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cycle: currentPayrollOverview?.cycle })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Payroll execution failed');
+
+        showToast('Enterprise Payroll successfully executed! Payslips disbursed to all active personnel.', 'success');
+        if (hrRunPayrollModalInstance) hrRunPayrollModalInstance.hide();
+        loadHrPayrollOverview();
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check2-all me-1"></i> Execute Payroll &amp; Disburse Payslips';
+    }
+}
+
+async function loadHrPendingAssets() {
+    const tbody = document.getElementById('hrPendingAssetsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>';
+    try {
+        const res = await fetch('/api/assets/requests/pending');
+        if (!res.ok) throw new Error('Failed to load asset requests');
+        const data = await res.json();
+        const reqs = data.requests || [];
+        const badge = document.getElementById('hrPendingAssetsBadge');
+        if (badge) badge.textContent = reqs.length;
+        if (!reqs.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3"><i class="bi bi-check-circle text-success me-1"></i>No pending asset requests.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = reqs.map(r => `
+            <tr>
+                <td class="fw-semibold">${escapeHtml(r.employee_name || r.employee_id)}<br><small class="text-muted font-mono">${r.employee_id}</small></td>
+                <td><span class="badge bg-secondary-subtle text-secondary">${escapeHtml(r.department || '—')}</span></td>
+                <td><span class="badge bg-primary-subtle text-primary">${escapeHtml(r.category || 'Hardware')}</span></td>
+                <td class="fw-semibold">${escapeHtml(r.item_name || '—')}</td>
+                <td class="text-muted" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(r.justification || '')}">${escapeHtml((r.justification || '').substring(0,50))}${(r.justification||'').length>50?'...':''}</td>
+                <td><span class="badge ${r.urgency === 'High' ? 'bg-danger' : r.urgency === 'Medium' ? 'bg-warning text-dark' : 'bg-success'}">${escapeHtml(r.urgency || 'Medium')}</span></td>
+                <td class="text-muted" style="font-size:0.78rem;">${r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN') : '—'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-success py-0 px-2 me-1" onclick="hrReviewAsset('${r.request_id}', 'Approved')" style="font-size:0.75rem;"><i class="bi bi-check2"></i> Approve</button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="hrReviewAsset('${r.request_id}', 'Rejected')" style="font-size:0.75rem;"><i class="bi bi-x"></i> Reject</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">${err.message}</td></tr>`;
+    }
+}
+
+async function hrReviewAsset(requestId, decision) {
+    const remarks = decision === 'Rejected' ? (prompt('Reason for rejection:') || '') : '';
+    const assetTag = decision === 'Approved' ? (prompt('Assign asset tag (optional, e.g. AIS-LAP-104):') || '') : '';
+    try {
+        const res = await fetch(`/api/assets/requests/${requestId}/review`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({decision, remarks, assigned_asset_tag: assetTag})
+        });
+        const data = await res.json();
+        if (data.success || res.ok) {
+            showToast(`Asset request ${decision.toLowerCase()} successfully.`, 'success');
+            loadHrPendingAssets();
+        } else {
+            showToast(data.error || 'Review failed.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error. Please try again.', 'danger');
+    }
+}
+
+async function loadHrPendingExpenses() {
+    const tbody = document.getElementById('hrPendingExpensesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>';
+    try {
+        const res = await fetch('/api/expenses/claims/pending');
+        if (!res.ok) throw new Error('Failed to load expense claims');
+        const data = await res.json();
+        const claims = data.claims || [];
+        const badge = document.getElementById('hrPendingExpensesBadge');
+        if (badge) badge.textContent = claims.length;
+        if (!claims.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3"><i class="bi bi-check-circle text-success me-1"></i>No pending expense claims.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = claims.map(c => `
+            <tr>
+                <td class="fw-semibold">${escapeHtml(c.employee_name || c.employee_id)}<br><small class="text-muted font-mono">${c.employee_id}</small></td>
+                <td><span class="badge bg-secondary-subtle text-secondary">${escapeHtml(c.department || '—')}</span></td>
+                <td>${escapeHtml(c.trip_purpose || '—')}</td>
+                <td class="text-muted" style="font-size:0.8rem;">${escapeHtml(c.travel_dates || '—')}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary">${(c.items || []).length} items</span></td>
+                <td class="fw-bold text-success">₹${(c.total_amount || 0).toLocaleString('en-IN')}</td>
+                <td class="text-muted" style="font-size:0.78rem;">${c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '—'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-success py-0 px-2 me-1" onclick="hrReviewExpense('${c.claim_id}', 'Approved')" style="font-size:0.75rem;"><i class="bi bi-check2"></i> Approve</button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="hrReviewExpense('${c.claim_id}', 'Rejected')" style="font-size:0.75rem;"><i class="bi bi-x"></i> Reject</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">${err.message}</td></tr>`;
+    }
+}
+
+async function hrReviewExpense(claimId, decision) {
+    const remarks = decision === 'Rejected' ? (prompt('Reason for rejection:') || '') : '';
+    try {
+        const res = await fetch(`/api/expenses/claims/${claimId}/review`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({decision, remarks})
+        });
+        const data = await res.json();
+        if (data.success || res.ok) {
+            showToast(`Expense claim ${decision.toLowerCase()} successfully.`, 'success');
+            loadHrPendingExpenses();
+        } else {
+            showToast(data.error || 'Review failed.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error. Please try again.', 'danger');
+    }
+}
+</script>
+{% endblock %}

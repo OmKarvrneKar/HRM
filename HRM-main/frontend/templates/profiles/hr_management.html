@@ -1,0 +1,763 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Management &amp; Directory — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header Card -->
+    <div class="page-header-card">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold mb-1">Personnel Management &amp; Employee Directory</h4>
+                <div class="page-header-meta">
+                    <span class="page-header-meta-item"><i class="bi bi-people me-1"></i> Staff Directory</span>
+                    <span class="page-header-meta-item"><i class="bi bi-building me-1"></i> Personnel Records</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                {% if user.role in ['hr', 'manager'] %}
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                    <i class="bi bi-person-plus me-1"></i> Add Employee
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-pills mb-3 gap-2" id="employeeTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active px-3 py-2 d-flex align-items-center gap-2" id="active-tab" data-bs-toggle="pill" data-bs-target="#activeEmployeesPane" type="button" role="tab" onclick="switchEmployeeTab('active')">
+                <i class="bi bi-people-fill"></i> Active Personnel <span class="badge bg-primary-subtle text-primary border" id="activeCountBadge">0</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-2 d-flex align-items-center gap-2" id="offboarded-tab" data-bs-toggle="pill" data-bs-target="#offboardedEmployeesPane" type="button" role="tab" onclick="switchEmployeeTab('offboarded')">
+                <i class="bi bi-person-x-fill"></i> Offboarded &amp; Inactive <span class="badge bg-secondary-subtle text-secondary border" id="offboardedCountBadge">0</span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="employeeTabsContent">
+        <!-- Active Employees Pane -->
+        <div class="tab-pane fade show active" id="activeEmployeesPane" role="tabpanel">
+            <div class="card p-3 p-md-4 shadow-sm border-0">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-person-lines-fill me-1 text-primary"></i> Enterprise Employee Roster</h6>
+                    <div class="d-flex gap-2 w-100 w-md-auto">
+                        <select class="form-select form-select-sm" id="roleFilterSelect" style="max-width: 160px;" onchange="applyFilters()">
+                            <option value="all">All Roles</option>
+                            <option value="employee">Employee</option>
+                            <option value="team_lead">Team Lead</option>
+                            <option value="manager">Manager</option>
+                            <option value="hr">HR</option>
+                        </select>
+                        <input type="text" class="form-control form-control-sm" id="activeSearchInput" placeholder="Search by name, email, or ID..." style="max-width: 260px;" oninput="applyFilters()">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee ID</th>
+                                <th>Full Name</th>
+                                <th>Personal Gmail / Login</th>
+                                <th>Department</th>
+                                <th>Role &amp; Designation</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="directoryTableBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Loading directory...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Offboarded & Inactive Pane -->
+        <div class="tab-pane fade" id="offboardedEmployeesPane" role="tabpanel">
+            <div class="card p-3 p-md-4 shadow-sm border-0">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-archive-fill me-1 text-secondary"></i> Inactive &amp; Former Personnel</h6>
+                        <span class="text-muted small">Past employee records</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee ID</th>
+                                <th>Full Name</th>
+                                <th>Department</th>
+                                <th>Offboarding Reason</th>
+                                <th>Last Working Day</th>
+                                <th>Processed By</th>
+                                <th>Notes / Handover</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="offboardedTableBody">
+                            <tr><td colspan="8" class="text-center text-muted py-4">Loading offboarding history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.role in ['hr', 'manager'] %}
+<!-- Add Employee Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold"><i class="bi bi-person-plus me-2 text-primary"></i> Add New Employee</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 small d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
+                    <div>
+                        The account will initially be in an <strong>unverified state</strong>. The employee will complete first-time registration and set their password using OTP verification sent to their personal Gmail address.
+                    </div>
+                </div>
+                <form id="createUserForm" onsubmit="event.preventDefault(); submitCreateUser();">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Employee ID (Optional)</label>
+                            <input type="text" id="newEmpId" class="form-control font-mono" placeholder="Auto-generated if left blank (e.g. EMP-1039)">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Full Name *</label>
+                            <input type="text" id="newFullName" class="form-control" required placeholder="e.g. Aditi Rao">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Personal Gmail Address *</label>
+                            <input type="email" id="newPersonalEmail" class="form-control" required placeholder="aditi.rao@gmail.com">
+                            <small class="text-muted">Must be valid Gmail address for OTP verification</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Official Work Email (Optional)</label>
+                            <input type="email" id="newOfficialEmail" class="form-control" placeholder="aditi.rao@aisamrat.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Role *</label>
+                            <select id="newRole" class="form-select" required>
+                                <option value="employee" selected>Employee</option>
+                                <option value="team_lead">Team Lead</option>
+                                <option value="manager">Manager</option>
+                                <option value="hr">HR</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Phone Number</label>
+                            <input type="text" id="newPhone" class="form-control" placeholder="+91 9876543210">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Department</label>
+                            <input type="text" id="newDept" class="form-control" placeholder="AIML / Engineering">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Designation</label>
+                            <input type="text" id="newDesignation" class="form-control" placeholder="AI Systems Engineer">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Date of Birth</label>
+                            <input type="date" id="newDob" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Gender</label>
+                            <select id="newGender" class="form-select">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                                <option value="Prefer not to say">Prefer not to say</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Joining Date</label>
+                            <input type="date" id="newJoiningDate" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Employment Type</label>
+                            <select id="newEmpType" class="form-select">
+                                <option value="Full-Time" selected>Full-Time</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Intern">Intern</option>
+                                <option value="Part-Time">Part-Time</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Reporting Manager ID</label>
+                            <input type="text" id="newManagerId" class="form-control font-mono" placeholder="e.g. ADM-1001">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Residential Address</label>
+                            <input type="text" id="newAddress" class="form-control" placeholder="Bangalore, Karnataka">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Emergency Contact</label>
+                            <input type="text" id="newEmergency" class="form-control" placeholder="+91 9988776655">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Pre-set Password (Optional)</label>
+                            <input type="password" id="newPassword" class="form-control" placeholder="Leave empty for user to set password via first-time Gmail OTP activation">
+                            <small class="text-muted">If omitted, account starts in 'pending_activation' and requires OTP setup.</small>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-3">Add Employee</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2 text-primary"></i> Edit Employee Profile</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="editUserForm" onsubmit="event.preventDefault(); submitEditUser();">
+                    <input type="hidden" id="editEmpId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Employee ID</label>
+                            <input type="text" id="editEmpIdDisplay" class="form-control font-mono bg-light" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Full Name *</label>
+                            <input type="text" id="editFullName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Personal Gmail Address *</label>
+                            <input type="email" id="editPersonalEmail" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Official Work Email</label>
+                            <input type="email" id="editOfficialEmail" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Role *</label>
+                            <select id="editRole" class="form-select" required>
+                                <option value="employee">Employee</option>
+                                <option value="team_lead">Team Lead</option>
+                                <option value="manager">Manager</option>
+                                <option value="hr">HR</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Phone Number</label>
+                            <input type="text" id="editPhone" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Department</label>
+                            <input type="text" id="editDept" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Designation</label>
+                            <input type="text" id="editDesignation" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Date of Birth</label>
+                            <input type="date" id="editDob" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Gender</label>
+                            <select id="editGender" class="form-select">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                                <option value="Prefer not to say">Prefer not to say</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Joining Date</label>
+                            <input type="date" id="editJoiningDate" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Employment Type</label>
+                            <select id="editEmpType" class="form-select">
+                                <option value="Full-Time">Full-Time</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Intern">Intern</option>
+                                <option value="Part-Time">Part-Time</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Employment Status</label>
+                            <select id="editEmpStatus" class="form-select">
+                                <option value="Active">Active</option>
+                                <option value="On Leave">On Leave</option>
+                                <option value="Resigned">Resigned</option>
+                                <option value="Offboarded">Offboarded</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Reporting Manager ID</label>
+                            <input type="text" id="editManagerId" class="form-control font-mono">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Emergency Contact</label>
+                            <input type="text" id="editEmergency" class="form-control">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Residential Address</label>
+                            <input type="text" id="editAddress" class="form-control">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Reason for Modification *</label>
+                            <input type="text" id="editReason" class="form-control" required placeholder="e.g. Corrected personal email, updated designation">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-3">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offboard Employee Modal -->
+<div class="modal fade" id="offboardModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold text-danger"><i class="bi bi-person-x-fill me-2"></i> Initiate Employee Offboarding</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="offboardForm" onsubmit="event.preventDefault(); submitOffboard();">
+                    <input type="hidden" id="offboardEmpId">
+                    <div class="alert alert-warning py-2 small d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+                        <div>
+                            Offboarding immediately revokes login privileges and attendance sessions for <strong id="offboardEmpNameDisplay">--</strong>. All historical attendance, leave, payslip, skill, and audit records will remain securely preserved.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Offboarding Reason *</label>
+                        <select id="offboardReason" class="form-select" required>
+                            <option value="Voluntary Resignation">Voluntary Resignation</option>
+                            <option value="End of Contract / Internship">End of Contract / Internship</option>
+                            <option value="Retirement">Retirement</option>
+                            <option value="Organizational Transfer">Organizational Transfer</option>
+                            <option value="Performance / Policy Separation">Performance / Policy Separation</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Last Working Day *</label>
+                            <input type="date" id="offboardLastDay" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Effective Date *</label>
+                            <input type="date" id="offboardEffectiveDate" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Handover / Settlement Notes</label>
+                        <textarea id="offboardNotes" class="form-control" rows="3" placeholder="Asset clearance, project handover status, final settlement details..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger px-3">Confirm Offboarding</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+let allUsers = [];
+let allOffboardings = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    const today = new Date().toISOString().split('T')[0];
+    const newJoiningDateEl = document.getElementById('newJoiningDate');
+    const lastDayEl = document.getElementById('offboardLastDay');
+    const effDateEl = document.getElementById('offboardEffectiveDate');
+    if (newJoiningDateEl) newJoiningDateEl.value = today;
+    if (lastDayEl) lastDayEl.value = today;
+    if (effDateEl) effDateEl.value = today;
+
+    loadDirectory();
+    loadOffboardings();
+});
+
+function switchEmployeeTab(tab) {
+    if (tab === 'offboarded') {
+        loadOffboardings();
+    } else {
+        loadDirectory();
+    }
+}
+
+async function loadDirectory() {
+    try {
+        const res = await fetch('/api/users?include_inactive=true');
+        const data = await res.json();
+        allUsers = data.users || [];
+        applyFilters();
+
+        const activeCount = allUsers.filter(u => u.is_active !== false && u.status !== 'offboarded').length;
+        document.getElementById('activeCountBadge').textContent = activeCount;
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function applyFilters() {
+    const term = (document.getElementById('activeSearchInput').value || '').toLowerCase().trim();
+    const roleFilter = document.getElementById('roleFilterSelect').value;
+
+    let filtered = allUsers.filter(u => u.status !== 'offboarded');
+
+    if (roleFilter !== 'all') {
+        filtered = filtered.filter(u => u.role === roleFilter);
+    }
+
+    if (term) {
+        filtered = filtered.filter(u => 
+            (u.full_name && u.full_name.toLowerCase().includes(term)) ||
+            (u.email && u.email.toLowerCase().includes(term)) ||
+            (u.personal_email && u.personal_email.toLowerCase().includes(term)) ||
+            (u.employee_id && u.employee_id.toLowerCase().includes(term)) ||
+            (u.department && u.department.toLowerCase().includes(term)) ||
+            (u.designation && u.designation.toLowerCase().includes(term))
+        );
+    }
+
+    renderDirectoryTable(filtered);
+}
+
+function renderDirectoryTable(users) {
+    const tbody = document.getElementById('directoryTableBody');
+
+    if (users && users.length > 0) {
+        tbody.innerHTML = users.map(u => {
+            const roleBadge = (u.role || 'employee').replace('_', ' ').toUpperCase();
+            const personalEmail = u.personal_email || u.email || '--';
+            const isVerified = u.is_email_verified === true;
+            const isPendingActivation = u.account_status === 'pending_activation' || !isVerified;
+            const isActive = u.is_active !== false && u.status !== 'offboarded';
+
+            let statusBadge = '';
+            if (!isActive || u.status === 'offboarded' || u.employment_status === 'Offboarded') {
+                statusBadge = '<span class="badge bg-secondary">Offboarded</span>';
+            } else if (isPendingActivation) {
+                statusBadge = '<span class="badge bg-warning text-dark border">Pending Activation</span>';
+            } else {
+                statusBadge = '<span class="badge badge-on-time">Active</span>';
+            }
+
+            const verificationPill = isVerified 
+                ? '<span class="badge bg-success-subtle text-success border border-success-subtle" title="Verified Login Gmail"><i class="bi bi-patch-check-fill me-1"></i>Verified</span>'
+                : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" title="Unverified — Requires OTP"><i class="bi bi-clock-history me-1"></i>Unverified</span>';
+
+            return `
+                <tr class="${!isActive ? 'table-light opacity-75' : ''}">
+                    <td class="font-mono fw-semibold">${u.employee_id}</td>
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeHtml(u.full_name)}</div>
+                        <div class="text-muted small">${u.phone_number || ''}</div>
+                    </td>
+                    <td>
+                        <div class="font-mono text-dark small">${escapeHtml(personalEmail)}</div>
+                        <div class="mt-1">${verificationPill}</div>
+                    </td>
+                    <td>${escapeHtml(u.department || 'General')}</td>
+                    <td>
+                        <span class="badge bg-light text-dark border me-1 font-mono">${roleBadge}</span>
+                        <div class="text-secondary small mt-1">${escapeHtml(u.designation || '')}</div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="/profile/${u.employee_id}" class="btn btn-outline-primary py-1 px-2" title="View Profile">
+                                <i class="bi bi-person me-1"></i> Profile
+                            </a>
+                            <button class="btn btn-outline-secondary py-1 px-2" onclick="openEditUserModal('${u.employee_id}')" title="Edit Employee Details">
+                                <i class="bi bi-pencil me-1"></i> Edit
+                            </button>
+                            ${isActive ? `
+                                <button class="btn btn-outline-danger py-1 px-2" onclick="openOffboardModal('${u.employee_id}', '${escapeHtml(u.full_name)}')" title="Formal Offboarding">
+                                    <i class="bi bi-person-x me-1"></i> Offboard
+                                </button>
+                            ` : `
+                                <button class="btn btn-outline-success py-1 px-2" onclick="reactivateEmployee('${u.employee_id}')" title="Reactivate Account">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reactivate
+                                </button>
+                            `}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } else {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No personnel found matching criteria.</td></tr>';
+    }
+}
+
+async function loadOffboardings() {
+    try {
+        const res = await fetch('/api/offboardings');
+        const data = await res.json();
+        allOffboardings = data.offboardings || [];
+        const tbody = document.getElementById('offboardedTableBody');
+
+        document.getElementById('offboardedCountBadge').textContent = allOffboardings.length;
+
+        if (allOffboardings.length > 0) {
+            tbody.innerHTML = allOffboardings.map(o => `
+                <tr>
+                    <td class="font-mono fw-semibold">${o.employee_id}</td>
+                    <td class="fw-semibold text-dark">${escapeHtml(o.employee_name || '--')}</td>
+                    <td>${escapeHtml(o.department || 'General')}</td>
+                    <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle">${o.reason}</span></td>
+                    <td class="font-mono text-dark">${o.last_working_day}</td>
+                    <td class="small text-muted">${escapeHtml(o.processed_by_name || o.processed_by_id || '')}</td>
+                    <td class="small text-muted text-truncate" style="max-width: 220px;" title="${escapeHtml(o.notes || '')}">${escapeHtml(o.notes || '--')}</td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="/profile/${o.employee_id}" class="btn btn-outline-secondary py-1 px-2" title="View Historical Profile">
+                                <i class="bi bi-clock-history me-1"></i> History
+                            </a>
+                            <button class="btn btn-outline-success py-1 px-2" onclick="reactivateEmployee('${o.employee_id}')" title="Reactivate Employee Account">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reactivate
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No offboarded personnel recorded.</td></tr>';
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function openEditUserModal(empId) {
+    const user = allUsers.find(u => u.employee_id === empId);
+    if (!user) {
+        showToast('Employee not found in directory.', 'error');
+        return;
+    }
+
+    document.getElementById('editEmpId').value = user.employee_id;
+    document.getElementById('editEmpIdDisplay').value = user.employee_id;
+    document.getElementById('editFullName').value = user.full_name || '';
+    document.getElementById('editPersonalEmail').value = user.personal_email || user.email || '';
+    document.getElementById('editOfficialEmail').value = user.official_email || user.email || '';
+    document.getElementById('editRole').value = user.role || 'employee';
+    document.getElementById('editPhone').value = user.phone_number || '';
+    document.getElementById('editDept').value = user.department || '';
+    document.getElementById('editDesignation').value = user.designation || '';
+    document.getElementById('editDob').value = user.date_of_birth || '';
+    document.getElementById('editGender').value = user.gender || '';
+    document.getElementById('editJoiningDate').value = user.joining_date || '';
+    document.getElementById('editEmpType').value = user.employment_type || 'Full-Time';
+    document.getElementById('editEmpStatus').value = user.employment_status || (user.is_active && user.status !== 'offboarded' ? 'Active' : 'Offboarded');
+    document.getElementById('editManagerId').value = user.reporting_manager_id || '';
+    document.getElementById('editEmergency').value = user.emergency_contact || '';
+    document.getElementById('editAddress').value = user.address || '';
+    document.getElementById('editReason').value = 'HR administrative update';
+
+    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    modal.show();
+}
+
+async function submitEditUser() {
+    const empId = document.getElementById('editEmpId').value;
+    const reason = document.getElementById('editReason').value;
+
+    const updates = {
+        full_name: document.getElementById('editFullName').value,
+        personal_email: document.getElementById('editPersonalEmail').value.trim().toLowerCase(),
+        official_email: document.getElementById('editOfficialEmail').value.trim().toLowerCase(),
+        email: document.getElementById('editPersonalEmail').value.trim().toLowerCase(),
+        role: document.getElementById('editRole').value,
+        phone_number: document.getElementById('editPhone').value,
+        department: document.getElementById('editDept').value,
+        designation: document.getElementById('editDesignation').value,
+        date_of_birth: document.getElementById('editDob').value,
+        gender: document.getElementById('editGender').value,
+        joining_date: document.getElementById('editJoiningDate').value,
+        employment_type: document.getElementById('editEmpType').value,
+        employment_status: document.getElementById('editEmpStatus').value,
+        reporting_manager_id: document.getElementById('editManagerId').value,
+        emergency_contact: document.getElementById('editEmergency').value,
+        address: document.getElementById('editAddress').value
+    };
+
+    try {
+        const res = await fetch(`/api/users/${empId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates, reason })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('Employee profile updated successfully.', 'success');
+            const modalEl = document.getElementById('editUserModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            loadDirectory();
+        } else {
+            showToast(data.error || 'Failed to update employee.', 'error');
+        }
+    } catch (e) {
+        showToast('Connection error. Please try again.', 'error');
+    }
+}
+
+async function toggleActiveStatus(empId, shouldActivate) {
+    if (!shouldActivate) {
+        const user = allUsers.find(u => u.employee_id === empId);
+        openOffboardModal(empId, user ? user.full_name : empId);
+        return;
+    }
+    return reactivateEmployee(empId);
+}
+
+function openOffboardModal(empId, empName) {
+    document.getElementById('offboardEmpId').value = empId;
+    document.getElementById('offboardEmpNameDisplay').textContent = `${empName} (${empId})`;
+    const modalEl = document.getElementById('offboardModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+async function submitOffboard() {
+    const empId = document.getElementById('offboardEmpId').value;
+    const payload = {
+        reason: document.getElementById('offboardReason').value,
+        last_working_day: document.getElementById('offboardLastDay').value,
+        effective_date: document.getElementById('offboardEffectiveDate').value,
+        notes: document.getElementById('offboardNotes').value
+    };
+
+    try {
+        const res = await fetch(`/api/users/${empId}/offboard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Employee offboarded successfully.', 'success');
+            const modalEl = document.getElementById('offboardModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            document.getElementById('offboardForm').reset();
+            loadDirectory();
+            loadOffboardings();
+        } else {
+            showToast(data.error || 'Failed to offboard employee.', 'error');
+        }
+    } catch (e) {
+        showToast('Connection error. Please try again.', 'error');
+    }
+}
+
+async function reactivateEmployee(empId) {
+    if (!confirm(`Are you sure you want to reactivate employee account ${empId}? This will restore login and attendance privileges.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/users/${empId}/reactivate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: "Reactivated by HR via Employee Management" })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Account reactivated successfully.', 'success');
+            loadDirectory();
+            loadOffboardings();
+        } else {
+            showToast(data.error || 'Failed to reactivate account.', 'error');
+        }
+    } catch (e) {
+        showToast('Connection error. Please try again.', 'error');
+    }
+}
+
+async function submitCreateUser() {
+    const payload = {
+        employee_id: document.getElementById('newEmpId').value.trim() || undefined,
+        full_name: document.getElementById('newFullName').value.trim(),
+        personal_email: document.getElementById('newPersonalEmail').value.trim().toLowerCase(),
+        official_email: document.getElementById('newOfficialEmail').value.trim().toLowerCase() || document.getElementById('newPersonalEmail').value.trim().toLowerCase(),
+        email: document.getElementById('newPersonalEmail').value.trim().toLowerCase(),
+        role: document.getElementById('newRole').value,
+        password: document.getElementById('newPassword').value || undefined,
+        phone_number: document.getElementById('newPhone').value.trim(),
+        department: document.getElementById('newDept').value.trim() || 'General',
+        designation: document.getElementById('newDesignation').value.trim() || 'Staff',
+        date_of_birth: document.getElementById('newDob').value || undefined,
+        gender: document.getElementById('newGender').value || undefined,
+        joining_date: document.getElementById('newJoiningDate').value || undefined,
+        employment_type: document.getElementById('newEmpType').value || 'Full-Time',
+        reporting_manager_id: document.getElementById('newManagerId').value.trim() || undefined,
+        address: document.getElementById('newAddress').value.trim() || undefined,
+        emergency_contact: document.getElementById('newEmergency').value.trim() || undefined
+    };
+
+    const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+        showToast('Employee account created successfully! It is pending OTP activation.', 'success');
+        const modalEl = document.getElementById('createUserModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+        document.getElementById('createUserForm').reset();
+        loadDirectory();
+    } else {
+        showToast(data.error || 'Failed to create employee account.', 'error');
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text).replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[m]);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}Company Policy Vault — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3 p-3 bg-white border rounded-4 shadow-sm">
+        <div>
+            <h4 class="fw-bold mb-1 text-primary d-flex align-items-center">
+                <i class="bi bi-shield-lock-fill me-2 text-primary"></i> Company Policy &amp; Statutory Vault
+            </h4>
+            <p class="text-muted small mb-0">Official governance directives, statutory frameworks (DPDP Act, PoSH), and employee guidelines.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <input type="text" class="form-control form-control-sm rounded-pill px-3" id="policySearchInput" placeholder="Search policies..." onkeyup="filterPolicies(this.value)" style="min-width: 220px;">
+            {% if user and user.role in ['hr', 'hr_manager', 'admin', 'organization'] %}
+            <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center gap-1" onclick="openCreatePolicyModal()">
+                <i class="bi bi-plus-lg"></i> New Policy
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Policy Cards Grid -->
+    <div class="row g-4" id="policyCardsGrid">
+        {% for p in policies %}
+        <div class="col-12 col-md-6 policy-card-item" id="policy-card-{{ p.policy_id }}">
+            <div class="card border rounded-4 shadow-sm p-4 h-100 bg-white d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.68rem;">{{ p.policy_id }}</span>
+                        <span class="badge bg-light text-secondary border font-mono" style="font-size: 0.68rem;">{{ p.version or 'v1.0' }} &bull; Effective {{ p.effective_date or '2026-01-01' }}</span>
+                    </div>
+                    <h5 class="fw-bold text-headline mb-2 policy-title">{{ p.title }}</h5>
+                    <span class="badge bg-secondary-subtle text-secondary mb-2" style="font-size: 0.7rem;">{{ p.category or 'Corporate Governance' }}</span>
+                    <p class="text-muted small mb-3 policy-summary" style="font-size: 0.815rem; line-height: 1.45;">{{ p.summary }}</p>
+                </div>
+
+                <div class="pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="text-success small fw-semibold" style="font-size: 0.74rem;">
+                        <i class="bi bi-check-all me-1"></i>Official Enterprise Policy
+                    </span>
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold"
+                                data-policy-id="{{ p.policy_id }}"
+                                data-policy-title="{{ p.title }}"
+                                data-policy-category="{{ p.category or 'Corporate Governance' }}"
+                                data-policy-version="{{ p.version or 'v1.0' }}"
+                                data-policy-date="{{ p.effective_date or '2026-01-01' }}"
+                                data-policy-summary="{{ p.summary }}"
+                                onclick="handleReadPolicyDoc(this)">
+                            <i class="bi bi-file-earmark-pdf me-1"></i> Read Document
+                        </button>
+                        {% if user and user.role in ['hr', 'hr_manager', 'admin', 'organization'] %}
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" title="Edit Policy"
+                                data-policy-id="{{ p.policy_id }}"
+                                data-policy-title="{{ p.title }}"
+                                data-policy-category="{{ p.category or 'Corporate Governance' }}"
+                                data-policy-version="{{ p.version or 'v1.0' }}"
+                                data-policy-date="{{ p.effective_date or '2026-01-01' }}"
+                                data-policy-summary="{{ p.summary }}"
+                                onclick="handleEditPolicyDoc(this)">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" title="Delete Policy"
+                                data-policy-id="{{ p.policy_id }}"
+                                data-policy-title="{{ p.title }}"
+                                onclick="handleDeletePolicyDoc(this)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal: Create Policy -->
+<div class="modal fade" id="createPolicyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom pb-3">
+                <h5 class="modal-title fw-bold text-headline">
+                    <i class="bi bi-shield-plus text-primary me-2"></i>Declare New Corporate Policy
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="submitCreatePolicy(event)">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Policy Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="newPolicyTitle" placeholder="e.g. Remote Work & Cyber Security Directive" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Category</label>
+                            <select class="form-select form-select-sm" id="newPolicyCategory">
+                                <option value="Statutory & Compliance" selected>Statutory & Compliance</option>
+                                <option value="Human Resources">Human Resources</option>
+                                <option value="IT & Security">IT & Security</option>
+                                <option value="Code of Conduct">Code of Conduct</option>
+                                <option value="Operational Directives">Operational Directives</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Version</label>
+                            <input type="text" class="form-control form-control-sm" id="newPolicyVersion" value="v1.0" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Effective Date</label>
+                        <input type="date" class="form-control form-control-sm" id="newPolicyDate" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Summary & Legal Scope <span class="text-danger">*</span></label>
+                        <textarea class="form-control form-control-sm" id="newPolicySummary" rows="4" placeholder="Brief statement of policy intent, compliance requirements, and employee obligations..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top pt-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" id="btnCreatePolicySubmit">Publish Policy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Policy -->
+<div class="modal fade" id="editPolicyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom pb-3">
+                <h5 class="modal-title fw-bold text-headline">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Update Policy Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="submitEditPolicy(event)">
+                <input type="hidden" id="editPolicyId">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Policy Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="editPolicyTitle" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Category</label>
+                            <input type="text" class="form-control form-control-sm" id="editPolicyCategory" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Version</label>
+                            <input type="text" class="form-control form-control-sm" id="editPolicyVersion" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Effective Date</label>
+                        <input type="date" class="form-control form-control-sm" id="editPolicyDate" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Summary & Legal Scope <span class="text-danger">*</span></label>
+                        <textarea class="form-control form-control-sm" id="editPolicySummary" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top pt-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" id="btnEditPolicySubmit">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: View Policy Document Reader -->
+<div class="modal fade" id="viewPolicyDocModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom py-3 px-4 bg-light">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-primary-subtle text-primary p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-file-earmark-text-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold text-headline mb-0" id="readDocTitle">Policy Document</h6>
+                        <span class="text-muted small font-mono" id="readDocMeta" style="font-size: 0.72rem;">REF: POL-001 &bull; v1.0</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" onclick="window.print()" title="Print Policy Document">
+                        <i class="bi bi-printer me-1"></i> Print
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+
+            <div class="modal-body p-4 font-sans" id="printablePolicyDoc">
+                <!-- Corporate Letterhead Banner -->
+                <div class="p-3 mb-4 rounded-3 border bg-body-tertiary d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <span class="badge bg-primary text-white font-mono px-2 py-1 mb-1" style="font-size: 0.65rem;">AI SAMRAT ENTERPRISE GOVERNANCE</span>
+                        <div class="fw-bold text-headline" style="font-size: 1.05rem;">Official Workforce Policy &amp; Statutory Directives</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">Applicability: All Permanent Employees, Contractors, Trainees &amp; Technical Squads</div>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-mono px-2 py-1 d-block mb-1" style="font-size: 0.7rem;">
+                            <i class="bi bi-shield-check me-1"></i> RATIFIED &amp; ACTIVE
+                        </span>
+                        <span class="text-muted small font-mono" id="readDocEffectiveDate" style="font-size: 0.72rem;">Effective: 2026-01-01</span>
+                    </div>
+                </div>
+
+                <!-- Policy Summary Section -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-headline text-uppercase text-primary small mb-2"><i class="bi bi-bookmark-fill me-1"></i> 1. Executive Summary &amp; Scope</h6>
+                    <div class="p-3 border-start border-3 border-primary bg-light rounded-end small text-muted lh-base" id="readDocSummary" style="font-size: 0.84rem;">
+                        Summary text goes here.
+                    </div>
+                </div>
+
+                <!-- Statutory Reference & Governance Standards -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-headline text-uppercase text-secondary small mb-2"><i class="bi bi-journal-bookmark me-1"></i> 2. Statutory Legal Framework &amp; Regulatory Standards</h6>
+                    <div class="small text-muted lh-base" style="font-size: 0.82rem;">
+                        This document is published pursuant to national labor codes and industry standards:
+                        <ul class="mt-2 mb-0 ps-3">
+                            <li><strong>Information Technology Act, 2000 (Amended)</strong> and <strong>Digital Personal Data Protection (DPDP) Act, 2023</strong>.</li>
+                            <li><strong>ISO/IEC 27001:2022 ISMS</strong> Information Security &amp; Asset Custody Controls.</li>
+                            <li><strong>Prevention of Sexual Harassment (PoSH) Act, 2013</strong> safeguarding workplace dignity.</li>
+                            <li><strong>AI Samrat Corporate Code of Business Ethics &amp; Intellectual Property Protection Directives</strong>.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Mandatory Employee Responsibilities -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-headline text-uppercase text-dark small mb-2"><i class="bi bi-person-check me-1"></i> 3. Employee Obligations &amp; Compliance Directives</h6>
+                    <div class="small text-muted lh-base" style="font-size: 0.82rem;">
+                        <ol class="mb-0 ps-3">
+                            <li class="mb-1">Every employee is required to familiarize themselves with these terms and execute all duties in alignment with corporate compliance.</li>
+                            <li class="mb-1">Proprietary source code, customer architecture, credentials, and financial metrics must remain strictly confidential under NDA.</li>
+                            <li class="mb-1">Any breach, conflict of interest, or security vulnerability must be reported immediately via the Workplace Concerns or IT Support hotline.</li>
+                            <li class="mb-0">Non-retaliation assurance: Whistleblowers reporting in good faith are protected from any adverse disciplinary action.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Sign-off & Acknowledgment Seal -->
+                <div class="p-3 border rounded-3 bg-light d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <div class="fw-bold text-headline small">Corporate Governance Authority</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">Board of Directors &amp; Chief Information Security Officer (CISO)</div>
+                    </div>
+                    <div id="ackStatusBadge">
+                        <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.72rem;">
+                            <i class="bi bi-clock me-1"></i> Acknowledgment Recorded
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-top py-2 px-4 bg-light d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-sm btn-success rounded-pill px-3" onclick="acknowledgePolicyDoc()">
+                    <i class="bi bi-pen me-1"></i> Digitally Acknowledge &amp; Confirm
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterPolicies(query) {
+    const q = query.toLowerCase().trim();
+    const items = document.querySelectorAll('.policy-card-item');
+    items.forEach(item => {
+        const title = item.querySelector('.policy-title').textContent.toLowerCase();
+        const text = item.textContent.toLowerCase();
+        if (title.includes(q) || text.includes(q)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+let activePolicyTitle = '';
+
+function handleReadPolicyDoc(btn) {
+    const docId = btn.getAttribute('data-policy-id') || 'POL-SEC-01';
+    const title = btn.getAttribute('data-policy-title') || 'Enterprise Policy';
+    const category = btn.getAttribute('data-policy-category') || 'Corporate Governance';
+    const ver = btn.getAttribute('data-policy-version') || 'v1.0';
+    const effectiveDate = btn.getAttribute('data-policy-date') || '2026-01-01';
+    const summary = btn.getAttribute('data-policy-summary') || 'Standard corporate operational policy ratified by AI Samrat HR & Legal Governance Board.';
+    readPolicyDoc(docId, title, category, ver, effectiveDate, summary);
+}
+
+function handleEditPolicyDoc(btn) {
+    const id = btn.getAttribute('data-policy-id');
+    const title = btn.getAttribute('data-policy-title');
+    const cat = btn.getAttribute('data-policy-category');
+    const ver = btn.getAttribute('data-policy-version');
+    const date = btn.getAttribute('data-policy-date');
+    const summary = btn.getAttribute('data-policy-summary');
+    openEditPolicyModal(id, title, cat, ver, date, summary);
+}
+
+function handleDeletePolicyDoc(btn) {
+    const policyId = btn.getAttribute('data-policy-id');
+    const title = btn.getAttribute('data-policy-title');
+    deletePolicyDoc(policyId, title);
+}
+
+function readPolicyDoc(docId, title, category, ver, effectiveDate, summary) {
+    activePolicyTitle = title;
+    document.getElementById('readDocTitle').textContent = title;
+    document.getElementById('readDocMeta').textContent = `REF: ${docId} • Version: ${ver} • Category: ${category}`;
+    document.getElementById('readDocEffectiveDate').textContent = `Effective: ${effectiveDate || '2026-01-01'}`;
+    document.getElementById('readDocSummary').textContent = summary || 'Standard corporate operational policy ratified by AI Samrat HR & Legal Governance Board.';
+    
+    document.getElementById('ackStatusBadge').innerHTML = `
+        <span class="badge bg-secondary-subtle text-secondary font-mono" style="font-size: 0.72rem;">
+            <i class="bi bi-clock me-1"></i> Acknowledgment Required
+        </span>
+    `;
+
+    const modal = new bootstrap.Modal(document.getElementById('viewPolicyDocModal'));
+    modal.show();
+}
+
+function acknowledgePolicyDoc() {
+    document.getElementById('ackStatusBadge').innerHTML = `
+        <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" style="font-size: 0.72rem;">
+            <i class="bi bi-patch-check-fill me-1"></i> Formally Acknowledged &amp; Signed
+        </span>
+    `;
+    showToast(`Successfully acknowledged '${activePolicyTitle}'. Your digital confirmation has been logged for corporate statutory compliance.`, 'success');
+}
+
+function openCreatePolicyModal() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('newPolicyDate').value = today;
+    const modal = new bootstrap.Modal(document.getElementById('createPolicyModal'));
+    modal.show();
+}
+
+async function submitCreatePolicy(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnCreatePolicySubmit');
+    btn.disabled = true;
+    btn.textContent = 'Publishing...';
+    try {
+        const payload = {
+            title: document.getElementById('newPolicyTitle').value.trim(),
+            category: document.getElementById('newPolicyCategory').value,
+            version: document.getElementById('newPolicyVersion').value.trim(),
+            effective_date: document.getElementById('newPolicyDate').value,
+            summary: document.getElementById('newPolicySummary').value.trim()
+        };
+        const res = await fetch('/api/policies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Corporate Policy published successfully.', 'success');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            showToast(data.error || 'Failed to publish policy.', 'danger');
+            btn.disabled = false;
+            btn.textContent = 'Publish Policy';
+        }
+    } catch (err) {
+        showToast('Network error while creating policy.', 'danger');
+        btn.disabled = false;
+        btn.textContent = 'Publish Policy';
+    }
+}
+
+function openEditPolicyModal(id, title, cat, ver, date, summary) {
+    document.getElementById('editPolicyId').value = id;
+    document.getElementById('editPolicyTitle').value = title;
+    document.getElementById('editPolicyCategory').value = cat;
+    document.getElementById('editPolicyVersion').value = ver;
+    document.getElementById('editPolicyDate').value = date;
+    document.getElementById('editPolicySummary').value = summary;
+    const modal = new bootstrap.Modal(document.getElementById('editPolicyModal'));
+    modal.show();
+}
+
+async function submitEditPolicy(e) {
+    e.preventDefault();
+    const policyId = document.getElementById('editPolicyId').value;
+    const btn = document.getElementById('btnEditPolicySubmit');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    try {
+        const payload = {
+            title: document.getElementById('editPolicyTitle').value.trim(),
+            category: document.getElementById('editPolicyCategory').value.trim(),
+            version: document.getElementById('editPolicyVersion').value.trim(),
+            effective_date: document.getElementById('editPolicyDate').value,
+            summary: document.getElementById('editPolicySummary').value.trim()
+        };
+        const res = await fetch(`/api/policies/${policyId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Policy updated successfully.', 'success');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            showToast(data.error || 'Failed to update policy.', 'danger');
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+        }
+    } catch (err) {
+        showToast('Network error while updating policy.', 'danger');
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+    }
+}
+
+async function deletePolicyDoc(policyId, title) {
+    if (!confirm(`Are you sure you want to delete policy '${title}' (${policyId})? This action cannot be undone.`)) {
+        return;
+    }
+    try {
+        const res = await fetch(`/api/policies/${policyId}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Policy deleted successfully.', 'success');
+            const card = document.getElementById(`policy-card-${policyId}`);
+            if (card) card.remove();
+        } else {
+            showToast(data.error || 'Failed to delete policy.', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error while deleting policy.', 'danger');
+    }
+}
+</script>
+{% endblock %}

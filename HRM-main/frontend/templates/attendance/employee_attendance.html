@@ -1,0 +1,1760 @@
+{% extends "base.html" %}
+
+{% block title %}My Attendance &amp; Holidays — AI Samrat HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header Card -->
+    <div class="page-header-card shift-attendance-card mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold mb-1">My Attendance</h4>
+                <div class="page-header-meta">
+                    <span class="page-header-meta-item"><i class="bi bi-clock-history me-1"></i> Attendance Overview</span>
+                    <span class="page-header-meta-item"><i class="bi bi-calendar3 me-1"></i> Attendance Calendar</span>
+                    <span class="page-header-meta-item"><i class="bi bi-cup-hot me-1"></i> Holiday Calendar</span>
+                    <span class="page-header-meta-item"><i class="bi bi-table me-1"></i> Punch History</span>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <!-- Take / Resume Work Break Button -->
+                <button type="button" id="btnBreakControl" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1 break-control-btn" onclick="toggleWorkBreak()" style="display: none;" title="Record work break">
+                    <i class="bi bi-cup-hot"></i> Take Break
+                </button>
+
+                <!-- Glossy Switch-On / Switch-Off Punch Clock -->
+                <div class="punch-switch-container">
+                    <div class="punch-switch-meta d-none d-sm-flex">
+                        <span class="meta-label">Work Shift</span>
+                        <span class="meta-status" id="punchSwitchStatusText"><span class="text-muted">STANDBY (OFF)</span></span>
+                    </div>
+                    <button type="button" id="punchPowerSwitch" class="punch-power-switch state-off" onclick="toggleDutyPunchSwitch()" role="switch" aria-checked="false" title="Click to toggle Shift On / Off">
+                        <span class="switch-label label-off"><i class="bi bi-power me-1"></i> Clock In</span>
+                        <span class="switch-label label-on"><i class="bi bi-power me-1"></i> Clock Out</span>
+                        <span class="switch-knob">
+                            <i class="bi bi-power"></i>
+                        </span>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-sm" onclick="openAttendanceCorrectionModal()" title="Request attendance correction or regularization">
+                    <i class="bi bi-pencil-square"></i> Request Regularization
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm" onclick="openWFHModal()" title="Request Work From Home">
+                    <i class="bi bi-house-door"></i> Request WFH
+                </button>
+                <div class="d-flex gap-2">
+                    <a href="/api/reports/attendance/csv" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" title="Download Punch History CSV">
+                        <i class="bi bi-download"></i> Export CSV
+                    </a>
+                    <a href="/api/reports/attendance/excel" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" title="Download Punch History Excel">
+                        <i class="bi bi-file-earmark-excel text-success"></i> Export Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs Toolbar -->
+    <div class="card p-2 mb-4 shadow-sm border">
+        <ul class="nav nav-pills nav-fill flex-column flex-sm-row gap-1" id="attendanceNavPills" style="font-size: 0.84rem;">
+            <li class="nav-item">
+                <button class="nav-link active py-2 px-3 fw-semibold text-start text-sm-center" id="tabBtnOverview" onclick="switchAttendanceTab('overview')">
+                    <i class="bi bi-speedometer2 me-1"></i> Attendance Overview
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnCalendar" onclick="switchAttendanceTab('calendar')">
+                    <i class="bi bi-calendar3 me-1"></i> Attendance Calendar
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnHolidays" onclick="switchAttendanceTab('holidays')">
+                    <i class="bi bi-calendar-event me-1"></i> Holiday Calendar
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnHistory" onclick="switchAttendanceTab('history')">
+                    <i class="bi bi-clock-history me-1"></i> Punch History
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnCorrections" onclick="switchAttendanceTab('corrections')">
+                    <i class="bi bi-pencil-square me-1"></i> My Regularizations
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnWfh" onclick="switchAttendanceTab('wfh')">
+                    <i class="bi bi-house-door me-1"></i> My WFH
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-2 px-3 fw-semibold text-start text-sm-center text-secondary" id="tabBtnRoster" onclick="switchAttendanceTab('roster')">
+                    <i class="bi bi-calendar2-range me-1"></i> My Shifts
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: ATTENDANCE OVERVIEW                                                -->
+    <!-- ========================================================================= -->
+    <div id="viewAttendanceOverview" class="attendance-tab-pane">
+        <!-- Monthly Summary Metrics Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title text-success">Present</span>
+                        <i class="bi bi-check-circle metric-icon-subtle text-success"></i>
+                    </div>
+                    <div class="metric-value text-success" id="ovPresentDays">0</div>
+                    <div class="metric-footer text-muted">Days attended</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title text-warning">Late Arrivals</span>
+                        <i class="bi bi-clock-history metric-icon-subtle text-warning"></i>
+                    </div>
+                    <div class="metric-value text-warning" id="ovLateDays">0</div>
+                    <div class="metric-footer text-muted">Arrival after 10:00 AM</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title text-danger">Absent Days</span>
+                        <i class="bi bi-x-circle metric-icon-subtle text-danger"></i>
+                    </div>
+                    <div class="metric-value text-danger" id="ovAbsentDays">0</div>
+                    <div class="metric-footer text-muted">Unmarked workdays</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title text-primary">Leaves Taken</span>
+                        <i class="bi bi-calendar2-minus metric-icon-subtle text-primary"></i>
+                    </div>
+                    <div class="metric-value text-primary" id="ovLeaveDays">0</div>
+                    <div class="metric-footer text-muted">Approved leaves</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title" style="color: #8b5cf6;">Holidays</span>
+                        <i class="bi bi-cup-hot metric-icon-subtle" style="color: #8b5cf6;"></i>
+                    </div>
+                    <div class="metric-value" style="color: #8b5cf6;" id="ovHolidayDays">0</div>
+                    <div class="metric-footer text-muted">Official holidays</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="card metric-card h-100 border">
+                    <div class="metric-header">
+                        <span class="metric-title">Work Duration</span>
+                        <i class="bi bi-hourglass-split metric-icon-subtle"></i>
+                    </div>
+                    <div class="metric-value" id="ovTotalDuration">0h 0m</div>
+                    <div class="metric-footer text-muted">Recorded span sum</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Today's Live Shift & Duty Clock Status -->
+            <div class="col-12 col-lg-7">
+                <div class="card p-4 h-100 border">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="fw-bold mb-0"><i class="bi bi-clock me-1 text-primary"></i> Shift Status &amp; Real-time Attendance Telemetry</h6>
+                            <span class="text-muted small">Standard Enterprise Shift: 10:00 AM &ndash; 06:00 PM IST (Cutoff: 07:00 PM)</span>
+                        </div>
+                        <span class="badge bg-light text-secondary border font-mono">{{ today_date }}</span>
+                    </div>
+
+                    <div class="p-3 rounded border mb-3" style="background: rgba(0, 194, 255, 0.05); border-color: rgba(0, 194, 255, 0.2) !important;">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                            <div>
+                                <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em;">Current Status</span>
+                                <div class="fw-bold fs-5 mt-1" id="ovDutyStatusBanner">Checking punch status...</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary-gradient px-3" onclick="toggleDutyPunchSwitch()">
+                                <i class="bi bi-power me-1"></i> Toggle Shift State
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Shift Guidelines Grid -->
+                    <div class="row g-2">
+                        <div class="col-12 col-sm-6">
+                            <div class="p-3 rounded border h-100 bg-card-surface">
+                                <div class="text-muted small fw-semibold text-uppercase">Office Core Hours</div>
+                                <div class="fw-bold font-mono text-primary fs-6 mt-1">10:00 AM &ndash; 06:00 PM</div>
+                                <div class="text-muted small mt-1">Arrival after 10:00 AM is flagged as Late Arrival.</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="p-3 rounded border h-100 bg-card-surface">
+                                <div class="text-muted small fw-semibold text-uppercase">Daily Cutoff Policy</div>
+                                <div class="fw-bold font-mono text-danger fs-6 mt-1">07:00 PM Mandatory Cutoff</div>
+                                <div class="text-muted small mt-1">45-minute advance notice issued starting at 06:15 PM.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Navigation Cards Inside Attendance -->
+                    <div class="row g-2 mt-2">
+                        <div class="col-12 col-md-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center gap-2" onclick="switchAttendanceTab('calendar')">
+                                <i class="bi bi-calendar3 text-primary"></i> Attendance Calendar
+                            </button>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center gap-2" onclick="switchAttendanceTab('holidays')">
+                                <i class="bi bi-cup-hot text-purple"></i> Holiday Calendar
+                            </button>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center gap-2" onclick="switchAttendanceTab('history')">
+                                <i class="bi bi-table text-success"></i> Full Punch History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Holiday & Policy Highlights -->
+            <div class="col-12 col-lg-5">
+                <div class="card p-4 h-100 border">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-cup-hot me-1 text-purple"></i> Upcoming Holidays</h6>
+                        <button class="btn btn-sm btn-link text-decoration-none p-0" onclick="switchAttendanceTab('holidays')">View All Holidays</button>
+                    </div>
+                    <div id="overviewUpcomingHolidaysList" class="d-flex flex-column gap-2 mb-3">
+                        <div class="text-muted small py-2">Loading upcoming holidays...</div>
+                    </div>
+
+                    <div class="p-3 rounded border bg-card-surface mt-auto">
+                        <div class="fw-semibold small mb-1"><i class="bi bi-info-circle text-primary me-1"></i> Paid Holiday Policy</div>
+                        <p class="text-muted small mb-0" style="font-size: 0.795rem; line-height: 1.45;">
+                            All declared organization holidays are automatically classified as paid off-duty days. Attendance check-ins or leave applications are not required.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: ATTENDANCE CALENDAR                                                -->
+    <!-- ========================================================================= -->
+    <div id="viewAttendanceCalendar" class="attendance-tab-pane" style="display: none;">
+        <!-- Controls Toolbar -->
+        <div class="card p-3 mb-4 shadow-sm border">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-stretch align-items-lg-center gap-3">
+                <!-- Month Navigator -->
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary" onclick="shiftMonth(-1)" title="Previous Month">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="jumpToCurrentMonth()" title="Current Month">
+                            Current Month
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="shiftMonth(1)" title="Next Month">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="calMonthInput" class="form-label mb-0 small text-muted fw-semibold">Select Month:</label>
+                        <input type="month" id="calMonthInput" class="form-control form-control-sm" style="width: 155px;" value="{{ today_date[:7] }}" onchange="onMonthChanged()">
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary py-1 px-2 fw-medium fs-7" id="activeMonthTitle">
+                        --
+                    </span>
+                </div>
+
+                <!-- Legend -->
+                <div class="d-flex flex-wrap align-items-center gap-2" style="font-size: 0.72rem;">
+                    <span class="badge badge-present"><i class="bi bi-check-circle me-1"></i>Present</span>
+                    <span class="badge badge-late"><i class="bi bi-clock me-1"></i>Late Arrival</span>
+                    <span class="badge badge-absent"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                    <span class="badge badge-holiday"><i class="bi bi-cup-hot me-1"></i>Holiday</span>
+                    <span class="badge badge-leave"><i class="bi bi-calendar2-check me-1"></i>Leave</span>
+                    <span class="badge badge-weekend">Weekly Off</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Calendar Grid Card -->
+        <div class="card shadow-sm border mb-4">
+            <div class="card-header py-3 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                <div>
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar-month text-primary"></i>
+                        <span id="calendarGridTitle">Attendance Calendar</span>
+                    </h6>
+                    <span class="text-muted small">Daily breakdown of punches, late arrivals, absences, and official holidays. Click any day for detailed audit logs.</span>
+                </div>
+            </div>
+            <div class="card-body p-3 p-md-4">
+                <!-- Weekday Headers -->
+                <div class="attendance-calendar-grid mb-2">
+                    <div class="calendar-header-day">Mon</div>
+                    <div class="calendar-header-day">Tue</div>
+                    <div class="calendar-header-day">Wed</div>
+                    <div class="calendar-header-day">Thu</div>
+                    <div class="calendar-header-day">Fri</div>
+                    <div class="calendar-header-day text-secondary">Sat</div>
+                    <div class="calendar-header-day text-secondary">Sun</div>
+                </div>
+
+                <!-- Calendar Days Grid -->
+                <div class="attendance-calendar-grid" id="calendarDaysGrid">
+                    <div class="col-12 text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                        Loading attendance calendar...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: HOLIDAY CALENDAR                                                   -->
+    <!-- ========================================================================= -->
+    <div id="viewHolidayCalendar" class="attendance-tab-pane" style="display: none;">
+        <!-- Header Strip for Holidays -->
+        <div class="card p-3 mb-4 shadow-sm border">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                <div>
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-cup-hot text-purple"></i> Organization Holiday Calendar
+                    </h6>
+                    <span class="text-muted small">Official gazetted, national and regional holidays for AI Samrat Pvt Ltd (Asia/Kolkata)</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="fetchHolidayCalendarData()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh Holidays
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Interactive Holiday Month Grid -->
+            <div class="col-12 col-xl-8">
+                <div class="card p-3 p-md-4 h-100 border">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="navigateHolidayMonth(-1)" title="Previous Month">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <h6 class="fw-bold mb-0" id="holidayMonthTitle">Loading Month...</h6>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="navigateHolidayMonth(1)" title="Next Month">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-link text-decoration-none" onclick="jumpHolidayToCurrentMonth()">Current Month</button>
+                    </div>
+
+                    <!-- Week Header -->
+                    <div class="attendance-calendar-grid mb-2">
+                        <div class="calendar-header-day">Mon</div>
+                        <div class="calendar-header-day">Tue</div>
+                        <div class="calendar-header-day">Wed</div>
+                        <div class="calendar-header-day">Thu</div>
+                        <div class="calendar-header-day">Fri</div>
+                        <div class="calendar-header-day text-secondary">Sat</div>
+                        <div class="calendar-header-day text-secondary">Sun</div>
+                    </div>
+
+                    <!-- Holiday Days Grid -->
+                    <div id="holidayCalendarGrid" class="attendance-calendar-grid">
+                        <div class="text-muted small py-4 text-center w-100">Rendering holiday calendar...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Holidays List & Official Guidelines -->
+            <div class="col-12 col-xl-4">
+                <div class="card p-3 p-md-4 mb-4 border">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">Upcoming Holidays</h6>
+                        <span class="badge bg-secondary-subtle text-secondary" id="holidayUpcomingBadge">0</span>
+                    </div>
+                    <div id="holidayUpcomingContainer" class="d-flex flex-column gap-2">
+                        <div class="text-muted small">Loading upcoming holidays...</div>
+                    </div>
+                </div>
+
+                <div class="card p-3 p-md-4 border bg-card-surface">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-shield-check text-primary me-2"></i> Attendance &amp; Leave Policy</h6>
+                    <p class="text-muted small mb-2" style="font-size: 0.8rem; line-height: 1.45;">
+                        Declared organization holidays are automatically classified as paid off-duty days. Employees are not required to check in or file leave requests for holidays.
+                    </p>
+                    <div class="small text-secondary font-mono" style="font-size: 0.725rem;">
+                        &bull; Core Office Hours: 10:00 AM &ndash; 06:00 PM IST<br>
+                        &bull; Overtime on public holidays requires prior manager sign-off.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Annual Holiday Register Table -->
+        <div class="card p-3 p-md-4 mb-4 border">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h6 class="fw-bold mb-0">Complete Annual Holiday Register</h6>
+                    <span class="text-muted small">All approved gazetted, national and regional company holidays</span>
+                </div>
+                <span class="badge bg-light text-secondary border font-mono" id="holidayTotalRegisterCount">Total: --</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Holiday Name</th>
+                            <th>Category</th>
+                            <th>Declared By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="holidayRegisterTableBody">
+                        <tr><td colspan="5" class="text-center text-muted py-4">Loading holiday records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: PUNCH HISTORY                                                      -->
+    <!-- ========================================================================= -->
+    <div id="viewPunchHistory" class="attendance-tab-pane" style="display: none;">
+        <div class="card shadow-sm border p-3 p-md-4 mb-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-0">Comprehensive Punch History</h6>
+                    <span class="text-muted small">Historical record of daily check-ins, qualifying checkouts, active durations, and attendance statuses</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="frozenActiveIndicator" class="report-freeze-indicator" style="display: none;">
+                        <i class="bi bi-pin-fill"></i> Frozen Panes Active
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" id="btnToggleFreezeLayout" onclick="toggleReportFreezeScreenLayout()">
+                        <i class="bi bi-pin-angle"></i> <span id="freezeBtnLabel">Freeze Panes</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive report-freeze-wrapper" id="attendanceReportFreezeWrapper">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Clock-In (IST)</th>
+                            <th>Clock-Out (IST)</th>
+                            <th>Late Status</th>
+                            <th>Delay</th>
+                            <th>Elapsed Time</th>
+                            <th>Break Taken</th>
+                            <th>Active Working Time</th>
+                            <th>Sessions</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myAttendanceBody">
+                        <tr><td colspan="10" class="text-center text-muted py-4">Loading your records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 5: MY ATTENDANCE REGULARIZATIONS                                      -->
+    <!-- ========================================================================= -->
+    <div id="viewAttendanceCorrections" class="attendance-tab-pane" style="display: none;">
+        <div class="card p-3 p-md-4 border shadow-sm">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-1 text-headline d-flex align-items-center gap-2">
+                        <i class="bi bi-pencil-square text-primary fs-5"></i> My Regularization Requests
+                    </h6>
+                    <span class="text-muted small">Requests submitted to your Manager for missed punches, on-duty days, or late regularization.</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-sm" onclick="openAttendanceCorrectionModal()">
+                    <i class="bi bi-plus-circle"></i> New Regularization Request
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Target Date</th>
+                            <th>Correction Type</th>
+                            <th>Requested Hours</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Manager Decision / Remarks</th>
+                            <th>Submitted On</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myCorrectionsTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-4">Loading your regularization requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 6: MY WORK FROM HOME (WFH)                                            -->
+    <!-- ========================================================================= -->
+    <div id="viewAttendanceWfh" class="attendance-tab-pane" style="display: none;">
+        <div class="card p-3 p-md-4 border shadow-sm">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-1 text-headline d-flex align-items-center gap-2">
+                        <i class="bi bi-house-door text-primary fs-5"></i> My Work From Home (WFH) Requests
+                    </h6>
+                    <span class="text-muted small">Requests submitted to your Manager for remote work days. Manager approval informs you and HR.</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-sm" onclick="openWFHModal()">
+                    <i class="bi bi-plus-circle"></i> Apply for WFH
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Dates &amp; Duration</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Manager Remarks</th>
+                            <th>Submitted On</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myWfhTableBody">
+                        <tr><td colspan="6" class="text-center text-muted py-4">Loading your WFH requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 7: MY SHIFTS & ROSTER                                                 -->
+    <!-- ========================================================================= -->
+    <div id="viewAttendanceRoster" class="attendance-tab-pane" style="display: none;">
+        <div class="card p-3 p-md-4 border shadow-sm">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-1 text-headline d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar2-range text-info fs-5"></i> My Shift Schedule
+                    </h6>
+                    <span class="text-muted small">Published weekly shifts assigned by your Team Lead and authorized by Management.</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" onclick="loadMyRoster()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh Shifts
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Shift Type</th>
+                            <th>Timing</th>
+                            <th>Roster Period</th>
+                            <th>Roster ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myRosterTableBody">
+                        <tr><td colspan="5" class="text-center text-muted py-4">Loading your shift schedule...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Regularization Request Modal -->
+<div class="modal fade" id="attendanceCorrectionModal" tabindex="-1" aria-labelledby="attendanceCorrectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header py-3 border-bottom bg-light">
+                <h6 class="modal-title fw-bold" id="attendanceCorrectionModalLabel">
+                    <i class="bi bi-pencil-square me-2 text-primary"></i> Request Attendance Regularization
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="attendanceCorrectionForm" onsubmit="submitAttendanceCorrection(event)">
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Your request will be routed directly to your assigned Manager for approval. Once approved, the record is automatically regularized and HR is notified.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Target Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="corrTargetDate" required max="{{ today_date }}">
+                        <div class="form-text small">Select the date you wish to regularize. Future dates are not permitted.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Correction Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="corrType" required>
+                            <option value="MISSED_PUNCH_IN">Missed Clock-In Punch</option>
+                            <option value="MISSED_PUNCH_OUT">Missed Clock-Out Punch</option>
+                            <option value="LATE_REGULARIZATION">Late Arrival Regularization (Official Reason)</option>
+                            <option value="ON_DUTY">On Duty / Client Offsite Visit</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Expected Clock In</label>
+                            <input type="time" class="form-control" id="corrInTime" value="10:00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Expected Clock Out</label>
+                            <input type="time" class="form-control" id="corrOutTime" value="18:00">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Detailed Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="corrReason" rows="3" required placeholder="Explain why the punch was missed or delayed (e.g. client meeting, network failure, offsite travel)..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitCorrection">
+                        Submit to Manager
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Work From Home (WFH) Request Modal -->
+<div class="modal fade" id="wfhRequestModal" tabindex="-1" aria-labelledby="wfhRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header py-3 border-bottom bg-light">
+                <h6 class="modal-title fw-bold" id="wfhRequestModalLabel">
+                    <i class="bi bi-house-door me-2 text-primary"></i> Request Work From Home (WFH)
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="wfhRequestForm" onsubmit="submitWFHRequest(event)">
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Your request will be routed directly to your assigned Manager for approval. Upon approval, HR and you will receive instant confirmation.
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Start Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="wfhStartDate" required min="{{ today_date }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">End Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="wfhEndDate" required min="{{ today_date }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason for Remote Work <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="wfhReason" rows="3" required placeholder="Specify tasks to be accomplished or reason for working remotely..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitWFH">
+                        Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Day Detail Modal -->
+<div class="modal fade" id="dayDetailModal" tabindex="-1" aria-labelledby="dayDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header py-3 border-bottom">
+                <h6 class="modal-title fw-bold" id="dayDetailModalLabel">
+                    <i class="bi bi-calendar-event me-2 text-primary"></i>
+                    <span id="dayModalDate">Date Details</span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Status Banner -->
+                <div class="p-3 rounded border mb-3" id="dayModalStatusBanner">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold fs-6" id="dayModalPrimaryStatus">--</span>
+                        <span id="dayModalBadge">--</span>
+                    </div>
+                    <div class="small text-muted" id="dayModalStatusDesc">--</div>
+                </div>
+
+                <!-- Punches and Timings -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="p-2 border rounded">
+                            <div class="small text-muted">First Punch In</div>
+                            <div class="fw-bold font-mono text-headline" id="dayModalFirstIn">--</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded">
+                            <div class="small text-muted">Qualifying Logout</div>
+                            <div class="fw-bold font-mono text-headline" id="dayModalLastOut">--</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded">
+                            <div class="small text-muted">Official Duration</div>
+                            <div class="fw-bold font-mono text-primary" id="dayModalDuration">--</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded">
+                            <div class="small text-muted">Break Duration</div>
+                            <div class="fw-bold font-mono text-warning" id="dayModalBreak">00m 00s</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded">
+                            <div class="small text-muted">Late Delay</div>
+                            <div class="fw-bold font-mono text-warning" id="dayModalDelay">--</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded">
+                            <div class="small text-muted">Regularization / Dispute</div>
+                            <div class="fw-bold small" id="dayModalCorrectionStatus">None</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave or Holiday Details if any -->
+                <div id="dayModalExtraInfo" class="mb-3" style="display: none;">
+                    <div class="p-2 rounded border small" id="dayModalExtraText"></div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 border-top d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-outline-danger btn-sm" id="btnDisputeDay" onclick="openDisputeFromDayDetail()">
+                    <i class="bi bi-shield-exclamation me-1"></i> Dispute This Day
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Dispute Modal -->
+<div class="modal fade" id="disputeAttendanceModal" tabindex="-1" aria-labelledby="disputeAttendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header py-3 border-bottom bg-light">
+                <h6 class="modal-title fw-bold" id="disputeAttendanceModalLabel">
+                    <i class="bi bi-shield-exclamation me-2 text-danger"></i> Dispute Daily Attendance
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="disputeAttendanceForm" onsubmit="submitDisputeAttendance(event)">
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Attendance regularization disputes are routed directly to your assigned Manager for formal review. When approved, your daily record is reconciled and HR is intimated.
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Disputed Date</label>
+                            <input type="text" class="form-control font-mono" id="disputeTargetDate" readonly>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Current System Status</label>
+                            <input type="text" class="form-control font-mono" id="disputeCurrentStatus" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Requested Status <span class="text-danger">*</span></label>
+                            <select class="form-select" id="disputeRequestedStatus" required>
+                                <option value="PRESENT" selected>Present (Working Day)</option>
+                                <option value="ABSENT">Absent (Mark Off-Duty)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Dispute Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="disputeCorrType" required>
+                                <option value="STATUS_DISPUTE" selected>Status Dispute</option>
+                                <option value="MISSED_PUNCH_IN">Missed Clock-In</option>
+                                <option value="MISSED_PUNCH_OUT">Missed Clock-Out</option>
+                                <option value="LATE_REGULARIZATION">Late Arrival Regularization</option>
+                                <option value="ON_DUTY">Client Offsite / On-Duty</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Expected Clock In</label>
+                            <input type="time" class="form-control font-mono" id="disputeInTime" value="10:00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Expected Clock Out</label>
+                            <input type="time" class="form-control font-mono" id="disputeOutTime" value="18:00">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason &amp; Explanation <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="disputeReason" rows="3" required placeholder="Explain why the status is disputed or punch was missed (e.g. system timeout, onsite deployment, biometric failure)..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitDispute">
+                        <i class="bi bi-send me-1"></i> Submit to Manager
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+const initialTodayStr = "{{ today_date }}";
+let currentCalYear = parseInt(initialTodayStr.slice(0, 4), 10) || (new Date()).getFullYear();
+let currentCalMonth = parseInt(initialTodayStr.slice(5, 7), 10) || ((new Date()).getMonth() + 1);
+let currentTab = 'overview';
+let calendarCache = null;
+let dayModalInstance = null;
+
+// Holiday state (reused from holidays module)
+let holidayCurrentYear = currentCalYear;
+let holidayCurrentMonth = currentCalMonth - 1; // 0-indexed for Date
+let allHolidaysData = [];
+let correctionModalInstance = null;
+let wfhModalInstance = null;
+let disputeModalInstance = null;
+let activeDayDetailDate = null;
+let activeDayDetailStatus = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    dayModalInstance = new bootstrap.Modal(document.getElementById('dayDetailModal'));
+    const disputeEl = document.getElementById('disputeAttendanceModal');
+    if (disputeEl) {
+        disputeModalInstance = new bootstrap.Modal(disputeEl);
+    }
+    const corrEl = document.getElementById('attendanceCorrectionModal');
+    if (corrEl) {
+        correctionModalInstance = new bootstrap.Modal(corrEl);
+    }
+    const wfhEl = document.getElementById('wfhRequestModal');
+    if (wfhEl) {
+        wfhModalInstance = new bootstrap.Modal(wfhEl);
+    }
+
+    // Handle URL parameters or Hash (#holidays, #calendar, #corrections, #wfh, #roster)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab') || window.location.hash.replace('#', '');
+    if (['overview', 'calendar', 'holidays', 'history', 'corrections', 'wfh', 'roster'].includes(tabParam)) {
+        switchAttendanceTab(tabParam);
+    } else {
+        switchAttendanceTab('overview');
+    }
+
+    loadCalendar();
+    loadMyHistory();
+    fetchHolidayCalendarData();
+    checkDutyStatus();
+    loadMyCorrections();
+    loadMyWFH();
+    loadMyRoster();
+
+    // Periodic synchronization
+    setInterval(() => {
+        loadCalendar();
+        loadMyHistory();
+        checkDutyStatus();
+        if (currentTab === 'corrections') loadMyCorrections();
+        if (currentTab === 'wfh') loadMyWFH();
+    }, 25000);
+});
+
+function switchAttendanceTab(tab) {
+    currentTab = tab;
+    const tabs = ['overview', 'calendar', 'holidays', 'history', 'corrections', 'wfh', 'roster'];
+
+    tabs.forEach(t => {
+        const btn = document.getElementById(`tabBtn${capitalize(t)}`);
+        let viewId = 'viewAttendanceOverview';
+        if (t === 'calendar') viewId = 'viewAttendanceCalendar';
+        else if (t === 'holidays') viewId = 'viewHolidayCalendar';
+        else if (t === 'history') viewId = 'viewPunchHistory';
+        else if (t === 'corrections') viewId = 'viewAttendanceCorrections';
+        else if (t === 'wfh') viewId = 'viewAttendanceWfh';
+        else if (t === 'roster') viewId = 'viewAttendanceRoster';
+
+        const view = document.getElementById(viewId);
+
+        if (t === tab) {
+            if (btn) {
+                btn.classList.add('active');
+                btn.classList.remove('text-secondary');
+            }
+            if (view) {
+                view.style.display = 'block';
+                view.classList.remove('view-pane-fade');
+                void view.offsetWidth;
+                view.classList.add('view-pane-fade');
+            }
+        } else {
+            if (btn) {
+                btn.classList.remove('active');
+                btn.classList.add('text-secondary');
+            }
+            if (view) {
+                view.style.display = 'none';
+            }
+        }
+    });
+
+    if (tab === 'holidays') {
+        if (allHolidaysData.length === 0) {
+            fetchHolidayCalendarData();
+        } else {
+            renderHolidayMonthCalendar();
+        }
+    } else if (tab === 'corrections') {
+        loadMyCorrections();
+    } else if (tab === 'wfh') {
+        loadMyWFH();
+    } else if (tab === 'roster') {
+        loadMyRoster();
+    }
+}
+
+function openAttendanceCorrectionModal() {
+    if (!correctionModalInstance) {
+        const corrEl = document.getElementById('attendanceCorrectionModal');
+        if (corrEl) correctionModalInstance = new bootstrap.Modal(corrEl);
+    }
+    const targetInput = document.getElementById('corrTargetDate');
+    if (targetInput && !targetInput.value) {
+        // default to yesterday or today
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        targetInput.value = yesterday.toISOString().split('T')[0];
+    }
+    if (correctionModalInstance) correctionModalInstance.show();
+}
+
+async function submitAttendanceCorrection(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitCorrection');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+    }
+
+    const payload = {
+        target_date: document.getElementById('corrTargetDate').value,
+        correction_type: document.getElementById('corrType').value,
+        requested_in_time: document.getElementById('corrInTime').value,
+        requested_out_time: document.getElementById('corrOutTime').value,
+        reason: document.getElementById('corrReason').value
+    };
+
+    try {
+        const res = await fetch('/api/attendance/corrections/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            showToast(data.message || 'Regularization request submitted to your Manager.', 'success');
+            if (correctionModalInstance) correctionModalInstance.hide();
+            document.getElementById('attendanceCorrectionForm').reset();
+            switchAttendanceTab('corrections');
+            loadMyCorrections();
+        } else {
+            showToast(data.error || 'Failed to submit regularization request.', 'error');
+        }
+    } catch (err) {
+        showToast('Network error while submitting regularization request.', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Submit to Manager';
+        }
+    }
+}
+
+async function loadMyCorrections() {
+    const tbody = document.getElementById('myCorrectionsTableBody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/attendance/corrections/my');
+        if (!res.ok) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Unable to load requests.</td></tr>';
+            return;
+        }
+        const data = await res.json();
+        const records = data.corrections || [];
+
+        if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No attendance regularization requests found. Click "New Regularization Request" above to submit one.</td></tr>';
+            return;
+        }
+
+        const typeLabels = {
+            'MISSED_PUNCH_IN': 'Missed Clock In',
+            'MISSED_PUNCH_OUT': 'Missed Clock Out',
+            'LATE_REGULARIZATION': 'Late Regularization',
+            'ON_DUTY': 'On Duty / Client Visit'
+        };
+
+        const statusBadges = {
+            'PENDING_MANAGER': '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-clock me-1"></i>Pending Manager</span>',
+            'APPROVED': '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved</span>',
+            'REJECTED': '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>'
+        };
+
+        tbody.innerHTML = records.map(r => {
+            const dateStr = r.target_date || '--';
+            const typeText = typeLabels[r.correction_type] || r.correction_type;
+            const hours = (r.requested_in_time || '--') + ' to ' + (r.requested_out_time || '--');
+            const statusHtml = statusBadges[r.status] || `<span class="badge bg-secondary">${r.status}</span>`;
+            const decisionRemarks = r.review_remarks ? escapeHtml(r.review_remarks) : (r.status === 'APPROVED' ? 'Approved by Manager' : (r.status === 'REJECTED' ? 'Rejected' : '<span class="text-muted">Awaiting decision</span>'));
+            const submittedDate = r.created_at ? (new Date(r.created_at)).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+
+            return `
+                <tr>
+                    <td class="font-mono fw-bold">${escapeHtml(dateStr)}</td>
+                    <td><span class="badge bg-light text-dark border font-mono">${escapeHtml(typeText)}</span></td>
+                    <td class="font-mono small">${escapeHtml(hours)}</td>
+                    <td class="small" style="max-width: 250px;">${escapeHtml(r.reason || '')}</td>
+                    <td>${statusHtml}</td>
+                    <td class="small">${decisionRemarks}</td>
+                    <td class="small text-muted font-mono">${submittedDate}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading regularization requests.</td></tr>';
+    }
+}
+
+function openWFHModal() {
+    if (!wfhModalInstance) {
+        const wfhEl = document.getElementById('wfhRequestModal');
+        if (wfhEl) wfhModalInstance = new bootstrap.Modal(wfhEl);
+    }
+    const sInput = document.getElementById('wfhStartDate');
+    const eInput = document.getElementById('wfhEndDate');
+    if (sInput && !sInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        sInput.value = today;
+        if (eInput) eInput.value = today;
+    }
+    if (wfhModalInstance) wfhModalInstance.show();
+}
+
+async function submitWFHRequest(e) {
+    if (e) e.preventDefault();
+    const btn = document.getElementById('btnSubmitWFH');
+    const startDate = document.getElementById('wfhStartDate').value;
+    const endDate = document.getElementById('wfhEndDate').value;
+    const reason = document.getElementById('wfhReason').value.trim();
+
+    if (!startDate || !endDate || !reason) {
+        showToast('Please fill all required fields.', 'warning');
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+    }
+
+    try {
+        const res = await fetch('/api/wfh/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ start_date: startDate, end_date: endDate, reason: reason })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            showToast(data.message || 'WFH request submitted to your Manager.', 'success');
+            if (wfhModalInstance) wfhModalInstance.hide();
+            document.getElementById('wfhRequestForm').reset();
+            switchAttendanceTab('wfh');
+            loadMyWFH();
+        } else {
+            showToast(data.error || 'Failed to submit WFH request.', 'error');
+        }
+    } catch (err) {
+        showToast('Network error while submitting WFH request.', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Submit Request';
+        }
+    }
+}
+
+async function loadMyWFH() {
+    const tbody = document.getElementById('myWfhTableBody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/wfh/my');
+        if (!res.ok) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Unable to load WFH requests.</td></tr>';
+            return;
+        }
+        const data = await res.json();
+        const records = data.requests || [];
+
+        if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox text-secondary me-1"></i>No Work From Home requests submitted yet.</td></tr>';
+            return;
+        }
+
+        const statusBadges = {
+            'PENDING_MANAGER': '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-clock me-1"></i>Pending Manager</span>',
+            'APPROVED': '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved</span>',
+            'REJECTED': '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>'
+        };
+
+        tbody.innerHTML = records.map(r => {
+            const dates = `${r.start_date} &rarr; ${r.end_date} (${r.days_count} day(s))`;
+            const statusHtml = statusBadges[r.status] || `<span class="badge bg-secondary">${r.status}</span>`;
+            const decisionRemarks = r.review_remarks ? escapeHtml(r.review_remarks) : (r.status === 'APPROVED' ? 'Approved by Manager' : (r.status === 'REJECTED' ? 'Rejected' : '<span class="text-muted">Awaiting decision</span>'));
+            const submittedDate = r.created_at ? (new Date(r.created_at)).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+
+            return `
+                <tr>
+                    <td class="font-mono fw-bold">${escapeHtml(r.request_id)}</td>
+                    <td class="font-mono small">${dates}</td>
+                    <td class="small" style="max-width: 250px;">${escapeHtml(r.reason || '')}</td>
+                    <td>${statusHtml}</td>
+                    <td class="small">${decisionRemarks}</td>
+                    <td class="small text-muted font-mono">${submittedDate}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error loading WFH requests.</td></tr>';
+    }
+}
+
+async function loadMyRoster() {
+    const tbody = document.getElementById('myRosterTableBody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/roster/my');
+        if (!res.ok) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Unable to load shift schedule.</td></tr>';
+            return;
+        }
+        const data = await res.json();
+        const schedule = data.schedule || [];
+
+        if (schedule.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-calendar2-x text-secondary me-1"></i>No published shifts found for your profile.</td></tr>';
+            return;
+        }
+
+        const shiftTimings = {
+            'General': '09:30 - 18:30',
+            'Morning': '07:00 - 15:30',
+            'Evening': '14:30 - 23:00',
+            'Night': '22:30 - 07:00',
+            'Weekly Off': 'OFF'
+        };
+
+        tbody.innerHTML = schedule.map(s => {
+            const shiftType = s.shift_type || s.shift_name || 'General';
+            const timing = shiftTimings[shiftType] || '--';
+            const period = `${s.week_start_date || '--'} &rarr; ${s.week_end_date || '--'}`;
+            const badgeClass = shiftType === 'Weekly Off' ? 'bg-secondary-subtle text-secondary' : 'bg-primary-subtle text-primary';
+
+            return `
+                <tr>
+                    <td class="font-mono fw-bold">${escapeHtml(s.date || '--')}</td>
+                    <td><span class="badge ${badgeClass} border">${escapeHtml(shiftType)}</span></td>
+                    <td class="font-mono small">${timing}</td>
+                    <td class="small font-mono">${period}</td>
+                    <td class="font-mono small">${escapeHtml(s.roster_id || '--')}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error loading shift schedule.</td></tr>';
+    }
+}
+
+function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+async function checkDutyStatus() {
+    try {
+        if (typeof AttendanceSync !== 'undefined' && typeof AttendanceSync.syncFromServer === 'function') {
+            await AttendanceSync.syncFromServer(true);
+        }
+    } catch (e) {}
+
+    // Update Overview banner based on Duty switch state
+    const pSwitch = document.getElementById('punchPowerSwitch');
+    const banner = document.getElementById('ovDutyStatusBanner');
+    if (pSwitch && banner) {
+        if (pSwitch.classList.contains('state-on')) {
+            banner.innerHTML = '<span class="text-success"><i class="bi bi-broadcast me-1"></i> Shift In Progress &bull; Clocked In</span>';
+        } else {
+            banner.innerHTML = '<span class="text-secondary"><i class="bi bi-moon me-1"></i> Standby &bull; Clocked Out</span>';
+        }
+    }
+}
+
+function onMonthChanged() {
+    const val = document.getElementById('calMonthInput').value;
+    if (val) {
+        const [y, m] = val.split('-').map(Number);
+        currentCalYear = y;
+        currentCalMonth = m;
+        loadCalendar();
+        loadMyHistory();
+    }
+}
+
+function shiftMonth(delta) {
+    let m = currentCalMonth + delta;
+    let y = currentCalYear;
+    if (m < 1) {
+        m = 12;
+        y--;
+    } else if (m > 12) {
+        m = 1;
+        y++;
+    }
+    currentCalYear = y;
+    currentCalMonth = m;
+    const padM = String(m).padStart(2, '0');
+    document.getElementById('calMonthInput').value = `${y}-${padM}`;
+    loadCalendar();
+    loadMyHistory();
+}
+
+function jumpToCurrentMonth() {
+    const today = "{{ today_date }}";
+    const [y, m] = today.split('-').map(Number);
+    currentCalYear = y;
+    currentCalMonth = m;
+    document.getElementById('calMonthInput').value = `${y}-${String(m).padStart(2, '0')}`;
+    loadCalendar();
+    loadMyHistory();
+}
+
+async function loadCalendar() {
+    const grid = document.getElementById('calendarDaysGrid');
+    if (!grid) return;
+
+    try {
+        const res = await fetch(`/api/attendance/calendar?year=${currentCalYear}&month=${currentCalMonth}`);
+        if (!res.ok) throw new Error('Failed to load attendance calendar');
+        const data = await res.json();
+        calendarCache = data;
+
+        // Update titles
+        document.getElementById('activeMonthTitle').textContent = `${data.month_name} ${data.year}`;
+        document.getElementById('calendarGridTitle').textContent = `${data.month_name} ${data.year} Attendance Calendar`;
+
+        // Update summary metrics in Overview
+        const s = data.summary || {};
+        const pDays = s.present_count || 0;
+        const lDays = s.late_count || 0;
+        const aDays = s.absent_count || 0;
+        const lvDays = s.leave_count || 0;
+        const hDays = s.holiday_count || 0;
+        const dur = s.total_working_duration || '0h 0m';
+
+        document.getElementById('ovPresentDays').textContent = pDays;
+        document.getElementById('ovLateDays').textContent = lDays;
+        document.getElementById('ovAbsentDays').textContent = aDays;
+        document.getElementById('ovLeaveDays').textContent = lvDays;
+        document.getElementById('ovHolidayDays').textContent = hDays;
+        document.getElementById('ovTotalDuration').textContent = dur;
+
+        renderCalendarGrid(data);
+    } catch (err) {
+        grid.innerHTML = `<div class="col-12 text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-1"></i> ${err.message}</div>`;
+    }
+}
+
+function renderCalendarGrid(data) {
+    const grid = document.getElementById('calendarDaysGrid');
+    if (!grid) return;
+    let cellsHtml = '';
+
+    const firstWeekday = data.first_day_weekday || 0;
+    for (let i = 0; i < firstWeekday; i++) {
+        cellsHtml += `<div class="calendar-day-cell empty"></div>`;
+    }
+
+    data.days.forEach(d => {
+        let statusBadgeHtml = '';
+        let timingsHtml = '';
+
+        if (d.is_today && d.has_open_session) {
+            statusBadgeHtml = `<span class="badge badge-present bg-success-subtle text-success border border-success-subtle"><i class="bi bi-broadcast me-1"></i>Clocked In</span>`;
+            if (d.first_login_local) {
+                timingsHtml = `<div class="text-primary fw-semibold" style="font-size: 0.68rem;"><i class="bi bi-box-arrow-in-right me-1"></i>In: ${d.first_login_local}</div>`;
+            }
+        } else {
+            statusBadgeHtml = `<span class="badge ${d.badge_class}">${d.status_label}</span>`;
+            if (d.first_login_local) {
+                const outDisplay = d.final_qualifying_logout_local || 'Pending';
+                timingsHtml = `
+                    <div class="text-muted" style="font-size: 0.68rem;">
+                        <span>In: ${d.first_login_local}</span>
+                        ${d.final_qualifying_logout_local ? ` &bull; <span>Out: ${outDisplay}</span>` : ''}
+                    </div>
+                `;
+            }
+        }
+
+        let delayHtml = '';
+        if (d.delay_minutes > 0) {
+            delayHtml = `<span class="badge badge-late py-0 px-1 font-mono" style="font-size: 0.62rem;">+${d.delay_minutes}m Late</span>`;
+        }
+
+        let disputeBadge = '';
+        if (d.correction_status === 'PENDING_MANAGER') {
+            disputeBadge = `<span class="badge badge-disputed py-0 px-1 font-mono" style="font-size: 0.60rem;"><i class="bi bi-hourglass-split me-1"></i>Dispute Pending</span>`;
+        } else if (d.correction_status === 'APPROVED') {
+            disputeBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle py-0 px-1 font-mono" style="font-size: 0.60rem;"><i class="bi bi-check me-1"></i>Regularized</span>`;
+        } else if (d.correction_status === 'REJECTED') {
+            disputeBadge = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle py-0 px-1 font-mono" style="font-size: 0.60rem;">Dispute Rejected</span>`;
+        }
+
+        let holidayTitle = '';
+        if (d.holiday_name) {
+            holidayTitle = `<div class="text-truncate mt-1 fw-semibold font-mono" style="font-size: 0.67rem; color: #8b5cf6;" title="${escapeHtml(d.holiday_name)}"><i class="bi bi-cup-hot me-1"></i>${escapeHtml(d.holiday_name)}</div>`;
+        }
+
+        let isWeekend = d.primary_status === 'WEEKEND';
+
+        cellsHtml += `
+            <div class="calendar-day-cell ${d.is_today ? 'is-today' : ''} ${isWeekend ? 'is-weekend' : ''}" onclick="openDayDetail('${d.date}')" style="cursor: pointer;" title="Click for punch details">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="calendar-day-number fw-semibold ${d.is_today ? 'text-primary' : (isWeekend ? 'text-secondary' : 'text-headline')}">${d.day}</span>
+                    <div class="d-flex align-items-center gap-1">
+                        ${d.is_today ? '<span class="badge bg-primary text-white" style="font-size: 0.58rem;">TODAY</span>' : ''}
+                        ${delayHtml}
+                        ${disputeBadge}
+                    </div>
+                </div>
+                <div class="d-flex flex-column gap-1">
+                    <div>${statusBadgeHtml}</div>
+                    ${holidayTitle}
+                    ${timingsHtml}
+                </div>
+            </div>
+        `;
+    });
+
+    grid.innerHTML = cellsHtml;
+}
+
+function openDayDetail(dateStr) {
+    if (!calendarCache || !calendarCache.days) return;
+    const d = calendarCache.days.find(item => item.date === dateStr);
+    if (!d) return;
+
+    activeDayDetailDate = d.date;
+    activeDayDetailStatus = d.primary_status;
+
+    document.getElementById('dayModalDate').textContent = `${d.day_name}, ${d.date}`;
+    document.getElementById('dayModalPrimaryStatus').textContent = d.status_label;
+    document.getElementById('dayModalBadge').innerHTML = `<span class="badge ${d.badge_class}">${d.status_label}</span>`;
+
+    let desc = '';
+    if (d.primary_status === 'PRESENT') desc = 'Standard qualified attendance day completed.';
+    else if (d.primary_status === 'LATE') desc = `Late arrival recorded. Arrived ${d.delay_minutes} minutes past the 10:00 AM threshold.`;
+    else if (d.primary_status === 'ABSENT') desc = 'Unmarked working day. No check-in or checkout was recorded.';
+    else if (d.primary_status === 'HOLIDAY') desc = `Official public holiday: ${d.holiday_name}. Office was closed.`;
+    else if (d.primary_status === 'LEAVE') desc = `Authorized leave of absence (${d.leave_info ? d.leave_info.leave_type : 'Leave'}).`;
+    else if (d.primary_status === 'WEEKEND') desc = 'Designated weekend weekly off day.';
+    else if (d.primary_status === 'PENDING_TODAY') desc = 'Active workday in progress. Punch in to register attendance.';
+    else desc = 'Calendar date.';
+
+    document.getElementById('dayModalStatusDesc').textContent = desc;
+    document.getElementById('dayModalFirstIn').textContent = d.first_login_local || 'N/A';
+    document.getElementById('dayModalLastOut').textContent = d.final_qualifying_logout_local || 'N/A';
+    document.getElementById('dayModalDuration').textContent = d.duration_display || '0h 0m';
+    document.getElementById('dayModalBreak').textContent = d.break_duration_display || '00m 00s';
+    document.getElementById('dayModalDelay').textContent = d.delay_minutes > 0 ? `+${d.delay_minutes} mins` : 'None';
+
+    let corrStatusText = 'None';
+    if (d.correction_status === 'PENDING_MANAGER') {
+        corrStatusText = '<span class="text-warning fw-semibold"><i class="bi bi-hourglass-split me-1"></i>Pending Manager Review</span>';
+    } else if (d.correction_status === 'APPROVED') {
+        corrStatusText = '<span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Approved & Regularized</span>';
+    } else if (d.correction_status === 'REJECTED') {
+        corrStatusText = '<span class="text-danger fw-semibold"><i class="bi bi-x-circle me-1"></i>Dispute Rejected</span>';
+    }
+    document.getElementById('dayModalCorrectionStatus').innerHTML = corrStatusText;
+
+    const btnDispute = document.getElementById('btnDisputeDay');
+    if (btnDispute) {
+        if (d.is_future || d.primary_status === 'HOLIDAY' || d.primary_status === 'WEEKEND') {
+            btnDispute.style.display = 'none';
+        } else {
+            btnDispute.style.display = 'inline-block';
+            if (d.correction_status === 'PENDING_MANAGER') {
+                btnDispute.disabled = true;
+                btnDispute.title = 'A regularization dispute is already pending review.';
+            } else {
+                btnDispute.disabled = false;
+                btnDispute.title = 'Dispute this day or regularize missed punches.';
+            }
+        }
+    }
+
+    const extraDiv = document.getElementById('dayModalExtraInfo');
+    const extraText = document.getElementById('dayModalExtraText');
+    if (d.holiday_name) {
+        extraDiv.style.display = 'block';
+        extraText.innerHTML = `<i class="bi bi-cup-hot text-purple me-1"></i> <strong>Holiday:</strong> ${escapeHtml(d.holiday_name)}`;
+    } else if (d.leave_info) {
+        extraDiv.style.display = 'block';
+        extraText.innerHTML = `<i class="bi bi-calendar2-check text-teal me-1"></i> <strong>Approved Leave:</strong> ${escapeHtml(d.leave_info.leave_type || '')} &bull; Reason: ${escapeHtml(d.leave_info.reason || '')}`;
+    } else {
+        extraDiv.style.display = 'none';
+    }
+
+    dayModalInstance.show();
+}
+
+function openDisputeFromDayDetail() {
+    if (!activeDayDetailDate) return;
+    dayModalInstance.hide();
+
+    document.getElementById('disputeAttendanceForm').reset();
+    document.getElementById('disputeTargetDate').value = activeDayDetailDate;
+    document.getElementById('disputeCurrentStatus').value = activeDayDetailStatus || 'ABSENT';
+    document.getElementById('disputeRequestedStatus').value = 'PRESENT';
+    document.getElementById('disputeCorrType').value = (activeDayDetailStatus === 'LATE') ? 'LATE_REGULARIZATION' : 'STATUS_DISPUTE';
+    document.getElementById('disputeInTime').value = '10:00';
+    document.getElementById('disputeOutTime').value = '18:00';
+
+    if (!disputeModalInstance) {
+        disputeModalInstance = new bootstrap.Modal(document.getElementById('disputeAttendanceModal'));
+    }
+    disputeModalInstance.show();
+}
+
+async function submitDisputeAttendance(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnSubmitDispute');
+    btn.disabled = true;
+
+    const payload = {
+        target_date: document.getElementById('disputeTargetDate').value,
+        requested_status: document.getElementById('disputeRequestedStatus').value,
+        correction_type: document.getElementById('disputeCorrType').value,
+        requested_in_time: document.getElementById('disputeInTime').value,
+        requested_out_time: document.getElementById('disputeOutTime').value,
+        reason: document.getElementById('disputeReason').value
+    };
+
+    try {
+        const res = await fetch('/api/attendance/corrections/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to submit attendance dispute');
+
+        showToast('Attendance dispute submitted to Manager successfully!', 'success');
+        if (disputeModalInstance) disputeModalInstance.hide();
+        loadCalendar();
+        loadMyCorrections();
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function loadMyHistory() {
+    try {
+        const res = await fetch(`/api/attendance/my-history?year=${currentCalYear}&month=${currentCalMonth}`);
+        const data = await res.json();
+
+        const tbody = document.getElementById('myAttendanceBody');
+        if (!tbody) return;
+
+        if (data.records && data.records.length > 0) {
+            tbody.innerHTML = data.records.map(r => {
+                const inTime = r.first_login ? new Date(r.first_login).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A';
+
+                let outTime = '<span class="text-muted">Pending</span>';
+                if (r.final_qualifying_logout) {
+                    outTime = new Date(r.final_qualifying_logout).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+                } else if ((r.attendance_date || r.date) === '{{ today_date }}') {
+                    outTime = `<span class="pending-tab-badge"><i class="bi bi-hourglass-split pending-hourglass-spin me-1"></i>Active Shift</span>`;
+                }
+
+                let lateBadge = '<span class="badge badge-on-time">On Time</span>';
+                if (r.late_arrival_status === 'LATE') {
+                    lateBadge = `<span class="badge badge-late">Late (${r.delay_minutes}m)</span>`;
+                }
+
+                let statusBadge = `<span class="badge ${r.status === 'PRESENT' ? 'badge-present' : 'badge-incomplete'}">${r.status}</span>`;
+
+                const elapsedDisp = r.elapsed_time_display || r.official_working_duration_display || '0h 0m';
+                const breakDisp = r.total_break_display || '0h 0m';
+                const activeDisp = r.active_working_display || r.total_active_session_display || '0h 0m';
+
+                return `
+                    <tr>
+                        <td class="font-mono fw-semibold">${r.attendance_date || r.date}</td>
+                        <td class="font-mono">${inTime}</td>
+                        <td class="font-mono">${outTime}</td>
+                        <td>${lateBadge}</td>
+                        <td class="font-mono">${r.delay_minutes > 0 ? '+' + r.delay_minutes + 'm' : '0m'}</td>
+                        <td class="font-mono">${elapsedDisp}</td>
+                        <td class="font-mono text-warning-emphasis">${breakDisp}</td>
+                        <td class="font-mono fw-bold text-success">${activeDisp}</td>
+                        <td><span class="badge bg-light text-secondary border font-mono">${(r.sessions || []).length} sessions</span></td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No punch records found for this period.</td></tr>';
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// =============================================================================
+// HOLIDAY CALENDAR INTEGRATION (REUSING EXISTING HOLIDAY API & DATA)
+// =============================================================================
+async function fetchHolidayCalendarData() {
+    try {
+        const res = await fetch('/api/holidays');
+        const data = await res.json();
+        allHolidaysData = data.holidays || [];
+
+        renderHolidayMonthCalendar();
+        renderUpcomingHolidaysList(data.upcoming || []);
+        renderAnnualHolidayRegister(allHolidaysData);
+    } catch (err) {
+        console.error('Error fetching holidays:', err);
+    }
+}
+
+function renderHolidayMonthCalendar() {
+    const grid = document.getElementById('holidayCalendarGrid');
+    const title = document.getElementById('holidayMonthTitle');
+    if (!grid || !title) return;
+
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    title.textContent = `${monthNames[holidayCurrentMonth]} ${holidayCurrentYear}`;
+
+    grid.innerHTML = '';
+
+    const firstDay = new Date(holidayCurrentYear, holidayCurrentMonth, 1);
+    const lastDay = new Date(holidayCurrentYear, holidayCurrentMonth + 1, 0);
+    const totalDays = lastDay.getDate();
+
+    let startDayIndex = firstDay.getDay() - 1;
+    if (startDayIndex === -1) startDayIndex = 6;
+
+    for (let i = 0; i < startDayIndex; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-day-cell empty';
+        grid.appendChild(emptyCell);
+    }
+
+    const todayStr = initialTodayStr;
+
+    for (let day = 1; day <= totalDays; day++) {
+        const dateObj = new Date(holidayCurrentYear, holidayCurrentMonth, day);
+        const dateStr = `${holidayCurrentYear}-${String(holidayCurrentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayOfWeek = dateObj.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isToday = dateStr === todayStr;
+
+        const holidaysOnDay = allHolidaysData.filter(h => h.date === dateStr);
+        const hasHoliday = holidaysOnDay.length > 0;
+
+        const cell = document.createElement('div');
+        let cellClasses = ['calendar-day-cell'];
+        if (isToday) cellClasses.push('is-today');
+        if (hasHoliday) cellClasses.push('is-holiday');
+        else if (isWeekend) cellClasses.push('is-weekend');
+
+        cell.className = cellClasses.join(' ');
+
+        let chipsHtml = '';
+        if (hasHoliday) {
+            chipsHtml = holidaysOnDay.map(h => `
+                <div class="holiday-chip mt-1 text-truncate" title="${escapeHtml(h.name)} (${h.type || 'Public'})">
+                    <i class="bi bi-star-fill text-warning"></i>
+                    <span>${escapeHtml(h.name)}</span>
+                </div>
+            `).join('');
+        }
+
+        cell.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="calendar-day-number fw-semibold ${isToday ? 'text-primary' : (isWeekend ? 'text-secondary' : 'text-headline')}">${day}</span>
+                ${isToday ? '<span class="badge bg-primary text-white" style="font-size: 0.58rem;">TODAY</span>' : ''}
+            </div>
+            ${chipsHtml}
+        `;
+
+        grid.appendChild(cell);
+    }
+}
+
+function renderUpcomingHolidaysList(upcoming) {
+    const listEl = document.getElementById('holidayUpcomingContainer');
+    const ovListEl = document.getElementById('overviewUpcomingHolidaysList');
+    const badgeEl = document.getElementById('holidayUpcomingBadge');
+    if (badgeEl) badgeEl.textContent = upcoming.length;
+
+    const html = upcoming.length === 0
+        ? '<div class="text-muted small py-2">No upcoming holidays scheduled for this cycle.</div>'
+        : upcoming.map(h => {
+            const dt = new Date(h.date + 'T00:00:00');
+            const formattedDate = dt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', weekday: 'short' });
+
+            return `
+                <div class="border rounded p-2 px-3 bg-card-surface d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-semibold text-headline text-truncate" style="font-size: 0.85rem; max-width: 200px;">
+                            ${escapeHtml(h.name)}
+                        </div>
+                        <div class="text-muted font-mono" style="font-size: 0.725rem;">
+                            <i class="bi bi-calendar3 me-1"></i>${formattedDate}
+                        </div>
+                    </div>
+                    <span class="badge badge-holiday" style="font-size: 0.68rem;">
+                        ${h.type || 'Public'}
+                    </span>
+                </div>
+            `;
+        }).join('');
+
+    if (listEl) listEl.innerHTML = html;
+    if (ovListEl) ovListEl.innerHTML = html;
+}
+
+function renderAnnualHolidayRegister(holidays) {
+    const tbody = document.getElementById('holidayRegisterTableBody');
+    const countEl = document.getElementById('holidayTotalRegisterCount');
+    if (!tbody) return;
+
+    if (countEl) countEl.textContent = `Total: ${holidays.length} Holidays`;
+
+    if (holidays.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No holidays recorded.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = holidays.map(h => {
+        const dt = new Date(h.date + 'T00:00:00');
+        const dayName = dt.toLocaleDateString('en-IN', { weekday: 'long' });
+
+        return `
+            <tr>
+                <td class="font-mono fw-semibold">${h.date}</td>
+                <td class="text-secondary small">${dayName}</td>
+                <td class="fw-semibold">${escapeHtml(h.name)}</td>
+                <td><span class="badge badge-holiday">${h.type || 'Public'}</span></td>
+                <td class="text-muted small">${h.added_by || 'ORGANIZATION'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function navigateHolidayMonth(dir) {
+    holidayCurrentMonth += dir;
+    if (holidayCurrentMonth < 0) {
+        holidayCurrentMonth = 11;
+        holidayCurrentYear -= 1;
+    } else if (holidayCurrentMonth > 11) {
+        holidayCurrentMonth = 0;
+        holidayCurrentYear += 1;
+    }
+    renderHolidayMonthCalendar();
+}
+
+function jumpHolidayToCurrentMonth() {
+    holidayCurrentYear = currentCalYear;
+    holidayCurrentMonth = currentCalMonth - 1;
+    renderHolidayMonthCalendar();
+}
+
+function toggleReportFreezeScreenLayout() {
+    const wrapper = document.getElementById('attendanceReportFreezeWrapper');
+    const btn = document.getElementById('btnToggleFreezeLayout');
+    const label = document.getElementById('freezeBtnLabel');
+    const indicator = document.getElementById('frozenActiveIndicator');
+    if (!wrapper) return;
+
+    const isFrozen = wrapper.classList.toggle('is-frozen');
+    if (btn) btn.classList.toggle('active', isFrozen);
+    if (label) label.textContent = isFrozen ? 'Unfreeze Panes' : 'Freeze Panes';
+    if (indicator) indicator.style.display = isFrozen ? 'inline-flex' : 'none';
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+</script>
+{% endblock %}
