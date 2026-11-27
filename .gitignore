@@ -7,9 +7,9 @@ env/
 .env
 .env.*
 !.env.example
-HRM-main/.env
-HRM-main/.env.*
-!HRM-main/.env.example
+apps/backend/.env
+apps/backend/.env.*
+!apps/backend/.env.example
 
 # Python Cache
 __pycache__/
@@ -24,7 +24,7 @@ htmlcov/
 
 # Scratch & Temporary Testing Scripts
 scratch/
-HRM-main/scratch/
+apps/backend/scratch/
 
 # Logs & Temporary Files
 logs/
@@ -32,7 +32,7 @@ logs/
 
 # Local Database Persistent Storage
 data/
-HRM-main/data/
+apps/backend/data/
 
 # Large Binary Media
 *.mp4
@@ -41,8 +41,8 @@ HRM-main/data/
 
 # Frontend Build & Node Modules
 node_modules/
-frontend-react/node_modules/
-frontend-react/dist/
+apps/frontend/node_modules/
+apps/frontend/dist/
 
 # IDE & OS
 .vscode/

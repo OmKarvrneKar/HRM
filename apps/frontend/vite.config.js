@@ -25,7 +25,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../HRM-main/frontend/static/dist',
+    outDir: '../backend/frontend/static/dist',
     emptyOutDir: true,
   }
 });

@@ -1,3 +1,3 @@
 @echo off
-cd /d "%~dp0HRM-main"
+cd /d "%~dp0apps\backend"
 call start-dev.bat

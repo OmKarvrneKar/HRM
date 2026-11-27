@@ -1,5 +1,5 @@
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from backend.database.connection import DatabaseManager
 db = DatabaseManager.get_db()
 users = list(db.users.find({}, {'password_hash': 0}))

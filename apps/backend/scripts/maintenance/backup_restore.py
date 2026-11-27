@@ -2,10 +2,10 @@
 AI SAMRAT HRMS — DATABASE BACKUP & RESTORATION CLI UTILITY
 
 Usage:
-    python scripts/backup_restore.py --backup
-    python scripts/backup_restore.py --list
-    python scripts/backup_restore.py --restore latest
-    python scripts/backup_restore.py --restore <path_to_backup_folder>
+    python scripts/maintenance/backup_restore.py --backup
+    python scripts/maintenance/backup_restore.py --list
+    python scripts/maintenance/backup_restore.py --restore latest
+    python scripts/maintenance/backup_restore.py --restore <path_to_backup_folder>
 """
 
 import sys
@@ -13,7 +13,7 @@ import argparse
 from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from config import Config
 from backend.database.connection import DatabaseManager

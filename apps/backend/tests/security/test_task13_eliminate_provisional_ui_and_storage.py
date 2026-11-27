@@ -8,7 +8,7 @@ from config import Config, TestConfig
 
 
 PROD_STORAGE_DIR = Path(__file__).resolve().parents[2] / "data" / "storage" / "office_hrm"
-ASSETS_JSX_PATH = Path(__file__).resolve().parents[3] / "frontend-react" / "src" / "features" / "enterprise" / "AssetsInventory.jsx"
+ASSETS_JSX_PATH = Path(__file__).resolve().parents[3] / "frontend" / "src" / "features" / "enterprise" / "AssetsInventory.jsx"
 
 
 def _auth(user: dict) -> dict[str, str]:

@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from backend.database.connection import DatabaseManager
 from backend.permissions.rbac import Role
