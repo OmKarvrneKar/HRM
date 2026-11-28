@@ -1,6 +1,6 @@
 import pytest
 from flask import session, url_for
-from backend.database.seeds import seed_default_users
+from database.seeds import seed_default_users
 from config import Config
 
 

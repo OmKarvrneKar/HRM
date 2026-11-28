@@ -1,5 +1,5 @@
 import pytest
-from backend.services.enterprise_hr_service import (
+from services.enterprise_hr_service import (
     NomineeManagementService,
     AssetSoftwareService,
     FacilityBookingService,

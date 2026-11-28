@@ -1,12 +1,12 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from backend.services.leave_service import LeaveService
-from backend.services.attendance_service import AttendanceService
-from backend.services.project_service import ProjectService
-from backend.services.otp_service import OtpService, OtpPurpose
-from backend.permissions.rbac import Role, can_approve_leave, can_view_profile, can_edit_profile
-from backend.auth.security import hash_password, generate_jwt_token
-from backend.utils.timezone import now_utc, get_local_date_str
+from services.leave_service import LeaveService
+from services.attendance_service import AttendanceService
+from services.project_service import ProjectService
+from services.otp_service import OtpService, OtpPurpose
+from permissions.rbac import Role, can_approve_leave, can_view_profile, can_edit_profile
+from auth.security import hash_password, generate_jwt_token
+from utils.timezone import now_utc, get_local_date_str
 
 
 def test_section_1_two_stage_leave_approval_workflow(db, seeded_users):

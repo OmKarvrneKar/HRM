@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app import create_app
-from backend.database.connection import DatabaseManager, PersistentDatabaseProxy
-from backend.database.seeds import PREDEFINED_TEAMS, seed_real_and_dummy_users
+from database.connection import DatabaseManager, PersistentDatabaseProxy
+from database.seeds import PREDEFINED_TEAMS, seed_real_and_dummy_users
 from config import Config, TestConfig
 
 
@@ -157,7 +157,7 @@ def test_storage_path_reporting_and_external_override_warning(monkeypatch, caplo
     assert "default configuration" in default_info["source"]
     assert default_info["is_external_override"] is False
     caplog.clear()
-    with caplog.at_level(logging.INFO, logger="backend.database.connection"):
+    with caplog.at_level(logging.INFO, logger="database.connection"):
         DatabaseManager.log_active_storage("office_hrm")
     assert "default configuration" in caplog.text
     assert not any(r.levelno >= logging.WARNING for r in caplog.records)
@@ -173,7 +173,7 @@ def test_storage_path_reporting_and_external_override_warning(monkeypatch, caplo
     assert ".env configuration" in dotenv_info["source"]
     assert dotenv_info["is_external_override"] is False
     caplog.clear()
-    with caplog.at_level(logging.INFO, logger="backend.database.connection"):
+    with caplog.at_level(logging.INFO, logger="database.connection"):
         DatabaseManager.log_active_storage("office_hrm")
     assert ".env configuration" in caplog.text
     assert not any(r.levelno >= logging.WARNING for r in caplog.records)
@@ -191,7 +191,7 @@ def test_storage_path_reporting_and_external_override_warning(monkeypatch, caplo
         assert ext_info["is_external_override"] is True
 
         caplog.clear()
-        with caplog.at_level(logging.INFO, logger="backend.database.connection"):
+        with caplog.at_level(logging.INFO, logger="database.connection"):
             try:
                 _reset_db_singleton()
                 db = DatabaseManager.get_db("office_hrm")

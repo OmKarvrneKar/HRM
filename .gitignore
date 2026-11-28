@@ -43,6 +43,7 @@ apps/backend/data/
 node_modules/
 apps/frontend/node_modules/
 apps/frontend/dist/
+apps/backend/dist/
 
 # IDE & OS
 .vscode/

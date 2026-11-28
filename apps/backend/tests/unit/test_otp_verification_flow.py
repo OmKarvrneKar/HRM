@@ -2,11 +2,11 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 
-from backend.auth.security import hash_password, verify_password
-from backend.permissions.rbac import Role
-from backend.services.otp_service import OtpService, OtpPurpose, OTP_EXPIRY_MINUTES, MAX_VERIFICATION_ATTEMPTS
-from backend.services.external_notification_service import ExternalNotificationService
-from backend.database.connection import DatabaseManager
+from auth.security import hash_password, verify_password
+from permissions.rbac import Role
+from services.otp_service import OtpService, OtpPurpose, OTP_EXPIRY_MINUTES, MAX_VERIFICATION_ATTEMPTS
+from services.external_notification_service import ExternalNotificationService
+from database.connection import DatabaseManager
 
 
 def test_otp_generation_and_five_minute_expiry(db):

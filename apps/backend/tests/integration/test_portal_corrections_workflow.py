@@ -1,8 +1,8 @@
 import pytest
 from app import app
-from backend.database.connection import get_db
-from backend.database.seeds import seed_real_and_dummy_users
-from backend.services.enterprise_hr_service import SeparationService, PerformanceLearningService
+from database.connection import get_db
+from database.seeds import seed_real_and_dummy_users
+from services.enterprise_hr_service import SeparationService, PerformanceLearningService
 
 
 @pytest.fixture(scope="module")

@@ -1,8 +1,8 @@
 import pytest
-from backend.services.attendance_service import AttendanceService, OFFICIAL_HOLIDAYS
-from backend.services.leave_service import LeaveService
-from backend.database.connection import get_db
-from backend.utils.timezone import now_utc
+from services.attendance_service import AttendanceService, OFFICIAL_HOLIDAYS
+from services.leave_service import LeaveService
+from database.connection import get_db
+from utils.timezone import now_utc
 
 
 def test_attendance_calendar_holidays_and_weekends(db, seeded_users):

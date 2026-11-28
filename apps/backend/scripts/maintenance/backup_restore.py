@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from config import Config
-from backend.database.connection import DatabaseManager
+from database.connection import DatabaseManager
 
 
 def create_backup():

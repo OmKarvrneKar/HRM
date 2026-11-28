@@ -1,11 +1,11 @@
 import pytest
 from datetime import datetime, timezone
 import pytz
-from backend.services.birthday_service import BirthdayService
-from backend.services.notification_service import NotificationService
-from backend.scheduler.scheduler import DistributedScheduler
-from backend.auth.security import generate_jwt_token, hash_password
-from backend.permissions.rbac import Role
+from services.birthday_service import BirthdayService
+from services.notification_service import NotificationService
+from scheduler.scheduler import DistributedScheduler
+from auth.security import generate_jwt_token, hash_password
+from permissions.rbac import Role
 from config import Config
 
 IST = pytz.timezone("Asia/Kolkata")

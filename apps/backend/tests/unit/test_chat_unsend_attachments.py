@@ -1,7 +1,7 @@
 import io
 import pytest
-from backend.services.chat_service import ChatService
-from backend.permissions.rbac import Role
+from services.chat_service import ChatService
+from permissions.rbac import Role
 from werkzeug.datastructures import FileStorage
 
 

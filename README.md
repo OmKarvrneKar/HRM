@@ -8,10 +8,9 @@ Enterprise Human Resource Management System for **AI Samrat Pvt Ltd** covering w
 
 | Layer | Technology & Location | Role | Status |
 | :--- | :--- | :--- | :--- |
-| **Active Frontend** | React 18.2, Vite 5.4, Tailwind CSS 3.4, React Router 6, React Query 5, Axios, Chart.js (`apps/frontend/`) | Single-Page Application (SPA) on `:5173` (dev proxy to `:5000`); production bundle builds to `apps/backend/frontend/static/dist/` and is served by Flask at `/app`. | **Active** |
-| **Active Backend** | Python 3.11+, Flask 3.0.2, PyJWT, Argon2, ReportLab, OpenPyXL, APScheduler (`apps/backend/`) | App factory (`create_app`), REST APIs (`/api/*`, `/api/auth/*`), 30 domain services, RBAC (`employee`, `tl`, `manager`, `hr`, `admin`), background scheduler. | **Active** |
-| **Database & Persistence** | MongoDB (`pymongo`) with automatic `mongomock` + atomic JSON disk proxy (`apps/backend/backend/database/`) | Uses `MONGODB_URI` (`office_hrm`); when standalone MongoDB is unreachable and mock persistence is enabled, stores collections atomically in JSON under `HRMS_DATA_DIR`. | **Active** |
-| **Legacy Templates UI** | 47 Jinja2 HTML templates + Bootstrap/vanilla assets (`apps/backend/frontend/templates/`, `page_routes.py`) | Co-resident server-rendered routes (`/`, `/login`, legacy dashboards) and shared branding images (`apps/backend/frontend/static/img/`) used by React favicon and ReportLab PDF slips. | **Legacy / Co-resident** |
+| **Frontend** | React 18.2, Vite 5.4, Tailwind CSS 3.4, React Router 6, React Query 5, Axios, Chart.js (`apps/frontend/`) | Single-Page Application (SPA) on `:5173` (dev proxy to `:5000`); production bundle builds to `apps/backend/dist/` and is served directly by Flask (`/` and `/app`). | **Active** |
+| **Backend** | Python 3.11+, Flask 3.0.2, PyJWT, Argon2, ReportLab, OpenPyXL, APScheduler (`apps/backend/`) | App factory (`create_app`), REST APIs (`/api/*`, `/api/auth/*`), 30 domain services, RBAC (`employee`, `tl`, `manager`, `hr`, `admin`), background scheduler, and brand assets (`assets/img/`). | **Active** |
+| **Database & Persistence** | MongoDB (`pymongo`) with automatic `mongomock` + atomic JSON disk proxy (`apps/backend/database/`) | Uses `MONGODB_URI` (`office_hrm`); when standalone MongoDB is unreachable and mock persistence is enabled, stores collections atomically in JSON under `HRMS_DATA_DIR`. | **Active** |
 
 ---
 
@@ -20,14 +19,14 @@ Enterprise Human Resource Management System for **AI Samrat Pvt Ltd** covering w
 ```text
 HRM/
 ├── README.md                          # Developer onboarding guide (single repo doc)
-├── .gitignore                         # Ignores .env, data/, caches, node_modules/
+├── .gitignore                         # Ignores .env, data/, dist/, caches, node_modules/
 ├── start-dev.bat / stop-dev.bat       # Convenience wrappers delegating to apps/backend/*.bat
 └── apps/
-    ├── frontend/                      # ACTIVE FRONTEND (React + Vite SPA)
+    ├── frontend/                      # FRONTEND APPLICATION (React + Vite SPA)
     │   ├── index.html
     │   ├── package.json
     │   ├── postcss.config.js / tailwind.config.js
-    │   ├── vite.config.js             # Dev proxy -> :5000; builds -> ../backend/frontend/static/dist
+    │   ├── vite.config.js             # Dev proxy -> :5000; builds -> ../backend/dist
     │   └── src/
     │       ├── main.jsx
     │       ├── app/                   # App shell (App.jsx) & router (router.jsx)
@@ -52,35 +51,31 @@ HRM/
     │       ├── services/api/          # apiClient.js + 10 domain API wrappers (*Api.js)
     │       └── styles/                # index.css
     │
-    └── backend/                       # ACTIVE BACKEND & RUNTIME ROOT
-        ├── app.py                     # Flask factory create_app(), /app SPA mount, /api/health
+    └── backend/                       # BACKEND API & PERSISTENCE (Python + Flask)
+        ├── app.py                     # Flask factory create_app(), React SPA mount, /api/health
         ├── config.py                  # Config & TestConfig, BASE_DIR, storage provenance checks
-        ├── diagnose.py                # Pre-flight import & /login smoke check
+        ├── diagnose.py                # Pre-flight import, build & /api/health smoke check
         ├── pytest.ini                 # Pytest configuration (testpaths = tests)
-        ├── requirements.txt           # Core Python packages (+ install reportlab & mongomock)
+        ├── requirements.txt           # Core Python packages (+ reportlab & mongomock)
         ├── runtime.txt / Dockerfile / docker-compose.yml
         ├── Intern-Full-Details.xlsx   # Git-tracked master intern import workbook
         ├── start-dev.bat / stop-dev.bat
         ├── .env / .env.example        # Runtime env configuration (.env is gitignored)
-        ├── backend/                   # Core Python backend package:
-        │   ├── auth/                  # security.py (Argon2/PyJWT), rate_limiter.py
-        │   ├── database/              # connection.py, indexes.py, seeds.py
-        │   ├── models/                # user.py (SQLAlchemy lookup shim)
-        │   ├── permissions/           # rbac.py (5 canonical roles & IDOR guards)
-        │   ├── routes/                # auth_routes.py, api_routes.py, page_routes.py
-        │   ├── scheduler/             # scheduler.py (APScheduler distributed jobs)
-        │   ├── services/              # 30 domain service modules (*_service.py)
-        │   └── utils/                 # serializers.py, timezone.py (Asia/Kolkata), validators.py
-        ├── frontend/
-        │   ├── static/dist/           # Compiled React SPA served by Flask at /app
-        │   ├── static/img/            # Logos/icons shared across React, PDF slips, Jinja
-        │   ├── static/css/ & js/      # Legacy template static assets
-        │   └── templates/             # 47 co-resident Jinja2 HTML templates
+        ├── assets/img/                # Brand logo & favicon served at /static/img/ & used in PDF slips
+        ├── auth/                      # security.py (Argon2/PyJWT), rate_limiter.py
+        ├── database/                  # connection.py, indexes.py, seeds.py
+        ├── dist/                      # Compiled React SPA bundle (generated via npm run build)
+        ├── models/                    # user.py (SQLAlchemy lookup shim)
+        ├── permissions/               # rbac.py (5 canonical roles & IDOR guards)
+        ├── routes/                    # auth_routes.py, api_routes.py
+        ├── scheduler/                 # scheduler.py (APScheduler distributed jobs)
+        ├── services/                  # 30 domain service modules (*_service.py)
+        ├── utils/                     # serializers.py, timezone.py (Asia/Kolkata), validators.py
         ├── scripts/                   # Operational & admin CLI utilities:
         │   ├── maintenance/           # backup_restore.py, check_users.py, create_initial_admin.py
-        │   ├── imports/               # import_employees.py, inspect_excel_import.py, inspect_phase1_users.py
-        │   ├── migrations/            # role/data migration & cleanup scripts
-        │   └── diagnostics/           # live verification & page diagnostic scripts
+        │   ├── imports/               # import_employees.py, inspect_excel_import.py
+        │   ├── migrations/            # migrate_to_five_roles.py, purge_dummy_and_seed_real_team.py
+        │   └── diagnostics/           # verify_persistence_and_workflows.py
         ├── data/                      # Gitignored runtime storage & import input:
         │   ├── Intern-Full-Details(1).xlsx
         │   └── storage/
@@ -95,7 +90,7 @@ HRM/
             └── security/
 ```
 
-*(Historical task reports, audits, BRD/PRD records, superseded scripts, and pre-cleanup database snapshots are stored externally in `D:\AI_samrat\Project_Records\HRMS\`.)*
+*(Historical task reports, audits, BRD/PRD records, archived legacy Jinja UI templates, superseded scripts, and pre-cleanup database snapshots are stored externally in `D:\AI_samrat\Project_Records\HRMS\`.)*
 
 ---
 
@@ -132,19 +127,18 @@ Copy `apps/backend/.env.example` to `apps/backend/.env` if missing, and configur
    ```
    Open `http://localhost:5173/login`. Vite proxies `/api/*` and `/static/*` to Flask `:5000`.
 
-### Production Build Served via Flask (`/app`)
-1. Build the React SPA into `apps/backend/frontend/static/dist/`:
+### Production Build Served via Flask (`/`)
+1. Build the React SPA into `apps/backend/dist/`:
    ```powershell
    cd apps\frontend
    npm run build
    ```
 2. Run `start-dev.bat` (from root or `apps\backend\`) or `python app.py` in `apps\backend\`.
-   * React SPA: `http://localhost:5000/app`
-   * Health check: `http://localhost:5000/api/health`
-   * Legacy Jinja login: `http://localhost:5000/login`
+   * React SPA: `http://127.0.0.1:5000/` (`/login`, `/app`, `/dashboard`, etc.)
+   * Health check: `http://127.0.0.1:5000/api/health`
 
 ### Stopping the Application
-* Press `Ctrl+C` in Vite/Flask terminals, or run `stop-dev.bat` (from root or `apps\backend\`) to stop any process listening on port `5000`.
+* Press `Ctrl+C` in Vite/Flask terminals, or run `stop-dev.bat` (from root or `apps\backend\`) to stop active processes listening on ports `5000` and `5173`.
 
 ---
 
@@ -181,11 +175,11 @@ python diagnose.py
   1. Add API calls in `src/services/api/<domain>Api.js` using `apiClient.js`.
   2. Add components/views under `src/features/<domain>/` reusing shared UI primitives in `src/components/common/`.
   3. Wire the route in `src/app/router.jsx` and navigation entry in `src/components/layout/Sidebar.jsx`.
-  4. Run `npm run build` in `apps/frontend/` to refresh `apps/backend/frontend/static/dist/`.
-* **New Backend Module (`apps/backend/backend/`):**
-  1. Add business logic class in `backend/services/<domain>_service.py` using `get_db()` / `DatabaseManager.get_db()` (never direct `MongoClient()`).
-  2. Register indexes in `backend/database/indexes.py` and IST helpers from `backend/utils/timezone.py`.
-  3. Add route handlers in `backend/routes/` guarded by `@require_auth`, `@require_roles(...)`, and `backend/permissions/rbac.py` record-ownership checks, with `AuditService.log_action(...)` on sensitive actions.
+  4. Run `npm run build` in `apps/frontend/` to refresh `apps/backend/dist/`.
+* **New Backend Module (`apps/backend/`):**
+  1. Add business logic class in `services/<domain>_service.py` using `get_db()` / `DatabaseManager.get_db()` (never direct `MongoClient()`).
+  2. Register indexes in `database/indexes.py` and IST helpers from `utils/timezone.py`.
+  3. Add route handlers in `routes/` guarded by `@require_auth`, `@require_roles(...)`, and `permissions/rbac.py` record-ownership checks, with `AuditService.log_action(...)` on sensitive actions.
   4. Add isolated tests using `db` / `TestConfig` under `apps/backend/tests/`.
 
 ---
@@ -195,6 +189,6 @@ python diagnose.py
 * **Never delete or commit `apps/backend/.env`** or overwrite active files under `apps/backend/data/storage/office_hrm/`.
 * **Excel Import Source:** `apps/backend/data/Intern-Full-Details(1).xlsx` (mirrored from `apps/backend/Intern-Full-Details.xlsx`) is the default Excel path used by `EmployeeImportService` and `scripts/imports/*.py`.
 * **Operational Scripts (`apps/backend/scripts/`):**
-  * Scripts under `scripts/migrations/` (`cleanup_dummy_accounts.py`, `purge_dummy_and_seed_real_team.py`, `seed_sample_data.py`, `migrate_to_*`) **mutate live database state** and create automatic backups — do **not** run them casually against production `office_hrm`.
+  * Scripts under `scripts/migrations/` (`purge_dummy_and_seed_real_team.py`, `migrate_to_five_roles.py`) **mutate live database state** and create automatic backups — do **not** run them casually against production `office_hrm`.
   * Always create a backup first using `python scripts/maintenance/backup_restore.py --backup` (from `apps/backend/`).
 * **Legacy Pytest Caution:** Several older tests under `apps/backend/tests/unit/` and `integration/` (`test_hr_portal_and_leave_workflow.py`, `test_phase1_gmail_otp_auth.py`, `test_ats_seating_tl_dashboard.py`, `test_portal_corrections_workflow.py`, `test_enterprise_workflows_consolidated.py`) call `get_db()` or `DatabaseManager.get_db("office_hrm")` directly or expect pre-cleanup fixtures (`EMP-1001`, 100 users, pre-Task 12 provisional rooms). Do not run those legacy suites against production storage without `TESTING=true` / `TestConfig` isolation.

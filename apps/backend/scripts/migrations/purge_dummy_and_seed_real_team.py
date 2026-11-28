@@ -17,11 +17,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.database.connection import DatabaseManager, get_db
-from backend.permissions.rbac import Role
-from backend.auth.security import hash_password
-from backend.services.leave_service import LeaveService
-from backend.services.employee_import_service import EmployeeImportService
+from database.connection import DatabaseManager, get_db
+from permissions.rbac import Role
+from auth.security import hash_password
+from services.leave_service import LeaveService
+from services.employee_import_service import EmployeeImportService
 
 
 # Dummy / Mock Account IDs and Emails to Purge

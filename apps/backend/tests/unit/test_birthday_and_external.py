@@ -1,9 +1,9 @@
 import pytest
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from backend.services.birthday_service import BirthdayService
-from backend.services.external_notification_service import ExternalNotificationService
-from backend.permissions.rbac import Role
+from services.birthday_service import BirthdayService
+from services.external_notification_service import ExternalNotificationService
+from permissions.rbac import Role
 
 
 def test_monthly_birthday_announcement_first_of_month(db, seeded_users):

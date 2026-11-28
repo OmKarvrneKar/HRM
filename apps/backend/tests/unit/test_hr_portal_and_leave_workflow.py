@@ -1,7 +1,7 @@
 import pytest
-from backend.services.leave_service import LeaveService
-from backend.permissions.rbac import Role, can_approve_leave
-from backend.database.connection import DatabaseManager
+from services.leave_service import LeaveService
+from permissions.rbac import Role, can_approve_leave
+from database.connection import DatabaseManager
 
 
 def test_ramya_sole_active_hr_and_dummy_accounts_deactivated():

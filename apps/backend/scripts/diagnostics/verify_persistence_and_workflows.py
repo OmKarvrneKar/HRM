@@ -6,13 +6,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from datetime import datetime, timezone
-from backend.database.connection import DatabaseManager
-from backend.services.attendance_service import AttendanceService
-from backend.services.leave_service import LeaveService
-from backend.services.skill_service import SkillService
-from backend.services.user_service import UserService
-from backend.permissions.rbac import Role
-from backend.auth.security import hash_password, verify_password
+from database.connection import DatabaseManager
+from services.attendance_service import AttendanceService
+from services.leave_service import LeaveService
+from services.skill_service import SkillService
+from services.user_service import UserService
+from permissions.rbac import Role
+from auth.security import hash_password, verify_password
 
 
 def run_persistence_verification():

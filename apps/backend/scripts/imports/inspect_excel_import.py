@@ -7,8 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from datetime import datetime
-from backend.database.connection import DatabaseManager
-from backend.utils.validators import validate_email, validate_phone
+from database.connection import DatabaseManager
+from utils.validators import validate_email, validate_phone
 
 def inspect_excel():
     db = DatabaseManager.get_db()

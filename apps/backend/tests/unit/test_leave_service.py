@@ -1,6 +1,6 @@
 import pytest
-from backend.services.leave_service import LeaveService
-from backend.permissions.rbac import Role
+from services.leave_service import LeaveService
+from permissions.rbac import Role
 
 
 def test_apply_leave_and_calculation(db, seeded_users):

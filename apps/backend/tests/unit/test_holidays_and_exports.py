@@ -1,10 +1,10 @@
 import pytest
 import zipfile
-from backend.services.holiday_service import HolidayService
-from backend.services.export_service import ExportService
-from backend.services.salary_pdf_service import SalaryPDFService
-from backend.services.user_service import UserService
-from backend.permissions.rbac import Role
+from services.holiday_service import HolidayService
+from services.export_service import ExportService
+from services.salary_pdf_service import SalaryPDFService
+from services.user_service import UserService
+from permissions.rbac import Role
 
 
 def test_standard_holidays_seeded(db):

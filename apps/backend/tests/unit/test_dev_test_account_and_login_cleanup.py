@@ -1,9 +1,9 @@
 import pytest
 import os
 from config import Config
-from backend.services.test_account_service import TestAccountService
-from backend.permissions.rbac import Role
-from backend.auth.security import hash_password
+from services.test_account_service import TestAccountService
+from permissions.rbac import Role
+from auth.security import hash_password
 
 
 def test_ensure_test_employee_dev(db):

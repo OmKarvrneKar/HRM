@@ -1,7 +1,7 @@
 import pytest
 import re
-from backend.database.seeds import seed_default_users, DEFAULT_USERS_TO_SEED
-from backend.auth.security import verify_password
+from database.seeds import seed_default_users, DEFAULT_USERS_TO_SEED
+from auth.security import verify_password
 
 
 def test_seed_default_users_function(db):

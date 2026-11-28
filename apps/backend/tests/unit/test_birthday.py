@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from backend.services.birthday_service import BirthdayService
-from backend.database.connection import get_db
+from services.birthday_service import BirthdayService
+from database.connection import get_db
 
 
 def test_birthday_notification_generated_on_date(db, seeded_users):

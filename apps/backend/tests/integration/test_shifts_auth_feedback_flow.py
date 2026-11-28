@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timezone
-from backend.permissions.rbac import Role
-from backend.services.roster_service import RosterService
+from permissions.rbac import Role
+from services.roster_service import RosterService
 
 def test_login_does_not_clock_in(client, seeded_users, tokens):
     """Verify that authenticating/logging in via HTTP does NOT auto-clock into attendance."""

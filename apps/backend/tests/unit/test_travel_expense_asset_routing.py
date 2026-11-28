@@ -1,4 +1,4 @@
-from backend.database.seeds import seed_real_and_dummy_users
+from database.seeds import seed_real_and_dummy_users
 
 
 def use_session(client, employee_id, role):

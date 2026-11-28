@@ -30,7 +30,7 @@ def run_task10_audit():
     # 1. AUDIT ROLE ENUM, CANONICAL ROLES, AND ALIAS DEFINITIONS
     # -------------------------------------------------------------------------
     print("\n[Step 1] Auditing Role definitions and normalize_role() implementation...")
-    from backend.permissions.rbac import Role, normalize_role
+    from permissions.rbac import Role, normalize_role
 
     print(f"  • Canonical Roles: {Role.CANONICAL_ROLES}")
     print(f"  • Role.HR: '{Role.HR}'")
@@ -65,11 +65,11 @@ def run_task10_audit():
     # -------------------------------------------------------------------------
     print("\n[Step 2] Auditing API route decorators and service-level authorization consistency...")
     import inspect
-    from backend.routes.api_routes import verify_facility_room_route, verify_seating_allocation_route
-    from backend.services.enterprise_hr_service import FacilityBookingService, SeatingLockerService
+    from routes.api_routes import verify_facility_room_route, verify_seating_allocation_route
+    from services.enterprise_hr_service import FacilityBookingService, SeatingLockerService
 
     # Check api_routes source code for decorators
-    api_routes_code = (HRM_BACKEND_DIR / "backend" / "routes" / "api_routes.py").read_text(encoding="utf-8")
+    api_routes_code = (HRM_BACKEND_DIR / "routes" / "api_routes.py").read_text(encoding="utf-8")
     assert "@require_roles(Role.HR, Role.ADMIN)\ndef verify_facility_room_route" in api_routes_code, \
         "API decorator for verify_facility_room_route mismatch!"
     assert "@require_roles(Role.HR, Role.ADMIN)\ndef verify_seating_allocation_route" in api_routes_code, \
@@ -77,7 +77,7 @@ def run_task10_audit():
     print("  ✓ API Routes: Both endpoints decorated with @require_roles(Role.HR, Role.ADMIN).")
 
     # Check enterprise_hr_service source code for service-level authorization
-    service_code = (HRM_BACKEND_DIR / "backend" / "services" / "enterprise_hr_service.py").read_text(encoding="utf-8")
+    service_code = (HRM_BACKEND_DIR / "services" / "enterprise_hr_service.py").read_text(encoding="utf-8")
     assert 'actor_role = normalize_role(actor.get("role"))' in service_code
     assert 'if actor_role not in (Role.HR, Role.ADMIN):' in service_code
     print("  ✓ Service Layer: Both FacilityBookingService and SeatingLockerService enforce actor_role in (Role.HR, Role.ADMIN).")
@@ -125,8 +125,8 @@ def run_task10_audit():
     os.environ["USE_MOCK_DB"] = "true"
     os.environ["ALLOW_MOCK_FALLBACK"] = "true"
 
-    from backend.database.connection import DatabaseManager
-    from backend.auth.security import generate_jwt_token
+    from database.connection import DatabaseManager
+    from auth.security import generate_jwt_token
     from app import create_app
 
     # Create temporary sandbox directory for test session
@@ -149,7 +149,7 @@ def run_task10_audit():
         test_db = DatabaseManager.get_db(db_name="office_hrm_test_audit")
         
         # Verify JSON file persistence is disabled during tests
-        assert not isinstance(test_db, getattr(sys.modules.get("backend.database.connection"), "PersistentDatabaseProxy", type(None))), \
+        assert not isinstance(test_db, getattr(sys.modules.get("database.connection"), "PersistentDatabaseProxy", type(None))), \
             "PersistentDatabaseProxy should NOT wrap test database when USE_FILE_PERSISTENCE=False or is_test_db=True!"
         print("  ✓ Proved: JSON file persistence proxy is DISABLED in test mode.")
 

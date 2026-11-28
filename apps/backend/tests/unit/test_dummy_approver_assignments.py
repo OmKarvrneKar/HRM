@@ -1,8 +1,8 @@
-from backend.database.seeds import seed_real_and_dummy_users
-from backend.permissions.rbac import Role
-from backend.services.attendance_service import AttendanceService
-from backend.services.leave_service import LeaveService
-from backend.services.overtime_service import OvertimeService
+from database.seeds import seed_real_and_dummy_users
+from permissions.rbac import Role
+from services.attendance_service import AttendanceService
+from services.leave_service import LeaveService
+from services.overtime_service import OvertimeService
 
 
 def test_seeded_employees_use_dummy_team_lead_and_manager(db):

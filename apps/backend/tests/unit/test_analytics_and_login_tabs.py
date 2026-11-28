@@ -1,7 +1,7 @@
 import pytest
-from backend.permissions.rbac import Role
-from backend.services.analytics_service import AnalyticsService
-from backend.auth.security import generate_jwt_token
+from permissions.rbac import Role
+from services.analytics_service import AnalyticsService
+from auth.security import generate_jwt_token
 
 
 def test_analytics_service_all_roles(db, seeded_users):

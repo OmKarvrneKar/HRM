@@ -1,9 +1,9 @@
 import pytest
 from datetime import datetime, timezone
-from backend.services.project_service import ProjectService
-from backend.services.chat_service import ChatService
-from backend.permissions.rbac import Role
-from backend.auth.security import generate_jwt_token
+from services.project_service import ProjectService
+from services.chat_service import ChatService
+from permissions.rbac import Role
+from auth.security import generate_jwt_token
 
 
 def test_team_lead_creates_project_proposal_pending_approval(db, seeded_users):

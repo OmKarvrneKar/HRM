@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from backend.services.festival_service import FestivalService
-from backend.services.holiday_service import HolidayService
+from services.festival_service import FestivalService
+from services.holiday_service import HolidayService
 
 
 def test_festival_greeting_is_limited_to_the_scheduled_day(monkeypatch):

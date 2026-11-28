@@ -1,12 +1,12 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from backend.services.skill_service import SkillService
-from backend.services.attendance_service import AttendanceService
-from backend.services.project_service import ProjectService
-from backend.services.leave_service import LeaveService
-from backend.services.work_diary_service import WorkDiaryService
-from backend.permissions.rbac import Role
-from backend.utils.timezone import now_utc, get_local_date_str
+from services.skill_service import SkillService
+from services.attendance_service import AttendanceService
+from services.project_service import ProjectService
+from services.leave_service import LeaveService
+from services.work_diary_service import WorkDiaryService
+from permissions.rbac import Role
+from utils.timezone import now_utc, get_local_date_str
 
 
 def test_team_size_and_skill_diagnostics_no_dummy_data(db, seeded_users):

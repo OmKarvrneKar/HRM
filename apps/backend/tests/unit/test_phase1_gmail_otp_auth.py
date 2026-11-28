@@ -2,10 +2,10 @@ import pytest
 from datetime import datetime, timezone
 from bson import ObjectId
 
-from backend.auth.security import hash_password, generate_jwt_token, verify_password
-from backend.permissions.rbac import Role, can_manage_projects, can_view_salary
-from backend.services.otp_service import OtpService, OtpPurpose
-from backend.database.connection import DatabaseManager
+from auth.security import hash_password, generate_jwt_token, verify_password
+from permissions.rbac import Role, can_manage_projects, can_view_salary
+from services.otp_service import OtpService, OtpPurpose
+from database.connection import DatabaseManager
 from config import TestConfig
 
 

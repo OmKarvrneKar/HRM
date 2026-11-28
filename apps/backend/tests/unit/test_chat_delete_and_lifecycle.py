@@ -3,9 +3,9 @@ import pytest
 from datetime import datetime, timezone
 from bson import ObjectId
 from werkzeug.datastructures import FileStorage
-from backend.services.chat_service import ChatService
-from backend.services.project_service import ProjectService
-from backend.permissions.rbac import Role
+from services.chat_service import ChatService
+from services.project_service import ProjectService
+from permissions.rbac import Role
 
 
 def create_approved_test_project(db, creator, manager, members):

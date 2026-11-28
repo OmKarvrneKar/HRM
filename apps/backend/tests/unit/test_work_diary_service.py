@@ -1,7 +1,7 @@
 import pytest
 import io
 import openpyxl
-from backend.services.work_diary_service import WorkDiaryService
+from services.work_diary_service import WorkDiaryService
 
 
 def test_calculate_duration():

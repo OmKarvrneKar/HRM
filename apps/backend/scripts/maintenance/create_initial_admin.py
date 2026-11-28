@@ -5,11 +5,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from backend.database.connection import get_db
-from backend.auth.security import hash_password
-from backend.permissions.rbac import Role
-from backend.utils.validators import validate_email, validate_password_strength
-from backend.services.audit_service import AuditService
+from database.connection import get_db
+from auth.security import hash_password
+from permissions.rbac import Role
+from utils.validators import validate_email, validate_password_strength
+from services.audit_service import AuditService
 
 
 def create_initial_hr_manager(full_name: str, email: str, password: str, employee_id: str = "MGR-1001"):

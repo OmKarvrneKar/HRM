@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from backend.auth.security import generate_jwt_token, hash_password
-from backend.database.connection import DatabaseManager, PersistentDatabaseProxy
-from backend.database.seeds import seed_real_and_dummy_users
-from backend.permissions.rbac import Role
-from backend.services.enterprise_hr_service import FacilityBookingService, SeatingLockerService
+from auth.security import generate_jwt_token, hash_password
+from database.connection import DatabaseManager, PersistentDatabaseProxy
+from database.seeds import seed_real_and_dummy_users
+from permissions.rbac import Role
+from services.enterprise_hr_service import FacilityBookingService, SeatingLockerService
 from config import Config, TestConfig
 
 

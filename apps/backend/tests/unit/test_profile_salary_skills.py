@@ -1,11 +1,11 @@
 import pytest
-from backend.services.user_service import (
+from services.user_service import (
     UserService,
     amount_to_words,
     calculate_salary_components,
     get_default_banking_info
 )
-from backend.permissions.rbac import Role, can_view_profile
+from permissions.rbac import Role, can_view_profile
 
 
 def test_amount_to_words():

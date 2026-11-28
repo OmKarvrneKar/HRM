@@ -2,8 +2,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from backend.auth.security import generate_jwt_token, hash_password
-from backend.permissions.rbac import Role
+from auth.security import generate_jwt_token, hash_password
+from permissions.rbac import Role
 from config import Config, TestConfig
 
 

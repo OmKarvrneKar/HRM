@@ -17,9 +17,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 2. Check and clean any lingering process on port 5000
-echo [INFO] Ensuring port 5000 is free...
-powershell -NoProfile -Command "$conns = Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue; if ($conns) { $conns | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force; Write-Host ('[INFO] Released previously occupied port 5000 (PID ' + $_.OwningProcess + ')') } }"
+REM 2. Check and clean any lingering processes on ports 5000 and 5173
+echo [INFO] Ensuring ports 5000 and 5173 are free...
+powershell -NoProfile -Command "foreach ($p in 5000, 5173) { $conns = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue; if ($conns) { $conns | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force; Write-Host ('[INFO] Released previously occupied port ' + $p + ' (PID ' + $_.OwningProcess + ')') } } }"
 
 REM 3. Ensure environment file exists
 if not exist ".env" (
@@ -30,33 +30,30 @@ if not exist ".env" (
 )
 
 REM 4. Display startup diagnostics
-echo [INFO] Starting AI Samrat HRMS application server...
-echo [INFO] Server URL:    http://localhost:5000
-echo [INFO] Login Portal:  http://localhost:5000/login
-echo [INFO] Health Check:  http://localhost:5000/api/health
+echo [INFO] Starting AI Samrat HRMS backend & React frontend...
+echo [INFO] Backend API:    http://127.0.0.1:5000
+echo [INFO] Built SPA URL:  http://127.0.0.1:5000/login
+echo [INFO] React Dev URL:  http://localhost:5173/login (if Node/npm present)
+echo [INFO] Health Check:   http://127.0.0.1:5000/api/health
 echo.
-echo ============================================================
-echo   LOCAL DEVELOPMENT ACCESS:
-echo   1. Dev Test Employee: EMP-TEST-999 / test.employee@aisamrat.com
-echo      - Click "Access Test Employee Dashboard" on the login page
-echo      - Fully isolated QA sandbox (attendance, breaks, leaves, tasks)
-echo   2. Team Lead:  lead.kavita@aisamrat.com     / Lead@Kavita2026!
-echo   3. Manager:    admin@aisamrat.com           / Admin@Samrat2026!
-echo   4. HR:         ramya.hr@aisamrat.com        / Hr@Ramya2026!
-echo                  (aliases: hr.ramya@aisamrat.com, hr.priya@aisamrat.com)
-echo.
-echo   * Real employees activate accounts with Gmail OTP at:
-echo     http://localhost:5000/activate
-echo   * Development Mode: Disabled by default in .env for safety.
-echo ============================================================
-echo.
-echo Press Ctrl+C in this window to stop the server at any time.
+echo Press Ctrl+C in the server windows to stop, or run stop-dev.bat.
 echo.
 
-REM 5. Open browser automatically after 2 seconds
-start "" http://localhost:5000/login
+REM 5. Start React Vite Dev Server (port 5173) if npm is available and open browser
+where npm >nul 2>&1
+if not errorlevel 1 (
+    if exist "..\frontend\package.json" (
+        echo [INFO] Launching React Vite Dev Server in a new window...
+        start "AI Samrat HRMS — Frontend (Vite :5173)" /D "%~dp0..\frontend" cmd /k "npm run dev"
+        start "" http://localhost:5173/login
+        goto :run_flask
+    )
+)
 
-REM 6. Run the application
+start "" http://127.0.0.1:5000/login
+
+:run_flask
+REM 6. Run the Flask Backend Server (port 5000)
 python app.py
 if errorlevel 1 (
     echo.

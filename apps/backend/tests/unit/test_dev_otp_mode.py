@@ -2,9 +2,9 @@ import pytest
 import os
 from datetime import datetime, timezone, timedelta
 from config import Config
-from backend.services.otp_service import OtpService, OtpPurpose
-from backend.permissions.rbac import Role
-from backend.auth.security import hash_password, generate_jwt_token
+from services.otp_service import OtpService, OtpPurpose
+from permissions.rbac import Role
+from auth.security import hash_password, generate_jwt_token
 
 
 def test_dev_otp_generation_and_success_verification(db):

@@ -1,7 +1,7 @@
 import pytest
-from backend.services.captcha_service import CaptchaService
-from backend.auth.security import hash_password
-from backend.permissions.rbac import Role
+from services.captcha_service import CaptchaService
+from auth.security import hash_password
+from permissions.rbac import Role
 
 
 @pytest.fixture

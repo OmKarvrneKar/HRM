@@ -1,12 +1,12 @@
 import pytest
 from datetime import datetime, timezone
-from backend.database.connection import get_db, DatabaseManager
-from backend.permissions.rbac import Role
-from backend.services.attendance_service import AttendanceService
-from backend.services.attendance_correction_service import AttendanceCorrectionService
-from backend.services.leave_service import LeaveService
-from backend.services.chat_service import ChatService
-from backend.services.enterprise_hr_service import (
+from database.connection import get_db, DatabaseManager
+from permissions.rbac import Role
+from services.attendance_service import AttendanceService
+from services.attendance_correction_service import AttendanceCorrectionService
+from services.leave_service import LeaveService
+from services.chat_service import ChatService
+from services.enterprise_hr_service import (
     EnterpriseMailboxService,
     RecruitmentTalentService,
     SecureDocumentViewerService,

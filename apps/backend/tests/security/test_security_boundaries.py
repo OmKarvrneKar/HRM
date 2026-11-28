@@ -1,5 +1,5 @@
 import pytest
-from backend.permissions.rbac import Role
+from permissions.rbac import Role
 
 
 def test_employee_cannot_access_hr_endpoints(client, tokens):

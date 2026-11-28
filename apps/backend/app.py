@@ -2,23 +2,22 @@ import os
 import random
 import re
 import logging
-from flask import Flask, jsonify, render_template, request, flash, redirect, url_for, session, make_response
+from flask import Flask, jsonify, request, redirect, url_for, session, send_from_directory
 from bson import ObjectId
 from config import Config
-from backend.database.connection import DatabaseManager
-from backend.database.indexes import setup_indexes
-from backend.database.seeds import (
+from database.connection import DatabaseManager
+from database.indexes import setup_indexes
+from database.seeds import (
     seed_real_and_dummy_users as _seed_real_and_dummy_users,
     seed_default_users as _seed_default_users
 )
-from backend.scheduler.scheduler import DistributedScheduler
-from backend.permissions.rbac import get_token_from_request
-from backend.auth.security import decode_jwt_token
-from backend.routes.auth_routes import auth_bp
-from backend.routes.api_routes import api_bp
-from backend.routes.page_routes import page_bp
+from scheduler.scheduler import DistributedScheduler
+from permissions.rbac import get_token_from_request, Role, normalize_role
+from auth.security import decode_jwt_token
+from routes.auth_routes import auth_bp
+from routes.api_routes import api_bp
 from sqlalchemy import or_
-from backend.models.user import User, sync_users_from_db
+from models.user import User, sync_users_from_db
 
 logging.basicConfig(
     level=logging.INFO,
@@ -64,8 +63,8 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
 
     app = Flask(
         __name__,
-        template_folder="frontend/templates",
-        static_folder="frontend/static"
+        static_folder="assets",
+        static_url_path="/static"
     )
     app.config.from_object(config_class)
 
@@ -74,16 +73,28 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
     setup_indexes(db)
     seed_real_and_dummy_users(db)
 
-    # 2. Register Blueprints
+    # 2. Register API & Auth Blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp)
-    app.register_blueprint(page_bp)
+
+    def _serve_react_spa(subpath: str = ""):
+        dist_dir = os.path.join(app.root_path, "dist")
+        if subpath:
+            candidate = os.path.join(dist_dir, subpath)
+            if os.path.isfile(candidate):
+                return send_from_directory(dist_dir, subpath)
+        index_path = os.path.join(dist_dir, "index.html")
+        if os.path.isfile(index_path):
+            return send_from_directory(dist_dir, "index.html")
+        return jsonify({
+            "error": "Frontend build not found. Run 'npm run build' in apps/frontend."
+        }), 404
 
     # 2.1 Unified Authentication / Login Route
     @app.route("/login", methods=["GET", "POST"])
     def login():
         if request.method == "POST":
-            from backend.routes.auth_routes import login as api_login
+            from routes.auth_routes import login as api_login
             res = api_login()
             if request.headers.get("Accept") == "application/json" or request.is_json:
                 return res
@@ -92,36 +103,20 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
             if hasattr(response_obj, "get_json") and response_obj.get_json():
                 data = response_obj.get_json()
                 if data.get("success"):
-                    # Role check for admin (case-insensitive)
-                    role = (data.get("role") or session.get("role") or "").lower()
-                    if role == "admin":
-                        redirect_resp = redirect(url_for("admin_dashboard"))
-                    elif data.get("redirect_url"):
-                        redirect_resp = redirect(data["redirect_url"])
-                    else:
-                        redirect_resp = redirect(url_for("page_views.index"))
-
+                    redirect_target = data.get("redirect_url") or "/dashboard"
+                    redirect_resp = redirect(redirect_target)
                     for cookie in response_obj.headers.getlist("Set-Cookie"):
                         redirect_resp.headers.add("Set-Cookie", cookie)
                     return redirect_resp
-                else:
-                    flash(data.get("error", "Invalid Employee ID or password."), "danger")
-                    return render_template("auth/login.html", error=data.get("error", "Authentication failed.")), 200
             return res
 
-        from backend.routes.page_routes import get_current_user_from_cookie
-        user = get_current_user_from_cookie()
-        if user and request.args.get("logged_out") != "1" and request.args.get("logout") != "1":
-            return redirect(url_for("page_views.index"))
-
-        from backend.services.otp_service import OtpService
-        generated_otp = request.args.get("otp") or (OtpService.get_debug_otp() if Config.is_development() else None)
-        resp = make_response(render_template("auth/login.html", generated_otp=generated_otp))
-        for p in ("/", "/api", "/api/auth"):
-            resp.delete_cookie(Config.JWT_COOKIE_NAME, path=p)
-            resp.delete_cookie("session", path=p)
-            resp.set_cookie(Config.JWT_COOKIE_NAME, "", expires=0, max_age=0, path=p)
-            resp.set_cookie("session", "", expires=0, max_age=0, path=p)
+        resp = app.make_response(_serve_react_spa())
+        if request.args.get("logged_out") == "1" or request.args.get("logout") == "1":
+            for p in ("/", "/api", "/api/auth"):
+                resp.delete_cookie(Config.JWT_COOKIE_NAME, path=p)
+                resp.delete_cookie("session", path=p)
+                resp.set_cookie(Config.JWT_COOKIE_NAME, "", expires=0, max_age=0, path=p)
+                resp.set_cookie("session", "", expires=0, max_age=0, path=p)
         return resp
 
     # 2.2 Complete Logout / Sign-Out Route (GET & POST)
@@ -144,8 +139,8 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
                     user = active_db.users.find_one({"_id": ObjectId(payload["user_id"])})
 
             if user:
-                from backend.services.attendance_service import AttendanceService
-                from backend.services.audit_service import AuditService
+                from services.attendance_service import AttendanceService
+                from services.audit_service import AuditService
                 AttendanceService.record_logout(user, ip_address=request.remote_addr)
                 AuditService.log_action(
                     actor=user,
@@ -169,89 +164,39 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
             resp.set_cookie("session", "", expires=0, max_age=0, path=p)
         return resp
 
-    # 2.3 System Admin Dashboard Route
-    @app.route('/dashboard/admin')
-    @app.route('/admin/dashboard')
-    def admin_dashboard():
-        from backend.routes.page_routes import get_current_user_from_cookie
-        from backend.utils.serializers import serialize_doc
-        from backend.utils.timezone import get_local_date_str
-        from backend.database.connection import DatabaseManager
+    # 2.3 React SPA Frontend & Asset Delivery
+    @app.route("/")
+    @app.route("/activate")
+    @app.route("/dashboard")
+    @app.route("/dashboard/<path:subpath>")
+    @app.route("/admin")
+    @app.route("/admin/dashboard")
+    @app.route("/attendance")
+    @app.route("/leaves")
+    @app.route("/skills")
+    @app.route("/work-diary")
+    @app.route("/payroll")
+    @app.route("/enterprise")
+    @app.route("/helpdesk")
+    @app.route("/celebrations")
+    @app.route("/directory")
+    def serve_spa_routes(subpath: str = ""):
+        return _serve_react_spa()
 
-        # 1. Strict RBAC validation: session or JWT role must be admin
-        session_role = (session.get('role') or '').lower()
-        user = get_current_user_from_cookie()
-        user_role = (user.get('role') or '').lower() if user else ''
+    @app.route("/projects")
+    def serve_projects_spa():
+        token = get_token_from_request()
+        if token:
+            payload = decode_jwt_token(token)
+            if payload and normalize_role(payload.get("role")) == Role.HR:
+                return jsonify({"error": "Access Denied / Forbidden"}), 403
+        return _serve_react_spa()
 
-        if session_role != 'admin' and user_role != 'admin':
-            flash('Unauthorized access', 'danger')
-            return redirect(url_for('login'))
-
-        # 2. Resolve admin user document for template rendering
-        if not user:
-            emp_id = session.get('emp_id') or session.get('user_id')
-            active_db = DatabaseManager.get_db()
-            if emp_id:
-                user = active_db.users.find_one({
-                    "$or": [
-                        {"emp_id": emp_id},
-                        {"employee_id": emp_id}
-                    ]
-                })
-            if not user:
-                user = active_db.users.find_one({"role": "admin"})
-
-        if not user:
-            user = {
-                "emp_id": "ADMIN-1001",
-                "employee_id": "ADMIN-1001",
-                "name": "System Administrator",
-                "full_name": "System Administrator",
-                "role": "admin",
-                "email": "admin@aisamrat.com"
-            }
-
-        user_dict = serialize_doc(user) if hasattr(user, "get") else user
-        request.current_user = user_dict
-
-        return render_template(
-            "dashboards/admin_dashboard.html",
-            user=user_dict,
-            today_date=get_local_date_str()
-        )
-
-    # 3. Context processor to inject common variables into Jinja
-    @app.context_processor
-    def inject_global_template_vars():
-        # Never inject authenticated user variables on the login page
-        if request.path == "/login" or request.endpoint in ("login", "page_views.login_page"):
-            return {
-                "current_user": None,
-                "user": None,
-                "app_name": "AI Samrat HRMS",
-                "is_dev_mode": Config.is_development(),
-                "allows_test_account": Config.allows_test_account(),
-                "is_dev_otp_mode": Config.is_dev_otp_mode()
-            }
-
-        from backend.routes.page_routes import get_current_user_from_cookie
-        from backend.utils.serializers import serialize_doc
-        active_user = getattr(request, "current_user", None) or get_current_user_from_cookie()
-        if not active_user and (session.get('emp_id') or session.get('user_id')):
-            from backend.database.connection import DatabaseManager
-            emp_id = session.get('emp_id') or session.get('user_id')
-            db = DatabaseManager.get_db()
-            active_user = db.users.find_one({"$or": [{"emp_id": emp_id}, {"employee_id": emp_id}]})
-        if active_user and hasattr(active_user, "get"):
-            active_user = serialize_doc(active_user)
-        return {
-            "current_user": active_user,
-            "user": active_user,
-            "app_name": "AI Samrat HRMS",
-            "is_dev_mode": Config.is_development(),
-            "allows_test_account": Config.allows_test_account(),
-            "is_dev_otp_mode": Config.is_dev_otp_mode()
-        }
+    @app.route("/assets/<path:filename>")
+    @app.route("/app/assets/<path:filename>")
+    def serve_react_assets(filename):
+        assets_dir = os.path.join(app.root_path, "dist", "assets")
+        return send_from_directory(assets_dir, filename)
 
     # 4. Security & Cache Control Headers (Prevent bfcache session exposure on back-navigation)
     @app.after_request
@@ -265,7 +210,7 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
     @app.route("/api/health")
     def health_check():
         from datetime import datetime, timezone
-        from backend.database.connection import DatabaseManager
+        from database.connection import DatabaseManager
         active_db = DatabaseManager.get_db()
         is_mock = DatabaseManager.is_mock()
         persistence_mode = "persistent_disk" if (is_mock and getattr(Config, "USE_FILE_PERSISTENCE", True)) else ("mongodb" if not is_mock else "in_memory")
@@ -289,11 +234,7 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
     @app.route("/app", defaults={"path": ""})
     @app.route("/app/<path:path>")
     def serve_react_app(path):
-        from flask import send_from_directory
-        dist_dir = os.path.join(app.root_path, "frontend", "static", "dist")
-        if path and os.path.exists(os.path.join(dist_dir, path)):
-            return send_from_directory(dist_dir, path)
-        return send_from_directory(dist_dir, "index.html")
+        return _serve_react_spa(path)
 
     @app.route('/generate-otp', methods=['POST', 'GET'])
     def generate_otp():
@@ -325,7 +266,7 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
 
             # Sync to OtpService for activation verification
             try:
-                from backend.services.otp_service import OtpService, OtpPurpose
+                from services.otp_service import OtpService, OtpPurpose
                 from datetime import datetime, timezone, timedelta
                 user_email = user.get("personal_email") or user.get("email") or ""
                 if user_email:
@@ -337,51 +278,36 @@ def create_app(config_class=Config, start_scheduler=True) -> Flask:
             except Exception as e:
                 logger.warning("Could not sync OTP to OtpService: %s", e)
 
-            if request.is_json or request.headers.get("Accept") == "application/json":
-                return jsonify({
-                    "success": True,
-                    "generated_otp": auto_otp,
-                    "emp_id": actual_emp_id,
-                    "message": f"OTP {auto_otp} generated successfully for {actual_emp_id}."
-                }), 200
+            return jsonify({
+                "success": True,
+                "generated_otp": auto_otp,
+                "emp_id": actual_emp_id,
+                "message": f"OTP {auto_otp} generated successfully for {actual_emp_id}."
+            }), 200
 
-            # Pass the OTP directly back to the HTML page for easy testing
-            return render_template('activate_account.html', generated_otp=auto_otp, emp_id=actual_emp_id)
-
-        flash('Employee ID not found', 'danger')
-        return redirect(url_for('activate_page', emp_id=emp_id))
+        return jsonify({"success": False, "error": "Employee ID not found"}), 404
 
     # 4. Error handlers
     @app.errorhandler(400)
     def bad_request(e):
-        if request.path.startswith("/api/"):
-            return jsonify({"error": "Bad request", "details": str(e)}), 400
-        return render_template("base.html", error_message="400 - Bad Request"), 400
+        return jsonify({"error": "Bad request", "details": str(e)}), 400
 
     @app.errorhandler(401)
     def unauthorized(e):
-        if request.path.startswith("/api/"):
-            return jsonify({"error": "Unauthorized"}), 401
-        return render_template("base.html", error_message="401 - Unauthorized"), 401
+        return jsonify({"error": "Unauthorized"}), 401
 
     @app.errorhandler(403)
     def forbidden(e):
-        if request.path.startswith("/api/"):
-            return jsonify({"error": "Access Denied / Forbidden"}), 403
-        return render_template("base.html", error_message="403 - Forbidden"), 403
+        return jsonify({"error": "Access Denied / Forbidden"}), 403
 
     @app.errorhandler(404)
     def not_found(e):
-        if request.path.startswith("/api/"):
-            return jsonify({"error": "Resource not found"}), 404
-        return render_template("base.html", error_message="404 - Not Found"), 404
+        return jsonify({"error": "Resource not found"}), 404
 
     @app.errorhandler(500)
     def internal_server_error(e):
         logger.error("Internal Server Error: %s", str(e), exc_info=True)
-        if request.path.startswith("/api/"):
-            return jsonify({"error": "An internal server error occurred."}), 500
-        return render_template("base.html", error_message="500 - Internal Server Error"), 500
+        return jsonify({"error": "An internal server error occurred."}), 500
 
     # 5. Initialize APScheduler (skip in testing mode or reloader child)
     if start_scheduler and not app.config.get("TESTING", False):

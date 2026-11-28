@@ -1,8 +1,8 @@
 import pytest
 import os
 from config import Config
-from backend.services.otp_service import OtpService, OtpPurpose
-from backend.permissions.rbac import Role
+from services.otp_service import OtpService, OtpPurpose
+from permissions.rbac import Role
 
 
 def test_otp_generation_prints_to_terminal_logs(capsys):

@@ -10,10 +10,10 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from app import create_app
 from config import TestConfig
-from backend.database.connection import DatabaseManager
-from backend.database.indexes import setup_indexes
-from backend.auth.security import hash_password, generate_jwt_token
-from backend.permissions.rbac import Role
+from database.connection import DatabaseManager
+from database.indexes import setup_indexes
+from auth.security import hash_password, generate_jwt_token
+from permissions.rbac import Role
 
 
 @pytest.fixture(scope="session")

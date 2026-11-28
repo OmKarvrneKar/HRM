@@ -1,8 +1,8 @@
 import pytest
-from backend.services.leave_service import LeaveService, PROGRESSIVE_LEAVE_POLICIES
-from backend.database.connection import get_db
-from backend.permissions.rbac import Role
-from backend.utils.timezone import now_utc
+from services.leave_service import LeaveService, PROGRESSIVE_LEAVE_POLICIES
+from database.connection import get_db
+from permissions.rbac import Role
+from utils.timezone import now_utc
 
 
 def test_progressive_leave_policies_structure():
@@ -174,7 +174,7 @@ def test_apply_and_approve_progressive_leave(db, seeded_users):
 def test_api_leaves_policies_endpoint(client, seeded_users):
     """Test GET /api/leaves/policies returns complete policy metadata."""
     emp1 = seeded_users["emp1"]
-    from backend.auth.security import generate_jwt_token
+    from auth.security import generate_jwt_token
     token = generate_jwt_token(emp1)
 
     res = client.get("/api/leaves/policies", headers={"Authorization": f"Bearer {token}"})

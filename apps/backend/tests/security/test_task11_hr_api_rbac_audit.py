@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
-from backend.auth.security import generate_jwt_token, hash_password
-from backend.permissions.rbac import (
+from auth.security import generate_jwt_token, hash_password
+from permissions.rbac import (
     Role,
     can_access_employee_record,
     can_approve_leave,
@@ -17,12 +17,12 @@ from backend.permissions.rbac import (
     can_view_salary,
     normalize_role,
 )
-from backend.services.audit_service import AuditService
-from backend.services.enterprise_hr_service import SecureDocumentViewerService
-from backend.services.export_service import ExportService
-from backend.services.leave_service import LeaveService
-from backend.services.roster_service import RosterService
-from backend.services.user_service import UserService
+from services.audit_service import AuditService
+from services.enterprise_hr_service import SecureDocumentViewerService
+from services.export_service import ExportService
+from services.leave_service import LeaveService
+from services.roster_service import RosterService
+from services.user_service import UserService
 from config import Config, TestConfig
 
 
@@ -596,7 +596,7 @@ def test_area3_attendance_correction_and_leave_approval_rbac(client, db, task11_
     assert client.post(f"/api/leaves/{lr_id}/send-email", headers=_auth(emp1), json={"to": "hr@test.local"}).status_code == 403
     assert client.post(f"/api/leaves/{lr_id}/send-email", headers=_auth(hr), json={"to": "hr@test.local"}).status_code == 403
     assert client.post(f"/api/leaves/{lr_id}/send-email", headers=_auth(mgr_sales), json={"to": "hr@test.local"}).status_code == 403
-    with patch("backend.services.external_notification_service.ExternalNotificationService.send_email", return_value={"status": "DELIVERED"}):
+    with patch("services.external_notification_service.ExternalNotificationService.send_email", return_value={"status": "DELIVERED"}):
         assert client.post(f"/api/leaves/{lr_id}/send-email", headers=_auth(mgr_eng), json={"to": "hr@test.local"}).status_code == 200
 
     # Correspondence & Admin Leave Delete: HR & Admin only

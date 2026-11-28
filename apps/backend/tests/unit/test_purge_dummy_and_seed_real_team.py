@@ -4,8 +4,8 @@ AISAMRAT HRMS — Enterprise Workforce Synchronization
 """
 
 import pytest
-from backend.database.connection import get_db
-from backend.permissions.rbac import Role
+from database.connection import get_db
+from permissions.rbac import Role
 from scripts.migrations.purge_dummy_and_seed_real_team import purge_dummy_users_and_seed_real_team
 
 

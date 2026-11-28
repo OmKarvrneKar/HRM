@@ -1,9 +1,9 @@
 import pytest
-from backend.database.connection import get_db
-from backend.permissions.rbac import Role
-from backend.auth.security import generate_jwt_token
-from backend.services.notepad_service import NotepadService
-from backend.services.feedback_service import FeedbackService
+from database.connection import get_db
+from permissions.rbac import Role
+from auth.security import generate_jwt_token
+from services.notepad_service import NotepadService
+from services.feedback_service import FeedbackService
 
 
 @pytest.fixture

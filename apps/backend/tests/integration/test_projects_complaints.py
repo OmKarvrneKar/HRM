@@ -1,5 +1,5 @@
-from backend.services.project_service import ProjectService
-from backend.services.complaint_service import ComplaintService
+from services.project_service import ProjectService
+from services.complaint_service import ComplaintService
 
 
 def test_project_weighted_progress_calculation(db, seeded_users):

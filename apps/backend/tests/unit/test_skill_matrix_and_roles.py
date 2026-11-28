@@ -1,6 +1,6 @@
 import pytest
-from backend.permissions.rbac import Role
-from backend.services.skill_service import SkillService
+from permissions.rbac import Role
+from services.skill_service import SkillService
 
 
 def test_role_based_login_matching_and_mismatch(client, seeded_users):

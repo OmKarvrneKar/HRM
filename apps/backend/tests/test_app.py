@@ -5,9 +5,9 @@ from werkzeug.security import check_password_hash
 
 from app import initialize_users, create_app
 from config import TestConfig
-from backend.database.connection import DatabaseManager
-from backend.database.indexes import setup_indexes
-from backend.auth.security import generate_jwt_token
+from database.connection import DatabaseManager
+from database.indexes import setup_indexes
+from auth.security import generate_jwt_token
 
 
 # ============================================================================
@@ -403,7 +403,7 @@ def test_sqlalchemy_or_query_lookup(db):
     employee ID (emp_id / employee_id), or username across all enterprise roles.
     """
     from sqlalchemy import or_
-    from backend.models.user import User, sync_users_from_db
+    from models.user import User, sync_users_from_db
 
     initialize_users(db)
     sync_users_from_db(db)

@@ -1,8 +1,8 @@
 import pytest
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from backend.services.attendance_service import AttendanceService
-from backend.utils.timezone import get_app_timezone
+from services.attendance_service import AttendanceService
+from utils.timezone import get_app_timezone
 
 
 def make_test_event(emp_id, date_str, hour, minute, event_type, session_id):
@@ -176,7 +176,7 @@ def test_get_office_timing_status_structure_and_values(db, seeded_users):
 
 def test_cutoff_intimations_service_idempotency(db, seeded_users):
     """Cutoff intimations must create high-priority notifications idempotently for unclosed sessions."""
-    from backend.utils.timezone import get_local_date_str
+    from utils.timezone import get_local_date_str
     today_str = get_local_date_str()
     emp_id = seeded_users["emp1"]["employee_id"]
 

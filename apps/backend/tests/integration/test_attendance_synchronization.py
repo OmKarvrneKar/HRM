@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timezone
-from backend.services.attendance_service import AttendanceService
-from backend.utils.timezone import get_local_date_str, now_utc
+from services.attendance_service import AttendanceService
+from utils.timezone import get_local_date_str, now_utc
 
 
 def test_clock_in_and_synchronization_across_dashboard_and_attendance(client, seeded_users, tokens, db):

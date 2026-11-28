@@ -1,11 +1,11 @@
 import pytest
 from datetime import datetime, timezone
-from backend.permissions.rbac import Role
-from backend.auth.security import hash_password, generate_jwt_token
-from backend.services.chat_service import ChatService
-from backend.services.notification_service import NotificationService
-from backend.services.skill_service import SkillService
-from backend.services.audit_service import AuditService
+from permissions.rbac import Role
+from auth.security import hash_password, generate_jwt_token
+from services.chat_service import ChatService
+from services.notification_service import NotificationService
+from services.skill_service import SkillService
+from services.audit_service import AuditService
 
 
 @pytest.fixture
